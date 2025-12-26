@@ -1,0 +1,135 @@
+/* Nexus Button Styles */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius-full);
+    /* Pill shape */
+    font-weight: 600;
+    font-size: 0.9375rem;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid transparent;
+    outline: none;
+    letter-spacing: 0.01em;
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    filter: grayscale(1);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    color: white;
+    box-shadow: 0 4px 12px var(--accent-glow);
+    border: none;
+}
+
+.btn-primary:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 16px var(--accent-glow);
+    filter: brightness(1.05);
+}
+
+.btn-secondary {
+    background-color: white;
+    color: var(--text-primary);
+    border-color: var(--border-subtle);
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-secondary:hover:not(:disabled) {
+    border-color: var(--border-highlight);
+    background-color: var(--bg-primary);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-outline {
+    background-color: transparent;
+    border-color: transparent;
+    color: var(--text-secondary);
+}
+
+.btn-outline:hover:not(:disabled) {
+    background-color: rgba(0, 0, 0, 0.03);
+    color: var(--text-primary);
+}
+
+.btn-ghost {
+    background: transparent;
+    color: var(--text-secondary);
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+}
+
+.btn-ghost:hover {
+    color: var(--accent-primary);
+    background: rgba(79, 70, 229, 0.05);
+}
+
+
+/* Input Styles */
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+}
+
+.input-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-left: 0.25rem;
+}
+
+.input-field {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+    padding: 0.875rem 1rem;
+    border-radius: var(--radius-lg);
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    width: 100%;
+    box-shadow: var(--shadow-sm);
+}
+
+.input-field:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.input-field::placeholder {
+    color: var(--text-muted);
+}
+
+/* Card Utility */
+.card,
+.auth-card,
+.dashboard-container>div,
+.album-card {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-md);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Specific Auth Card Override */
+.auth-card {
+    box-shadow: var(--shadow-lg);
+    border: none;
+    /* Cleaner look for auth */
+}
+
+/* Navbar specific */
+.navbar {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-subtle);
+}
