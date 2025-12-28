@@ -1,19 +1,20 @@
 
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import Button from '../components/ui/Button';
 import { calculateCommission } from '../config/platform';
+import { useCart } from '../context/CartContext';
 
 const PublicAlbumView = () => {
     const { id } = useParams();
+    const navigate = useNavigate();
     const [album, setAlbum] = useState(null);
     const [photos, setPhotos] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [purchasing, setPurchasing] = useState(false);
 
-    // Selection Mode State
-    const [selectedPhotoIds, setSelectedPhotoIds] = useState(new Set());
+    // Cart Interaction
+    const { addToCart, removeFromCart, isInCart, cartItems } = useCart();
 
     useEffect(() => {
         fetchAlbumDetails();
@@ -49,43 +50,32 @@ const PublicAlbumView = () => {
         }
     };
 
-    const togglePhotoSelection = (photoId) => {
-        const newSelection = new Set(selectedPhotoIds);
-        if (newSelection.has(photoId)) {
-            newSelection.delete(photoId);
+    const toggleCartItem = (photo) => {
+        if (isInCart(photo.id)) {
+            removeFromCart(photo.id);
         } else {
-            newSelection.add(photoId);
+            addToCart(photo, album);
         }
-        setSelectedPhotoIds(newSelection);
     };
 
-    const calculatePrice = () => {
+    const getSelectionForThisAlbum = () => {
+        return cartItems.filter(item => item.album_id === id);
+    };
+
+    const calculateCurrentAlbumPrice = () => {
         if (!album) return 0;
 
-        const quantity = selectedPhotoIds.size;
+        const selection = getSelectionForThisAlbum();
+        const quantity = selection.length;
         if (quantity === 0) return 0;
 
-        // 1. Use Pricing Package Tiers if available
         if (album.pricing_packages && album.pricing_packages.tiers) {
-            // Volume Pricing Logic:
-            // Find the highest tier that fits the quantity (e.g., if buying 3, and tiers are 1+ and 5+, use 1+ tier price).
-            // Apply that UNIT price to ALL photos.
-
-            const tiers = [...album.pricing_packages.tiers].sort((a, b) => b.quantity - a.quantity); // Descending (e.g., 50, 10, 5, 1)
-
-            // Find first tier where quantity >= tier.quantity
+            const tiers = [...album.pricing_packages.tiers].sort((a, b) => b.quantity - a.quantity);
             const activeTier = tiers.find(tier => quantity >= tier.quantity);
-
-            if (activeTier) {
-                return parseFloat((quantity * activeTier.price).toFixed(2));
-            } else {
-                // Should not happen if there is a '1' tier, but fallback to smallest quantity tier (which is sorted to be last)
-                const smallestTier = tiers[tiers.length - 1];
-                return parseFloat((quantity * smallestTier.price).toFixed(2));
-            }
+            const unitPrice = activeTier ? activeTier.price : (tiers[tiers.length - 1]?.price || 0);
+            return parseFloat((quantity * unitPrice).toFixed(2));
         }
 
-        // 2. Fallback to Album Base Price
         return album.price;
     };
 
@@ -93,185 +83,415 @@ const PublicAlbumView = () => {
         if (album && album.pricing_packages) {
             return album.pricing_packages.name;
         }
-        return "Standard Access";
+        return "Accès Standard";
     };
 
-    const handlePurchase = async () => {
-        if (!album) return;
-        const count = selectedPhotoIds.size;
+    if (loading) return <div style={{ padding: '2rem' }}>Chargement...</div>;
+    if (!album) return <div style={{ padding: '2rem' }}>Album non trouvé ou non publié.</div>;
 
-        // Validation
-        if (album.pricing_packages && count === 0) {
-            alert("Please select at least one photo to buy.");
-            return;
-        }
-
-        setPurchasing(true);
-        const finalPrice = calculatePrice();
-
-        try {
-            // 1. Get Photographer Stripe ID
-            const { data: photographer, error } = await supabase
-                .from('profiles')
-                .select('stripe_account_id')
-                .eq('id', album.photographer_id)
-                .single();
-
-            if (error || !photographer.stripe_account_id) {
-                alert("This photographer hasn't set up payouts yet.");
-                setPurchasing(false);
-                return;
-            }
-
-            // 2. Create Session
-            const { createCheckoutSession } = await import('../lib/stripe/service');
-            const commission = calculateCommission(finalPrice);
-            const photoIdsArray = Array.from(selectedPhotoIds);
-
-            const session = await createCheckoutSession(
-                album.id,
-                finalPrice,
-                photographer.stripe_account_id,
-                commission,
-                photoIdsArray
-            );
-
-            // 3. Redirect
-            if (session.url) {
-                window.location.href = session.url;
-            } else {
-                throw new Error("No checkout URL");
-            }
-
-        } catch (error) {
-            console.error(error);
-            alert('Payment initialization failed: ' + error.message);
-            setPurchasing(false);
-        }
-    };
-
-    if (loading) return <div style={{ padding: '2rem' }}>Loading...</div>;
-    if (!album) return <div style={{ padding: '2rem' }}>Album not found or not published.</div>;
-
-    const finalPrice = calculatePrice();
+    const currentAlbumSelection = getSelectionForThisAlbum();
+    const selectionCount = currentAlbumSelection.length;
+    const finalPrice = calculateCurrentAlbumPrice();
     const pkgName = getPackageName();
     const hasPackage = !!album.pricing_packages;
-    const selectionCount = selectedPhotoIds.size;
 
     return (
-        <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 300px', gap: '4rem', alignItems: 'start' }}>
+        <div className="album-view-container">
+            <div className="album-content-layout">
 
-                {/* Left: Photos Grid */}
-                <div>
-                    <div style={{ marginBottom: '2rem' }}>
-                        <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>{album.title}</h1>
-                        <p style={{ color: 'var(--text-secondary)' }}>by {album.profiles?.full_name}</p>
-                        {hasPackage && <p style={{ marginTop: '0.5rem', color: 'var(--accent-primary)', fontWeight: '500' }}>Click photos to select for purchase</p>}
+                {/* Left/Top: Photos Grid */}
+                <div className="photos-section">
+                    <div className="album-header">
+                        <h1 className="album-title">{album.title}</h1>
+                        <p className="album-author">
+                            par <Link to={`/photographer/${album.photographer_id}`} className="photographer-link">
+                                {album.profiles?.full_name}
+                            </Link>
+                        </p>
+                        <div className="selection-hint">
+                            <span className="hint-icon">🛒</span>
+                            Cliquez sur le bouton sous les photos pour les ajouter au panier
+                        </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
+                    <div className="photos-grid">
                         {photos.map(photo => {
-                            const isSelected = selectedPhotoIds.has(photo.id);
+                            const selected = isInCart(photo.id);
                             return (
-                                <div
-                                    key={photo.id}
-                                    onClick={() => hasPackage && togglePhotoSelection(photo.id)}
-                                    style={{
-                                        position: 'relative',
-                                        borderRadius: 'var(--radius-md)',
-                                        overflow: 'hidden',
-                                        cursor: hasPackage ? 'pointer' : 'default',
-                                        border: isSelected ? '3px solid var(--accent-primary)' : '3px solid transparent',
-                                        transition: 'all 0.2s',
-                                        transform: isSelected ? 'scale(0.98)' : 'scale(1)'
-                                    }}
-                                >
-                                    <img
-                                        src={photo.watermarked_url}
-                                        alt={photo.title}
-                                        style={{ width: '100%', display: 'block' }}
-                                    />
-                                    {/* Selection Checkmark */}
-                                    {isSelected && (
-                                        <div style={{
-                                            position: 'absolute', top: '0.5rem', right: '0.5rem',
-                                            background: 'var(--accent-primary)', color: 'white',
-                                            borderRadius: '50%', width: '24px', height: '24px',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            fontSize: '14px', fontWeight: 'bold'
-                                        }}>
-                                            ✓
-                                        </div>
-                                    )}
+                                <div key={photo.id} className="photo-card-wrapper">
+                                    <div
+                                        onClick={() => toggleCartItem(photo)}
+                                        className={`photo-item ${selected ? 'selected' : ''}`}
+                                    >
+                                        <img
+                                            src={photo.watermarked_url}
+                                            alt={photo.title}
+                                            loading="lazy"
+                                        />
 
-                                    {!isSelected && hasPackage && (
-                                        <div className="hover-overlay" style={{
-                                            position: 'absolute', inset: 0,
-                                            background: 'rgba(0,0,0,0.2)',
-                                            opacity: 0,
-                                            transition: 'opacity 0.2s',
-                                            pointerEvents: 'none'
-                                        }} />
-                                    )}
+                                        {/* Selection Overlay */}
+                                        <div className="photo-selection-overlay">
+                                            <div className="selection-indicator">
+                                                {selected ? '✓' : '+'}
+                                            </div>
+                                        </div>
+
+                                        {selected && <div className="selected-border" />}
+                                    </div>
+                                    <div className="photo-actions">
+                                        <Button
+                                            variant={selected ? 'primary' : 'outline'}
+                                            className="add-to-cart-btn"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                toggleCartItem(photo);
+                                            }}
+                                        >
+                                            {selected ? 'Retirer du Panier' : 'Ajouter au Panier'}
+                                        </Button>
+                                    </div>
                                 </div>
                             );
                         })}
                     </div>
                 </div>
 
-                {/* Right: Purchase Card */}
-                <div style={{
-                    background: 'var(--bg-secondary)',
-                    padding: '2rem',
-                    borderRadius: 'var(--radius-lg)',
-                    border: '1px solid var(--border-subtle)',
-                    position: 'sticky',
-                    top: '100px'
-                }}>
-                    <h2 style={{ marginBottom: '1rem' }}>{pkgName}</h2>
-                    <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
-                        {hasPackage
-                            ? "Select photos from the grid to calculate price."
-                            : `Full album access for $${album.price}`}
-                    </p>
-
-                    <div style={{ marginBottom: '2rem', padding: '1rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                            <span>Selected</span>
-                            <strong>{selectionCount} photos</strong>
+                {/* Right/Bottom: Purchase Card */}
+                <div className="purchase-card-container">
+                    <div className="purchase-card">
+                        <div className="purchase-header">
+                            <h2 className="package-name">{pkgName}</h2>
+                            <p className="package-description">
+                                {hasPackage
+                                    ? "Les tarifs dégressifs s'appliquent automatiquement dans votre panier."
+                                    : `Accès complet à l'album pour $${album.price}`}
+                            </p>
                         </div>
 
-                        {/* Show Tiers Info */}
-                        {hasPackage && album.pricing_packages.tiers && (
-                            <div style={{ margin: '1rem 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                                <p style={{ fontWeight: '600', marginBottom: '0.25rem' }}>Pricing Tiers:</p>
-                                {album.pricing_packages.tiers.sort((a, b) => a.quantity - b.quantity).map((tier, i) => (
-                                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                                        <span>{tier.quantity}+ Photos</span>
-                                        <span>${tier.price} / each</span>
-                                    </div>
-                                ))}
+                        <div className="purchase-details">
+                            <div className="detail-row">
+                                <span>Sélectionnées (cet album)</span>
+                                <span className="detail-value">{selectionCount} photos</span>
                             </div>
-                        )}
 
-                        <div style={{ height: '1px', background: 'var(--border-subtle)', margin: '1rem 0' }}></div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.25rem', fontWeight: 'bold' }}>
-                            <span>Total Price</span>
-                            <span style={{ color: 'var(--accent-primary)' }}>${finalPrice}</span>
+                            {/* Show Tiers Info */}
+                            {hasPackage && album.pricing_packages.tiers && (
+                                <div className="pricing-tiers">
+                                    <p className="tiers-title">Tarifs dégressifs :</p>
+                                    <div className="tiers-list">
+                                        {album.pricing_packages.tiers.sort((a, b) => a.quantity - b.quantity).map((tier, i) => (
+                                            <div key={i} className="tier-item">
+                                                <span>{tier.quantity}+ Photos</span>
+                                                <span className="tier-price">${tier.price} <small>/u</small></span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="price-divider"></div>
+
+                            <div className="total-price-row">
+                                <span>Sous-total</span>
+                                <span className="total-amount">${finalPrice}</span>
+                            </div>
                         </div>
+
+                        <Button
+                            className="buy-button"
+                            onClick={() => navigate('/cart')}
+                        >
+                            Voir mon Panier ({cartItems.length})
+                        </Button>
+
+                        <p className="payment-note">
+                            🔒 Paiement sécurisé via Stripe
+                        </p>
                     </div>
-
-                    <Button className="w-full" style={{ width: '100%' }} onClick={handlePurchase} disabled={purchasing || (hasPackage && selectionCount === 0)}>
-                        {purchasing ? 'Processing...' : (hasPackage ? `Buy ${selectionCount} Photos` : 'Buy Full Album')}
-                    </Button>
-
-                    <p style={{ marginTop: '1rem', fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center' }}>
-                        Secure payment via Stripe
-                    </p>
                 </div>
-
             </div>
+
+            <style>{`
+                .album-view-container {
+                    padding: var(--spacing-xl);
+                    max-width: 1400px;
+                    margin: 0 auto;
+                    min-height: calc(100vh - 80px);
+                }
+
+                .album-content-layout {
+                    display: grid;
+                    grid-template-columns: 1fr 350px;
+                    gap: var(--spacing-2xl);
+                    align-items: start;
+                }
+
+                .album-header {
+                    margin-bottom: var(--spacing-xl);
+                }
+
+                .album-title {
+                    font-size: clamp(1.5rem, 5vw, 2.5rem);
+                    margin-bottom: var(--spacing-xs);
+                    color: var(--text-primary);
+                }
+
+                .album-author {
+                    font-size: var(--font-size-lg);
+                    color: var(--text-secondary);
+                    margin-bottom: var(--spacing-md);
+                }
+
+                .photographer-link {
+                    color: var(--primary-blue);
+                    text-decoration: none;
+                    font-weight: 600;
+                    transition: color var(--transition-fast);
+                }
+
+                .photographer-link:hover {
+                    color: var(--secondary-cyan);
+                    text-decoration: underline;
+                }
+
+                .selection-hint {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: var(--spacing-sm);
+                    padding: var(--spacing-sm) var(--spacing-md);
+                    background: var(--bg-tertiary);
+                    border-radius: var(--radius-full);
+                    font-size: var(--font-size-sm);
+                    color: var(--primary-blue);
+                    font-weight: 500;
+                }
+
+                .photos-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+                    gap: var(--spacing-xl);
+                }
+
+                .photo-card-wrapper {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 1rem;
+                }
+
+                .photo-item {
+                    position: relative;
+                    border-radius: var(--radius-lg);
+                    overflow: hidden;
+                    cursor: pointer;
+                    background: var(--bg-tertiary);
+                    aspect-ratio: 3/2;
+                    transition: transform var(--transition-base), box-shadow var(--transition-base);
+                    box-shadow: var(--shadow-sm);
+                }
+
+                .photo-item:hover {
+                    transform: translateY(-4px);
+                    box-shadow: var(--shadow-lg);
+                }
+
+                .photo-item img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                    display: block;
+                    transition: opacity var(--transition-base);
+                }
+
+                .photo-item.selected img {
+                    opacity: 0.8;
+                }
+
+                .photo-selection-overlay {
+                    position: absolute;
+                    inset: 0;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: rgba(0, 0, 0, 0.2);
+                    opacity: 0;
+                    transition: opacity var(--transition-base);
+                }
+
+                .photo-item:hover .photo-selection-overlay {
+                    opacity: 1;
+                }
+
+                .photo-item.selected .photo-selection-overlay {
+                    opacity: 1;
+                    background: rgba(59, 130, 246, 0.1);
+                }
+
+                .selection-indicator {
+                    width: 40px;
+                    height: 40px;
+                    background: var(--bg-primary);
+                    color: var(--primary-blue);
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 1.5rem;
+                    font-weight: bold;
+                    box-shadow: var(--shadow-md);
+                    transform: scale(0.8);
+                    transition: transform var(--transition-base);
+                }
+
+                .photo-item:hover .selection-indicator {
+                    transform: scale(1);
+                }
+
+                .photo-item.selected .selection-indicator {
+                    background: var(--primary-blue);
+                    color: white;
+                    transform: scale(1);
+                }
+
+                .selected-border {
+                    position: absolute;
+                    inset: 0;
+                    border: 3px solid var(--primary-blue);
+                    border-radius: var(--radius-lg);
+                    pointer-events: none;
+                }
+
+                .photo-actions {
+                    padding: 0 0.5rem;
+                }
+
+                .add-to-cart-btn {
+                    width: 100%;
+                    font-size: 0.9rem !important;
+                    height: 44px;
+                }
+
+                .purchase-card {
+                    background: var(--bg-primary);
+                    padding: var(--spacing-xl);
+                    border-radius: var(--radius-xl);
+                    border: 1px solid var(--border-light);
+                    box-shadow: var(--shadow-lg);
+                    position: sticky;
+                    top: 100px;
+                }
+
+                .package-name {
+                    font-size: var(--font-size-xl);
+                    margin-bottom: var(--spacing-sm);
+                }
+
+                .package-description {
+                    font-size: var(--font-size-sm);
+                    color: var(--text-secondary);
+                    margin-bottom: var(--spacing-lg);
+                }
+
+                .purchase-details {
+                    background: var(--bg-secondary);
+                    padding: var(--spacing-lg);
+                    border-radius: var(--radius-lg);
+                    margin-bottom: var(--spacing-xl);
+                }
+
+                .detail-row {
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: var(--spacing-md);
+                    font-weight: 500;
+                }
+
+                .pricing-tiers {
+                    margin: var(--spacing-lg) 0;
+                    border-top: 1px dashed var(--border-light);
+                    padding-top: var(--spacing-md);
+                }
+
+                .tiers-title {
+                    font-size: var(--font-size-xs);
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                    font-weight: 600;
+                    color: var(--text-tertiary);
+                    margin-bottom: var(--spacing-sm);
+                }
+
+                .tier-item {
+                    display: flex;
+                    justify-content: space-between;
+                    font-size: var(--font-size-sm);
+                    margin-bottom: var(--spacing-xs);
+                    color: var(--text-secondary);
+                }
+
+                .tier-price {
+                    font-weight: 600;
+                    color: var(--text-primary);
+                }
+
+                .price-divider {
+                    height: 1px;
+                    background: var(--border-light);
+                    margin: var(--spacing-md) 0;
+                }
+
+                .total-price-row {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    font-size: var(--font-size-xl);
+                    font-weight: 800;
+                }
+
+                .total-amount {
+                    color: var(--primary-blue);
+                }
+
+                .buy-button {
+                    width: 100%;
+                    height: 56px;
+                    font-size: var(--font-size-lg) !important;
+                }
+
+                .payment-note {
+                    text-align: center;
+                    margin-top: var(--spacing-md);
+                    font-size: var(--font-size-xs);
+                    color: var(--text-tertiary);
+                }
+
+                @media (max-width: 1024px) {
+                    .album-content-layout {
+                        grid-template-columns: 1fr;
+                        gap: var(--spacing-xl);
+                    }
+
+                    .purchase-card {
+                        position: static;
+                    }
+                }
+
+                @media (max-width: 640px) {
+                    .album-view-container {
+                        padding: 1rem;
+                        padding-bottom: 140px;
+                    }
+
+                    .photos-grid {
+                        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                        gap: 1.5rem;
+                    }
+
+                    .add-to-cart-btn {
+                        font-size: 0.8rem !important;
+                        height: 40px;
+                    }
+                }
+            `}</style>
         </div>
     );
 };

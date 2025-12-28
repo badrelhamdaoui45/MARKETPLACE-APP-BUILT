@@ -6,6 +6,8 @@ import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Toast from '../components/ui/Toast';
+import { sanitizeFileName } from '../utils/sanitize';
+import CreatePackageModal from '../components/pricing/CreatePackageModal';
 import '../components/ui/ui.css';
 
 const CreateAlbum = () => {
@@ -14,6 +16,7 @@ const CreateAlbum = () => {
     const [loading, setLoading] = useState(false);
     const [packages, setPackages] = useState([]);
     const [toast, setToast] = useState(null);
+    const [isPackageModalOpen, setIsPackageModalOpen] = useState(false);
 
     const [formData, setFormData] = useState({
         title: '',
@@ -33,6 +36,12 @@ const CreateAlbum = () => {
     const fetchPackages = async () => {
         const { data } = await supabase.from('pricing_packages').select('*').eq('photographer_id', user.id);
         if (data) setPackages(data);
+    };
+
+    const handlePackageCreated = (newPackage) => {
+        setPackages(prev => [newPackage, ...prev]);
+        setFormData(prev => ({ ...prev, pricing_package_id: newPackage.id }));
+        setToast({ message: 'Modèle de prix créé avec succès !', type: 'success' });
     };
 
     const handleChange = (e) => {
@@ -56,8 +65,8 @@ const CreateAlbum = () => {
 
             // 1. Upload Cover Image if selected
             if (coverFile) {
-                const fileName = `cover-${Date.now()}-${coverFile.name}`;
-                // Upload to public-photos or a dedicated 'covers' folder
+                const sanitizedName = sanitizeFileName(coverFile.name);
+                const fileName = `cover-${Date.now()}-${sanitizedName}`;
                 const { data: uploadData, error: uploadError } = await supabase.storage
                     .from('public-photos')
                     .upload(`covers/${user.id}/${fileName}`, coverFile, {
@@ -66,7 +75,6 @@ const CreateAlbum = () => {
 
                 if (uploadError) throw uploadError;
 
-                // Get Public URL
                 const { data: { publicUrl } } = supabase.storage
                     .from('public-photos')
                     .getPublicUrl(`covers/${user.id}/${fileName}`);
@@ -84,7 +92,7 @@ const CreateAlbum = () => {
                         description: formData.description,
                         price: formData.price === '' ? null : formData.price,
                         pricing_package_id: formData.pricing_package_id || null,
-                        cover_image_url: coverImageUrl, // Save URL
+                        cover_image_url: coverImageUrl,
                         is_published: false
                     }
                 ])
@@ -103,32 +111,21 @@ const CreateAlbum = () => {
     };
 
     return (
-        <div style={{ padding: '2rem', maxWidth: '700px', margin: '0 auto' }}>
+        <div className="create-album-container">
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-            <h1 style={{ marginBottom: '2rem' }}>Create New Album</h1>
-            <form onSubmit={handleSubmit} className="card" style={{ padding: '2rem' }}>
+            <h1>Créer un nouvel album</h1>
 
+            <form onSubmit={handleSubmit} className="card form-card">
                 {/* Cover Image Upload */}
                 <div className="input-group">
-                    <label className="input-label">Album Cover Image</label>
-                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '0.5rem' }}>
-                        <div style={{
-                            width: '100px',
-                            height: '100px',
-                            borderRadius: 'var(--radius-md)',
-                            border: '2px dashed var(--border-highlight)',
-                            background: 'var(--bg-tertiary)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            overflow: 'hidden',
-                            position: 'relative'
-                        }}>
+                    <label className="input-label">Image de couverture</label>
+                    <div className="cover-upload-section">
+                        <div className="cover-preview-box">
                             {coverPreview ? (
-                                <img src={coverPreview} alt="Cover Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                <img src={coverPreview} alt="Aperçu" />
                             ) : (
-                                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>No Image</span>
+                                <span className="no-image-text">Aucune image</span>
                             )}
                         </div>
                         <div>
@@ -139,19 +136,23 @@ const CreateAlbum = () => {
                                 id="cover-upload"
                                 style={{ display: 'none' }}
                             />
-                            <Button type="button" variant="outline" onClick={() => document.getElementById('cover-upload').click()}>
-                                {coverPreview ? 'Change Cover' : 'Upload Cover'}
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => document.getElementById('cover-upload').click()}
+                            >
+                                {coverPreview ? 'Changer l\'image' : 'Télécharger une image'}
                             </Button>
                         </div>
                     </div>
                 </div>
 
                 <Input
-                    label="Album Title"
+                    label="Titre de l'album"
                     name="title"
                     value={formData.title}
                     onChange={handleChange}
-                    placeholder="e.g. Wedding 2025"
+                    placeholder="ex: Mariage 2025"
                     required
                 />
 
@@ -163,22 +164,31 @@ const CreateAlbum = () => {
                         value={formData.description}
                         onChange={handleChange}
                         rows="4"
-                        placeholder="Tell us about this collection..."
+                        placeholder="Dites-nous en plus sur cette collection..."
                     />
                 </div>
 
                 <div className="input-group">
-                    <label className="input-label">Pricing Model</label>
+                    <div className="package-select-header">
+                        <label className="input-label">Modèle de prix</label>
+                        <button
+                            type="button"
+                            onClick={() => setIsPackageModalOpen(true)}
+                            className="new-package-btn"
+                        >
+                            + Nouveau modèle
+                        </button>
+                    </div>
                     <select
                         className="input-field"
                         name="pricing_package_id"
                         value={formData.pricing_package_id}
                         onChange={handleChange}
                     >
-                        <option value="">-- Simple Flat Price (Legacy) --</option>
+                        <option value="">-- Prix fixe simple --</option>
                         {packages.map(pkg => (
                             <option key={pkg.id} value={pkg.id}>
-                                {pkg.name} ({pkg.package_type})
+                                {pkg.name} ({pkg.package_type === 'digital' ? 'Numérique' : 'Physique'})
                             </option>
                         ))}
                     </select>
@@ -186,7 +196,7 @@ const CreateAlbum = () => {
 
                 {!formData.pricing_package_id && (
                     <Input
-                        label="Flat Price ($)"
+                        label="Prix fixe (€)"
                         name="price"
                         type="number"
                         min="0"
@@ -197,13 +207,132 @@ const CreateAlbum = () => {
                     />
                 )}
 
-                <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
-                    <Button type="button" variant="outline" onClick={() => navigate(-1)}>Cancel</Button>
+                <div className="form-actions">
+                    <Button type="button" variant="outline" onClick={() => navigate(-1)}>Annuler</Button>
                     <Button type="submit" disabled={loading}>
-                        {loading ? 'Creating...' : 'Create Album'}
+                        {loading ? 'Création...' : 'Créer l\'album'}
                     </Button>
                 </div>
             </form>
+
+            <CreatePackageModal
+                isOpen={isPackageModalOpen}
+                onClose={() => setIsPackageModalOpen(false)}
+                onSuccess={handlePackageCreated}
+            />
+
+            <style>{`
+                .create-album-container {
+                    padding: 2rem;
+                    max-width: 700px;
+                    margin: 2rem auto;
+                }
+
+                h1 {
+                    margin-bottom: 2rem;
+                    font-weight: 800;
+                    letter-spacing: -0.02em;
+                }
+
+                .form-card {
+                    padding: 2.5rem;
+                }
+
+                .cover-upload-section {
+                    display: flex;
+                    gap: 1.5rem;
+                    align-items: center;
+                    margin-top: 0.75rem;
+                }
+
+                .cover-preview-box {
+                    width: 120px;
+                    height: 120px;
+                    border-radius: var(--radius-md);
+                    border: 2px dashed var(--border-subtle);
+                    background: var(--bg-tertiary);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    overflow: hidden;
+                    flex-shrink: 0;
+                }
+
+                .cover-preview-box img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                }
+
+                .no-image-text {
+                    font-size: 0.75rem;
+                    color: var(--text-muted);
+                }
+
+                .package-select-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    width: 100%;
+                    margin-bottom: 0.25rem;
+                }
+
+                .new-package-btn {
+                    background: transparent;
+                    border: none;
+                    color: var(--primary-blue);
+                    font-size: 0.85rem;
+                    cursor: pointer;
+                    font-weight: 700;
+                    text-decoration: underline;
+                }
+
+                .form-actions {
+                    display: flex;
+                    gap: 1.25rem;
+                    margin-top: 2.5rem;
+                }
+
+                .form-actions button {
+                    flex: 1;
+                }
+
+                @media (max-width: 768px) {
+                    .create-album-container {
+                        padding: 1rem;
+                        margin: 1rem auto;
+                    }
+
+                    h1 {
+                        font-size: 1.5rem;
+                        margin-bottom: 1.5rem;
+                    }
+
+                    .form-card {
+                        padding: 1.5rem;
+                    }
+
+                    .cover-upload-section {
+                        flex-direction: column;
+                        align-items: stretch;
+                        gap: 1rem;
+                    }
+
+                    .cover-preview-box {
+                        width: 100%;
+                        height: 200px;
+                    }
+
+                    .form-actions {
+                        flex-direction: column-reverse;
+                        gap: 0.75rem;
+                    }
+
+                    .form-actions button {
+                        width: 100%;
+                    }
+                }
+            `}</style>
         </div>
     );
 };

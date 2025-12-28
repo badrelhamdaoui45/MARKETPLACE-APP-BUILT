@@ -73,7 +73,7 @@ export const createAccountLink = async (accountId) => {
  * SIMULATED BACKEND FUNCTION: Create Checkout Session
  * In production, this MUST run on the server/edge function.
  */
-export const createCheckoutSession = async (albumId, price, photographerStripeId, commissionAmount, photoIds = []) => {
+export const createCheckoutSession = async (albumId, price, photographerStripeId, commissionAmount, photoIds = [], cancelUrl = null, customerEmail = null) => {
     try {
         // In a real implementation, this would call your backend API
         // For now, we're using a mock session that redirects to success page
@@ -107,7 +107,8 @@ export const createCheckoutSession = async (albumId, price, photographerStripeId
             body: new URLSearchParams({
                 'mode': 'payment',
                 'success_url': successUrl,
-                'cancel_url': `${window.location.origin}/albums/${albumId}`,
+                'cancel_url': cancelUrl || `${window.location.origin}/cart`,
+                'customer_email': customerEmail,
                 'line_items[0][price_data][currency]': 'usd',
                 'line_items[0][price_data][product_data][name]': 'Photo Album Access',
                 'line_items[0][price_data][unit_amount]': Math.round(price * 100),
@@ -145,6 +146,28 @@ export const getAccountStatus = async (accountId) => {
         return account;
     } catch (error) {
         console.error('Error fetching account status:', error);
+        throw error;
+    }
+};
+
+/**
+ * SIMULATED BACKEND FUNCTION: Create Login Link (for Express Dashboard)
+ */
+export const createLoginLink = async (accountId) => {
+    try {
+        const response = await fetch(`https://api.stripe.com/v1/accounts/${accountId}/login_links`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${STRIPE_SECRET_KEY}`,
+            },
+        });
+
+        const link = await response.json();
+        if (link.error) throw new Error(link.error.message);
+
+        return link.url;
+    } catch (error) {
+        console.error('Error creating login link:', error);
         throw error;
     }
 };

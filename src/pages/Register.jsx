@@ -30,28 +30,17 @@ const Register = () => {
     };
 
     return (
-        <div className="auth-container" style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            minHeight: '100vh'
-        }}>
-            <div className="auth-card" style={{
-                backgroundColor: 'var(--bg-secondary)',
-                padding: '2rem',
-                borderRadius: 'var(--radius-lg)',
-                border: '1px solid var(--border-subtle)',
-                width: '100%',
-                maxWidth: '400px'
-            }}>
-                <h2 style={{ marginBottom: '1.5rem', textAlign: 'center' }}>Create Account</h2>
-                {error && <div className="error-alert" style={{ color: '#ef4444', marginBottom: '1rem', textAlign: 'center' }}>{error}</div>}
+        <div className="auth-container">
+            <div className="auth-card">
+                <h2 className="auth-title">Créer un compte</h2>
+                {error && <div className="error-alert">{error}</div>}
                 <form onSubmit={handleRegister}>
                     <Input
-                        label="Full Name"
+                        label="Nom complet"
                         type="text"
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
+                        placeholder="Jean Dupont"
                         required
                     />
                     <Input
@@ -59,20 +48,22 @@ const Register = () => {
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
+                        placeholder="votre@email.com"
                         required
                     />
                     <Input
-                        label="Password"
+                        label="Mot de passe"
                         type="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
                         required
                     />
 
-                    <div className="input-group" style={{ marginBottom: '1rem' }}>
-                        <label className="input-label" style={{ marginBottom: '0.5rem', display: 'block' }}>I am a...</label>
-                        <div style={{ display: 'flex', gap: '1rem' }}>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                    <div className="role-selection">
+                        <label className="input-label">Je suis...</label>
+                        <div className="radio-group">
+                            <label className="radio-label">
                                 <input
                                     type="radio"
                                     name="role"
@@ -80,9 +71,9 @@ const Register = () => {
                                     checked={role === 'buyer'}
                                     onChange={(e) => setRole(e.target.value)}
                                 />
-                                Buyer
+                                Acheteur
                             </label>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                            <label className="radio-label">
                                 <input
                                     type="radio"
                                     name="role"
@@ -90,19 +81,93 @@ const Register = () => {
                                     checked={role === 'photographer'}
                                     onChange={(e) => setRole(e.target.value)}
                                 />
-                                Photographer
+                                Photographe
                             </label>
                         </div>
                     </div>
 
-                    <Button type="submit" className="w-full" disabled={loading} style={{ width: '100%', marginTop: '1rem' }}>
-                        {loading ? 'Creating Account...' : 'Sign Up'}
+                    <Button type="submit" className="w-full" disabled={loading}>
+                        {loading ? 'Création...' : 'S\'inscrire'}
                     </Button>
                 </form>
-                <p style={{ marginTop: '1.5rem', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                    Already have an account? <Link to="/login" style={{ color: 'var(--accent-primary)' }}>Sign In</Link>
+                <p className="auth-footer">
+                    Déjà un compte ? <Link to="/login">Se connecter</Link>
                 </p>
             </div>
+
+            <style>{`
+                .auth-container {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    min-height: calc(100vh - 80px);
+                    padding: 1.5rem;
+                    background: var(--bg-primary);
+                }
+
+                .auth-card {
+                    width: 100%;
+                    max-width: 420px;
+                    padding: 2.5rem;
+                }
+
+                .auth-title {
+                    margin-bottom: 2rem;
+                    text-align: center;
+                    font-weight: 800;
+                    letter-spacing: -0.02em;
+                }
+
+                .error-alert {
+                    color: #ef4444;
+                    background: #fef2f2;
+                    padding: 0.75rem;
+                    border-radius: 6px;
+                    margin-bottom: 1.5rem;
+                    font-size: 0.875rem;
+                    text-align: center;
+                    border: 1px solid #fee2e2;
+                }
+
+                .role-selection {
+                    margin-bottom: 1.5rem;
+                }
+
+                .radio-group {
+                    display: flex;
+                    gap: 1.5rem;
+                    margin-top: 0.5rem;
+                }
+
+                .radio-label {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    cursor: pointer;
+                    font-size: 0.95rem;
+                    font-weight: 500;
+                    color: var(--text-primary);
+                }
+
+                .auth-footer {
+                    margin-top: 2rem;
+                    text-align: center;
+                    color: var(--text-secondary);
+                    font-size: 0.95rem;
+                }
+
+                .auth-footer a {
+                    color: var(--primary-blue);
+                    font-weight: 700;
+                    text-decoration: none;
+                }
+
+                @media (max-width: 480px) {
+                    .auth-card {
+                        padding: 1.5rem;
+                    }
+                }
+            `}</style>
         </div>
     );
 };

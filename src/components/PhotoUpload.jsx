@@ -2,6 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { watermarkImage } from '../utils/watermark';
+import { sanitizeFileName } from '../utils/sanitize';
 import Button from './ui/Button';
 import './ui/ui.css';
 
@@ -27,7 +28,8 @@ const PhotoUpload = ({ albumId, onUploadComplete }) => {
 
         for (const file of files) {
             try {
-                const fileName = `${Date.now()}-${file.name}`;
+                const sanitizedName = sanitizeFileName(file.name);
+                const fileName = `${Date.now()}-${sanitizedName}`;
 
                 // 1. Upload Original (Private Bucket)
                 setProgress(`Uploading original: ${file.name}`);

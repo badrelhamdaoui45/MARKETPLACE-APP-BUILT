@@ -9,40 +9,50 @@ import PhotographerDashboard from './pages/PhotographerDashboard';
 import CreateAlbum from './pages/CreateAlbum';
 import AlbumDetails from './pages/AlbumDetails';
 import UploadPage from './pages/UploadPage';
-import Marketplace from './pages/Marketplace';
 import PackageSettings from './pages/PackageSettings';
 import AlbumDownload from './pages/AlbumDownload';
 import PublicAlbumView from './pages/PublicAlbumView';
 import BuyerProfile from './pages/BuyerProfile';
 import AdminDashboard from './pages/AdminDashboard';
+import PhotographerProfile from './pages/PhotographerProfile';
+import Albums from './pages/Albums';
+import Home from './pages/Home';
+import Cart from './pages/Cart';
+import { CartProvider } from './context/CartContext';
 
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <div className="app-container">
-          <Navbar />
-          <Routes>
-            <Route path="/" element={<Marketplace />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
+      <CartProvider>
+        <Router>
+          <div className="app-container">
+            <Navbar />
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/" element={<Home />} />
+              <Route path="/albums" element={<Albums />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/cart" element={<Cart />} />
 
-            {/* Public Viewing Route */}
-            <Route path="/albums/:id" element={<PublicAlbumView />} />
+              {/* Public Viewing Route */}
+              <Route path="/albums/:id" element={<PublicAlbumView />} />
+              <Route path="/photographer/:id" element={<PhotographerProfile />} />
 
-            {/* Protected Routes */}
-            <Route path="/photographer/dashboard" element={<PhotographerDashboard />} />
-            <Route path="/photographer/packages" element={<PackageSettings />} />
-            <Route path="/photographer/albums/new" element={<CreateAlbum />} />
-            <Route path="/photographer/albums/:id" element={<AlbumDetails />} />
-            <Route path="/photographer/upload" element={<UploadPage />} />
+              {/* Protected Routes */}
+              <Route path="/photographer/dashboard" element={<PhotographerDashboard />} />
+              <Route path="/photographer/packages" element={<PackageSettings />} />
+              <Route path="/photographer/albums/new" element={<CreateAlbum />} />
+              <Route path="/photographer/albums/:id" element={<AlbumDetails />} />
+              <Route path="/photographer/upload" element={<UploadPage />} />
 
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/my-purchases" element={<BuyerProfile />} />
-            <Route path="/my-purchases/:albumId" element={<AlbumDownload />} />
-          </Routes>
-        </div>
-      </Router>
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/my-purchases" element={<BuyerProfile />} />
+              <Route path="/my-purchases/:albumId" element={<AlbumDownload />} />
+            </Routes>
+          </div>
+        </Router>
+      </CartProvider>
     </AuthProvider>
   );
 }

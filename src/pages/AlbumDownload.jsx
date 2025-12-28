@@ -89,42 +89,288 @@ const AlbumDownload = () => {
         alert("To download all at once, we would generate a ZIP. For now, please download images individually below.");
     };
 
+
     return (
-        <div style={{ padding: '2rem', maxWidth: '1000px', margin: '0 auto' }}>
-            <Link to="/my-purchases" style={{ display: 'inline-block', marginBottom: '1rem', textDecoration: 'underline' }}>&larr; Back to Purchases</Link>
+        <div className="download-page-container">
+            <header className="download-page-header">
+                <Link to="/my-purchases" className="back-link">
+                    <span className="back-icon">←</span> Back to Purchases
+                </Link>
+                <div className="header-content">
+                    <h1 className="album-title">{album?.title || 'Album'}</h1>
+                    <span className="download-badge">Downloads Ready</span>
+                </div>
+            </header>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <h1>{album?.title || 'Album'} - Downloads</h1>
-                {/* <Button variant="outline" onClick={() => window.print()}>Print List</Button> */}
-            </div>
+            {loading ? (
+                <div className="loading-state">
+                    <div className="spinner"></div>
+                    <p>Loading original high-resolution files...</p>
+                </div>
+            ) : (
+                <div className="download-content">
+                    <div className="download-stats">
+                        <div className="stat-card">
+                            <span className="stat-label">Available Items</span>
+                            <span className="stat-value">{photos.length} photos</span>
+                        </div>
+                        <p className="download-instruction">
+                            Click the buttons below to download your high-resolution image files.
+                        </p>
+                    </div>
 
-            {loading ? <p>Loading original files...</p> : (
-                <>
-                    <p style={{ marginBottom: '1rem' }}>
-                        You have access to <strong>{photos.length}</strong> photo{photos.length !== 1 && 's'}.
-                    </p>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1.5rem' }}>
+                    <div className="download-grid">
                         {photos.map(photo => (
-                            <div key={photo.id} style={{ border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
-                                <div style={{ height: '200px', background: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                                    {/* Show watermarked thumb as preview */}
-                                    <img src={photo.watermarked_url} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.7 }} />
+                            <div key={photo.id} className="download-card">
+                                <div className="card-preview">
+                                    <img src={photo.watermarked_url} alt="preview" loading="lazy" />
+                                    <div className="resolution-label">Original HD</div>
                                 </div>
-                                <div style={{ padding: '1rem', textAlign: 'center' }}>
-                                    <p style={{ fontSize: '0.8rem', marginBottom: '0.5rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{photo.title}</p>
+                                <div className="card-info">
+                                    <h3 className="photo-title">{photo.title || "Image File"}</h3>
                                     {photo.downloadUrl ? (
-                                        <a href={photo.downloadUrl} download={photo.title} target="_blank" rel="noopener noreferrer">
-                                            <Button style={{ width: '100%', fontSize: '0.8rem' }}>Download Original</Button>
+                                        <a
+                                            href={photo.downloadUrl}
+                                            download={photo.title || `photo-${photo.id}.jpg`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="download-anchor"
+                                        >
+                                            <Button className="download-button">
+                                                <span className="download-icon">📥</span> Download
+                                            </Button>
                                         </a>
                                     ) : (
-                                        <p style={{ color: 'red', fontSize: '0.8rem' }}>Access Denied (Check Policy)</p>
+                                        <div className="access-denied">
+                                            <span className="denied-icon">⚠️</span>
+                                            Access Denied
+                                        </div>
                                     )}
                                 </div>
                             </div>
                         ))}
                     </div>
-                </>
+                </div>
             )}
+
+            <style>{`
+                .download-page-container {
+                    padding: var(--spacing-xl);
+                    max-width: 1200px;
+                    margin: 0 auto;
+                }
+
+                .download-page-header {
+                    margin-bottom: var(--spacing-2xl);
+                }
+
+                .back-link {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: var(--spacing-sm);
+                    color: var(--text-secondary);
+                    text-decoration: none;
+                    font-size: var(--font-size-sm);
+                    margin-bottom: var(--spacing-lg);
+                    transition: color var(--transition-fast);
+                }
+
+                .back-link:hover {
+                    color: var(--primary-blue);
+                }
+
+                .header-content {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    gap: var(--spacing-md);
+                    flex-wrap: wrap;
+                }
+
+                .album-title {
+                    font-size: clamp(1.5rem, 5vw, 2.5rem);
+                    font-weight: 800;
+                    color: var(--text-primary);
+                }
+
+                .download-badge {
+                    padding: var(--spacing-xs) var(--spacing-md);
+                    background: rgba(16, 185, 129, 0.1);
+                    color: var(--success-green);
+                    border-radius: var(--radius-full);
+                    font-weight: 600;
+                    font-size: var(--font-size-sm);
+                }
+
+                .download-stats {
+                    display: flex;
+                    align-items: center;
+                    gap: var(--spacing-xl);
+                    margin-bottom: var(--spacing-2xl);
+                    background: var(--bg-tertiary);
+                    padding: var(--spacing-lg);
+                    border-radius: var(--radius-xl);
+                    flex-wrap: wrap;
+                }
+
+                .stat-card {
+                    display: flex;
+                    flex-direction: column;
+                }
+
+                .stat-label {
+                    font-size: var(--font-size-xs);
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                    color: var(--text-tertiary);
+                    font-weight: 600;
+                }
+
+                .stat-value {
+                    font-size: var(--font-size-xl);
+                    font-weight: 800;
+                    color: var(--text-primary);
+                }
+
+                .download-instruction {
+                    color: var(--text-secondary);
+                    font-size: var(--font-size-sm);
+                }
+
+                .download-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+                    gap: var(--spacing-xl);
+                }
+
+                .download-card {
+                    background: var(--bg-primary);
+                    border-radius: var(--radius-xl);
+                    overflow: hidden;
+                    border: 1px solid var(--border-light);
+                    transition: all var(--transition-base);
+                    box-shadow: var(--shadow-sm);
+                    display: flex;
+                    flex-direction: column;
+                }
+
+                .download-card:hover {
+                    box-shadow: var(--shadow-lg);
+                    transform: translateY(-4px);
+                    border-color: var(--primary-blue-light);
+                }
+
+                .card-preview {
+                    height: 200px;
+                    position: relative;
+                    background: #f0f4f8;
+                    overflow: hidden;
+                }
+
+                .card-preview img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                    opacity: 0.8;
+                }
+
+                .resolution-label {
+                    position: absolute;
+                    bottom: var(--spacing-sm);
+                    right: var(--spacing-sm);
+                    background: rgba(0, 0, 0, 0.6);
+                    color: white;
+                    padding: 2px 8px;
+                    border-radius: var(--radius-sm);
+                    font-size: 10px;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                }
+
+                .card-info {
+                    padding: var(--spacing-lg);
+                    display: flex;
+                    flex-direction: column;
+                    gap: var(--spacing-md);
+                }
+
+                .photo-title {
+                    font-size: var(--font-size-sm);
+                    color: var(--text-primary);
+                    margin: 0;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
+
+                .download-anchor {
+                    text-decoration: none;
+                }
+
+                .download-button {
+                    width: 100%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: var(--spacing-sm);
+                }
+
+                .access-denied {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: var(--spacing-sm);
+                    padding: var(--spacing-sm);
+                    background: rgba(239, 68, 68, 0.05);
+                    color: var(--danger-red);
+                    border-radius: var(--radius-md);
+                    font-size: var(--font-size-sm);
+                    font-weight: 600;
+                }
+
+                .loading-state {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 4rem;
+                    gap: var(--spacing-md);
+                    color: var(--text-secondary);
+                }
+
+                .spinner {
+                    width: 40px;
+                    height: 40px;
+                    border: 3px solid var(--border-light);
+                    border-top-color: var(--primary-blue);
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                }
+
+                @keyframes spin {
+                    to { transform: rotate(360deg); }
+                }
+
+                @media (max-width: 640px) {
+                    .download-page-container {
+                        padding: var(--spacing-md);
+                    }
+                    .header-content {
+                        flex-direction: column;
+                        align-items: flex-start;
+                        gap: var(--spacing-sm);
+                    }
+                    .download-grid {
+                        grid-template-columns: 1fr;
+                        gap: var(--spacing-md);
+                    }
+                    .download-stats {
+                        flex-direction: column;
+                        align-items: flex-start;
+                        gap: var(--spacing-sm);
+                    }
+                }
+            `}</style>
         </div>
     );
 };

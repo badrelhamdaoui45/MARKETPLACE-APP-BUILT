@@ -108,47 +108,264 @@ const BuyerProfile = () => {
         }
     };
 
+
     return (
-        <div style={{ padding: '2rem', maxWidth: '1000px', margin: '0 auto' }}>
-            <h1 style={{ marginBottom: '2rem' }}>My Purchases</h1>
+        <div className="purchases-container">
+            <header className="purchases-header">
+                <h1 className="purchases-title">My Purchases</h1>
+                <p className="purchases-subtitle">Manage and download your professional photography collections.</p>
+            </header>
 
             {loading ? (
-                <p>Loading...</p>
+                <div className="loading-state">
+                    <div className="spinner"></div>
+                    <p>Loading...</p>
+                </div>
             ) : purchases.length === 0 ? (
-                <p style={{ color: 'var(--text-secondary)' }}>You haven't purchased any albums yet.</p>
+                <div className="empty-state">
+                    <div className="empty-icon">🛍️</div>
+                    <h3 className="empty-title">No purchases yet</h3>
+                    <p className="empty-text">Browse the albums to find amazing photography collections.</p>
+                    <Button onClick={() => navigate('/albums')} className="mt-4">Explore Albums</Button>
+                </div>
             ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                <div className="purchases-list">
                     {purchases.map((tx) => (
-                        <div key={tx.id} style={{
-                            background: 'var(--bg-secondary)',
-                            padding: '1.5rem',
-                            borderRadius: 'var(--radius-lg)',
-                            border: '1px solid var(--border-subtle)'
-                        }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                                <div>
-                                    <h3 style={{ fontSize: '1.25rem' }}>{tx.albums?.title}</h3>
-                                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                                        Purchased on {new Date(tx.created_at).toLocaleDateString()} • ${tx.amount}
-                                    </p>
+                        <div key={tx.id} className="purchase-card">
+                            <div className="purchase-card-main">
+                                <div className="purchase-info">
+                                    <div className="album-preview-mini">
+                                        {tx.albums?.cover_image_url ? (
+                                            <img src={tx.albums.cover_image_url} alt="" />
+                                        ) : (
+                                            <div className="no-preview">📷</div>
+                                        )}
+                                    </div>
+                                    <div className="text-content">
+                                        <h3 className="album-title">{tx.albums?.title}</h3>
+                                        <p className="photographer-name">by {tx.albums?.profiles?.full_name}</p>
+                                        <div className="purchase-meta">
+                                            <span className="purchase-date">{new Date(tx.created_at).toLocaleDateString()}</span>
+                                            <span className="meta-divider">•</span>
+                                            <span className="purchase-amount">${tx.amount}</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                {/* 
-                  Real app would generate a signed URL for original_url here.
-                  For prototype, we just link to watermarked or dummy download. 
-                  If we had the original_url in transaction/album, we could link IF we have a policy.
-                */}
-                                <Button variant="outline" onClick={() => navigate(`/my-purchases/${tx.album_id}`)}>
-                                    Download Originals
-                                </Button>
+                                <div className="purchase-actions">
+                                    <Button
+                                        variant="primary"
+                                        className="download-btn"
+                                        onClick={() => navigate(`/my-purchases/${tx.album_id}`)}
+                                    >
+                                        Download Files
+                                    </Button>
+                                </div>
                             </div>
-
-                            <div style={{ padding: '1rem', background: 'rgba(59, 130, 246, 0.1)', borderRadius: 'var(--radius-md)', color: 'var(--accent-primary)', fontSize: '0.9rem' }}>
-                                <strong>Access Unlocked:</strong> You have full rights to these photos.
+                            <div className="purchase-footer">
+                                <div className="status-badge">
+                                    <span className="status-dot"></span>
+                                    Lifetime Access Unlocked
+                                </div>
                             </div>
                         </div>
                     ))}
                 </div>
             )}
+
+            <style>{`
+                .purchases-container {
+                    padding: var(--spacing-xl);
+                    max-width: 1000px;
+                    margin: 0 auto;
+                }
+
+                .purchases-header {
+                    margin-bottom: var(--spacing-2xl);
+                }
+
+                .purchases-title {
+                    font-size: var(--font-size-3xl);
+                    font-weight: 800;
+                    margin-bottom: var(--spacing-xs);
+                }
+
+                .purchases-subtitle {
+                    color: var(--text-secondary);
+                    font-size: var(--font-size-md);
+                }
+
+                .purchases-list {
+                    display: flex;
+                    flex-direction: column;
+                    gap: var(--spacing-lg);
+                }
+
+                .purchase-card {
+                    background: var(--bg-primary);
+                    border: 1px solid var(--border-light);
+                    border-radius: var(--radius-xl);
+                    overflow: hidden;
+                    box-shadow: var(--shadow-sm);
+                    transition: all var(--transition-base);
+                }
+
+                .purchase-card:hover {
+                    box-shadow: var(--shadow-md);
+                    border-color: var(--primary-blue-light);
+                }
+
+                .purchase-card-main {
+                    padding: var(--spacing-lg);
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    gap: var(--spacing-xl);
+                }
+
+                .purchase-info {
+                    display: flex;
+                    align-items: center;
+                    gap: var(--spacing-lg);
+                    flex: 1;
+                }
+
+                .album-preview-mini {
+                    width: 80px;
+                    height: 80px;
+                    border-radius: var(--radius-lg);
+                    overflow: hidden;
+                    background: var(--bg-tertiary);
+                    flex-shrink: 0;
+                }
+
+                .album-preview-mini img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                }
+
+                .no-preview {
+                    width: 100%;
+                    height: 100%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 1.5rem;
+                    opacity: 0.3;
+                }
+
+                .album-title {
+                    font-size: var(--font-size-lg);
+                    font-weight: 700;
+                    margin-bottom: 2px;
+                }
+
+                .photographer-name {
+                    font-size: var(--font-size-sm);
+                    color: var(--text-secondary);
+                    margin-bottom: var(--spacing-xs);
+                }
+
+                .purchase-meta {
+                    display: flex;
+                    align-items: center;
+                    gap: var(--spacing-sm);
+                    font-size: var(--font-size-xs);
+                    color: var(--text-tertiary);
+                    font-weight: 500;
+                }
+
+                .meta-divider {
+                    opacity: 0.5;
+                }
+
+                .purchase-amount {
+                    color: var(--primary-blue);
+                    font-weight: 700;
+                }
+
+                .purchase-footer {
+                    padding: var(--spacing-sm) var(--spacing-lg);
+                    background: var(--bg-secondary);
+                    border-top: 1px solid var(--border-light);
+                }
+
+                .status-badge {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: var(--spacing-xs);
+                    font-size: var(--font-size-xs);
+                    font-weight: 600;
+                    color: var(--success-green);
+                }
+
+                .status-dot {
+                    width: 6px;
+                    height: 6px;
+                    background: var(--success-green);
+                    border-radius: 50%;
+                }
+
+                .empty-state {
+                    text-align: center;
+                    padding: 6rem var(--spacing-xl);
+                    background: var(--bg-tertiary);
+                    border-radius: var(--radius-2xl);
+                }
+
+                .empty-icon {
+                    font-size: 4rem;
+                    margin-bottom: var(--spacing-md);
+                }
+
+                .empty-title {
+                    font-size: var(--font-size-xl);
+                    font-weight: 700;
+                    margin-bottom: var(--spacing-xs);
+                }
+
+                .loading-state {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 4rem;
+                }
+
+                .spinner {
+                    width: 40px;
+                    height: 40px;
+                    border: 3px solid var(--border-light);
+                    border-top-color: var(--primary-blue);
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                }
+
+                @keyframes spin {
+                    to { transform: rotate(360deg); }
+                }
+
+                @media (max-width: 640px) {
+                    .purchases-container {
+                        padding: var(--spacing-md);
+                    }
+                    .purchase-card-main {
+                        flex-direction: column;
+                        align-items: flex-start;
+                        gap: var(--spacing-lg);
+                    }
+                    .purchase-actions {
+                        width: 100%;
+                    }
+                    .download-btn {
+                        width: 100%;
+                    }
+                    .album-preview-mini {
+                        width: 60px;
+                        height: 60px;
+                    }
+                }
+            `}</style>
         </div>
     );
 };

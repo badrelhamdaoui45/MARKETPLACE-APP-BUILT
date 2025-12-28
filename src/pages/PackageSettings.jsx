@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import Modal from '../components/ui/Modal';
 import { Link } from 'react-router-dom';
 
 const PackageSettings = () => {
@@ -11,6 +12,9 @@ const PackageSettings = () => {
     const [loading, setLoading] = useState(true);
     const [packages, setPackages] = useState([]);
     const [isCreating, setIsCreating] = useState(false);
+
+    // Modal State
+    const [deleteModal, setDeleteModal] = useState({ isOpen: false, packageId: null, packageName: '' });
 
     // Form State
     const [formData, setFormData] = useState({
@@ -78,6 +82,28 @@ const PackageSettings = () => {
         }
     };
 
+    const handleDelete = async (packageId, packageName) => {
+        // Open modal instead of alert
+        setDeleteModal({ isOpen: true, packageId, packageName });
+    };
+
+    const confirmDelete = async () => {
+        try {
+            const { error } = await supabase
+                .from('pricing_packages')
+                .delete()
+                .eq('id', deleteModal.packageId)
+                .eq('photographer_id', user.id);
+
+            if (error) throw error;
+
+            // Refresh the packages list
+            fetchPackages();
+        } catch (error) {
+            console.error('Error deleting package:', error);
+        }
+    };
+
     if (loading) return <div style={{ padding: '2rem' }}>Loading settings...</div>;
 
     return (
@@ -96,7 +122,7 @@ const PackageSettings = () => {
                             <div key={pkg.id} style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <h3>{pkg.name} <span style={{ fontSize: '0.8rem', opacity: 0.7, textTransform: 'uppercase', background: 'var(--bg-tertiary)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>{pkg.package_type}</span></h3>
-                                    <Button variant="outline" onClick={() => { /* Delete logic */ }}>Delete</Button>
+                                    <Button variant="outline" onClick={() => handleDelete(pkg.id, pkg.name)}>Delete</Button>
                                 </div>
                                 <div style={{ marginTop: '1rem' }}>
                                     {pkg.tiers.map((tier, i) => (
@@ -187,6 +213,18 @@ const PackageSettings = () => {
                     </div>
                 </div>
             )}
+
+            {/* Delete Confirmation Modal */}
+            <Modal
+                isOpen={deleteModal.isOpen}
+                onClose={() => setDeleteModal({ isOpen: false, packageId: null, packageName: '' })}
+                onConfirm={confirmDelete}
+                title="Delete Package"
+                message={`Are you sure you want to delete "${deleteModal.packageName}"? This action cannot be undone and will affect any albums using this pricing package.`}
+                confirmText="Delete"
+                cancelText="Cancel"
+                variant="danger"
+            />
         </div>
     );
 };

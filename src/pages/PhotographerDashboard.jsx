@@ -81,157 +81,130 @@ const PhotographerDashboard = () => {
     };
 
     return (
-        <div className="dashboard-container" style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <h1>Photographer Dashboard</h1>
-                <div style={{ display: 'flex', gap: '1rem' }}>
+        <div className="dashboard-container">
+            <header className="dashboard-header">
+                <h1>Tableau de bord Photographe</h1>
+                <div className="dashboard-actions">
                     <Link to="/photographer/packages">
-                        <Button variant="secondary">Pricing Settings</Button>
+                        <Button variant="secondary">Réglages Prix</Button>
                     </Link>
                     <Link to="/photographer/albums/new">
-                        <Button>+ Create Album</Button>
+                        <Button>+ Créer un Album</Button>
                     </Link>
                 </div>
-            </div>
+            </header>
 
             <ConnectStripe />
 
             {/* Tabs */}
-            <div style={{ display: 'flex', borderBottom: '1px solid var(--border-subtle)', marginBottom: '2rem' }}>
+            <div className="dashboard-tabs">
                 <button
                     onClick={() => setActiveTab('albums')}
-                    style={{
-                        padding: '1rem 2rem',
-                        cursor: 'pointer',
-                        background: 'none',
-                        border: 'none',
-                        borderBottom: activeTab === 'albums' ? '2px solid var(--accent-primary)' : 'none',
-                        fontWeight: activeTab === 'albums' ? 'bold' : 'normal',
-                        color: activeTab === 'albums' ? 'var(--text-primary)' : 'var(--text-secondary)'
-                    }}
+                    className={`tab-button ${activeTab === 'albums' ? 'active' : ''}`}
                 >
-                    My Albums
+                    Mes Albums
                 </button>
                 <button
                     onClick={() => setActiveTab('sales')}
-                    style={{
-                        padding: '1rem 2rem',
-                        cursor: 'pointer',
-                        background: 'none',
-                        border: 'none',
-                        borderBottom: activeTab === 'sales' ? '2px solid var(--accent-primary)' : 'none',
-                        fontWeight: activeTab === 'sales' ? 'bold' : 'normal',
-                        color: activeTab === 'sales' ? 'var(--text-primary)' : 'var(--text-secondary)'
-                    }}
+                    className={`tab-button ${activeTab === 'sales' ? 'active' : ''}`}
                 >
-                    Sales & Earnings
+                    Ventes & Revenus
                 </button>
             </div>
 
             {/* TAB CONTENT: ALBUMS */}
             {activeTab === 'albums' && (
-                <>
+                <div className="tab-content">
                     {loadingAlbums ? (
-                        <p>Loading albums...</p>
+                        <p className="loading-text">Chargement des albums...</p>
                     ) : albums.length === 0 ? (
-                        <div style={{ textAlign: 'center', padding: '4rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-lg)' }}>
-                            <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>You haven't created any albums yet.</p>
+                        <div className="empty-dashboard-state">
+                            <p>Vous n'avez pas encore créé d'albums.</p>
                             <Link to="/photographer/albums/new">
-                                <Button variant="outline">Create Your First Album</Button>
+                                <Button variant="outline">Créer votre premier album</Button>
                             </Link>
                         </div>
                     ) : (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
+                        <div className="dashboard-albums-grid">
                             {albums.map((album) => (
-                                <div key={album.id} className="album-card" style={{
-                                    background: 'var(--bg-secondary)',
-                                    borderRadius: 'var(--radius-md)',
-                                    overflow: 'hidden',
-                                    border: '1px solid var(--border-subtle)'
-                                }}>
-                                    <div style={{ height: '180px', background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                <div key={album.id} className="album-card-mini">
+                                    <div className="album-card-mini-image">
                                         {album.cover_image_url ? (
-                                            <img src={album.cover_image_url} alt={album.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            <img src={album.cover_image_url} alt={album.title} />
                                         ) : (
-                                            <span style={{ color: 'var(--text-muted)' }}>No Cover</span>
+                                            <span className="no-cover-text">Pas de couverture</span>
                                         )}
                                     </div>
-                                    <div style={{ padding: '1rem' }}>
-                                        <h3 style={{ marginBottom: '0.5rem' }}>{album.title}</h3>
-                                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1rem' }}>
-                                            {album.is_published ? 'Published' : 'Draft'} • ${album.price}
+                                    <div className="album-card-mini-body">
+                                        <h3>{album.title}</h3>
+                                        <p className="album-meta">
+                                            {album.is_published ? 'Publié' : 'Brouillon'} • ${album.price}
                                         </p>
                                         <Link to={`/photographer/albums/${album.id}`}>
-                                            <Button variant="outline" style={{ width: '100%' }}>Manage Album</Button>
+                                            <Button variant="outline" className="w-full">Gérer l'album</Button>
                                         </Link>
                                     </div>
                                 </div>
                             ))}
                         </div>
                     )}
-                </>
+                </div>
             )}
 
             {/* TAB CONTENT: SALES */}
             {activeTab === 'sales' && (
-                <div style={{ animation: 'fadeIn 0.3s ease' }}>
+                <div className="tab-content sales-content">
                     {/* Stats Overview */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-                        <div style={statCardStyle}>
-                            <div style={statLabelStyle}>Total Sales Volume</div>
-                            <div style={statValueStyle}>${salesStats.total.toFixed(2)}</div>
+                    <div className="stats-grid">
+                        <div className="stat-card">
+                            <div className="stat-label">Volume total des ventes</div>
+                            <div className="stat-value">${salesStats.total.toFixed(2)}</div>
                         </div>
-                        <div style={statCardStyle}>
-                            <div style={statLabelStyle}>Net Earnings</div>
-                            <div style={statValueStyle}>${salesStats.net.toFixed(2)}</div>
-                            <div style={{ fontSize: '0.8rem', color: '#10b981' }}>Payouts via Stripe</div>
+                        <div className="stat-card highlight">
+                            <div className="stat-label">Revenus nets</div>
+                            <div className="stat-value">${salesStats.net.toFixed(2)}</div>
+                            <div className="stat-note">Paiements via Stripe</div>
                         </div>
-                        <div style={statCardStyle}>
-                            <div style={statLabelStyle}>Total Orders</div>
-                            <div style={statValueStyle}>{salesStats.count}</div>
+                        <div className="stat-card">
+                            <div className="stat-label">Commandes totales</div>
+                            <div className="stat-value">{salesStats.count}</div>
                         </div>
                     </div>
 
-                    {/* Transactions Table */}
-                    <div style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                            <thead style={{ background: 'var(--bg-tertiary)' }}>
-                                <tr style={{ textAlign: 'left' }}>
-                                    <th style={thStyle}>Date</th>
-                                    <th style={thStyle}>Album</th>
-                                    <th style={thStyle}>Buyer</th>
-                                    <th style={thStyle}>Gross</th>
-                                    <th style={thStyle}>Platform Fee</th>
-                                    <th style={thStyle}>Net</th>
-                                    <th style={thStyle}>Status</th>
+                    {/* Desktop Transactions Table */}
+                    <div className="transactions-table-wrapper hide-mobile">
+                        <table className="transactions-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Album</th>
+                                    <th>Acheteur</th>
+                                    <th>Brut</th>
+                                    <th>Commission</th>
+                                    <th>Net</th>
+                                    <th>Statut</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {sales.length === 0 ? (
                                     <tr>
-                                        <td colSpan="7" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                                            No sales recorded yet.
+                                        <td colSpan="7" className="empty-table-cell">
+                                            Aucune vente enregistrée pour le moment.
                                         </td>
                                     </tr>
                                 ) : (
                                     sales.map(tx => (
-                                        <tr key={tx.id} style={{ borderTop: '1px solid var(--border-subtle)' }}>
-                                            <td style={tdStyle}>{new Date(tx.created_at).toLocaleDateString()}</td>
-                                            <td style={tdStyle}>{tx.albums?.title || 'Unknown Album'}</td>
-                                            <td style={tdStyle}>{tx.profiles?.full_name || 'Guest'}</td>
-                                            <td style={tdStyle}>${Number(tx.amount).toFixed(2)}</td>
-                                            <td style={tdStyle} className="text-red-500">-${Number(tx.commission_amount).toFixed(2)}</td>
-                                            <td style={{ ...tdStyle, fontWeight: 'bold', color: '#10b981' }}>
+                                        <tr key={tx.id}>
+                                            <td>{new Date(tx.created_at).toLocaleDateString()}</td>
+                                            <td>{tx.albums?.title || 'Album inconnu'}</td>
+                                            <td>{tx.profiles?.full_name || 'Invité'}</td>
+                                            <td>${Number(tx.amount).toFixed(2)}</td>
+                                            <td className="commission-text">-${Number(tx.commission_amount).toFixed(2)}</td>
+                                            <td className="net-text">
                                                 ${(Number(tx.amount) - Number(tx.commission_amount)).toFixed(2)}
                                             </td>
-                                            <td style={tdStyle}>
-                                                <span style={{
-                                                    padding: '0.25rem 0.5rem',
-                                                    borderRadius: '999px',
-                                                    fontSize: '0.75rem',
-                                                    background: tx.status === 'paid' ? '#dcfce7' : '#fef9c3',
-                                                    color: tx.status === 'paid' ? '#15803d' : '#854d0e'
-                                                }}>
+                                            <td>
+                                                <span className={`status-badge ${tx.status}`}>
                                                     {tx.status?.toUpperCase()}
                                                 </span>
                                             </td>
@@ -241,23 +214,279 @@ const PhotographerDashboard = () => {
                             </tbody>
                         </table>
                     </div>
+
+                    {/* Mobile Transactions List */}
+                    <div className="transactions-mobile-list hide-desktop">
+                        {sales.length === 0 ? (
+                            <p className="empty-text">Aucune vente enregistrée.</p>
+                        ) : (
+                            sales.map(tx => (
+                                <div key={tx.id} className="transaction-card">
+                                    <div className="tx-header">
+                                        <span className="tx-date">{new Date(tx.created_at).toLocaleDateString()}</span>
+                                        <span className={`status-badge ${tx.status}`}>{tx.status}</span>
+                                    </div>
+                                    <div className="tx-row">
+                                        <span className="tx-label">Album:</span>
+                                        <span className="tx-value">{tx.albums?.title || 'Inconnu'}</span>
+                                    </div>
+                                    <div className="tx-row">
+                                        <span className="tx-label">Acheteur:</span>
+                                        <span className="tx-value">{tx.profiles?.full_name || 'Invité'}</span>
+                                    </div>
+                                    <div className="tx-footer">
+                                        <div className="tx-amount-group">
+                                            <span className="tx-label">Net:</span>
+                                            <span className="tx-net-amount">${(Number(tx.amount) - Number(tx.commission_amount)).toFixed(2)}</span>
+                                        </div>
+                                        <div className="tx-gross-info">
+                                            Brut: ${Number(tx.amount).toFixed(2)}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
                 </div>
             )}
+
+            <style>{`
+                .dashboard-container {
+                    padding: 2rem;
+                    max-width: 1200px;
+                    margin: 0 auto;
+                }
+
+                .dashboard-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 2.5rem;
+                }
+
+                .dashboard-header h1 {
+                    font-size: 1.8rem;
+                    font-weight: 800;
+                }
+
+                .dashboard-actions {
+                    display: flex;
+                    gap: 1rem;
+                }
+
+                .dashboard-tabs {
+                    display: flex;
+                    border-bottom: 1px solid var(--border-subtle);
+                    margin-bottom: 2.5rem;
+                    gap: 2rem;
+                }
+
+                .tab-button {
+                    padding: 1rem 0;
+                    cursor: pointer;
+                    background: none;
+                    border: none;
+                    border-bottom: 2px solid transparent;
+                    color: var(--text-secondary);
+                    font-weight: 600;
+                    font-size: 1rem;
+                    transition: all 0.2s ease;
+                }
+
+                .tab-button.active {
+                    border-bottom-color: var(--primary-blue);
+                    color: var(--text-primary);
+                }
+
+                .dashboard-albums-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+                    gap: 1.5rem;
+                }
+
+                .album-card-mini {
+                    background: #ffffff;
+                    border-radius: 8px;
+                    overflow: hidden;
+                    border: 1px solid var(--border-subtle);
+                    display: flex;
+                    flex-direction: column;
+                }
+
+                .album-card-mini-image {
+                    height: 180px;
+                    background: var(--bg-tertiary);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    overflow: hidden;
+                }
+
+                .album-card-mini-image img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                }
+
+                .album-card-mini-body {
+                    padding: 1.25rem;
+                }
+
+                .album-card-mini-body h3 {
+                    margin-bottom: 0.5rem;
+                    font-size: 1.1rem;
+                }
+
+                .album-meta {
+                    color: var(--text-secondary);
+                    font-size: 0.9rem;
+                    margin-bottom: 1.25rem;
+                }
+
+                .stats-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                    gap: 1.5rem;
+                    margin-bottom: 2.5rem;
+                }
+
+                .stat-card {
+                    background: #ffffff;
+                    padding: 1.75rem;
+                    border-radius: 12px;
+                    border: 1px solid var(--border-subtle);
+                }
+
+                .stat-card.highlight {
+                    border-color: #dcfce7;
+                    background: #f0fdf4;
+                }
+
+                .stat-label {
+                    color: var(--text-secondary);
+                    font-size: 0.95rem;
+                    margin-bottom: 0.75rem;
+                    font-weight: 500;
+                }
+
+                .stat-value {
+                    font-size: 2rem;
+                    font-weight: 800;
+                    color: var(--text-primary);
+                }
+
+                .stat-note {
+                    font-size: 0.85rem;
+                    color: #16a34a;
+                    margin-top: 0.25rem;
+                    font-weight: 600;
+                }
+
+                .transactions-table-wrapper {
+                    background: #ffffff;
+                    border-radius: 12px;
+                    border: 1px solid var(--border-subtle);
+                    overflow: hidden;
+                }
+
+                .transactions-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                }
+
+                .transactions-table th {
+                    background: var(--bg-tertiary);
+                    padding: 1rem;
+                    font-size: 0.9rem;
+                    text-align: left;
+                    font-weight: 700;
+                    color: var(--text-secondary);
+                }
+
+                .transactions-table td {
+                    padding: 1.25rem 1rem;
+                    border-top: 1px solid var(--border-subtle);
+                    font-size: 0.95rem;
+                }
+
+                .commission-text { color: var(--danger-red); }
+                .net-text { font-weight: 800; color: #16a34a; }
+
+                .status-badge {
+                    padding: 0.4rem 0.75rem;
+                    border-radius: 50px;
+                    font-size: 0.75rem;
+                    font-weight: 700;
+                    letter-spacing: 0.02em;
+                }
+
+                .status-badge.paid { background: #dcfce7; color: #15803d; }
+                .status-badge.pending { background: #fef9c3; color: #854d0e; }
+
+                .transaction-card {
+                    background: #ffffff;
+                    border: 1px solid var(--border-subtle);
+                    border-radius: 12px;
+                    padding: 1.25rem;
+                    margin-bottom: 1rem;
+                }
+
+                .tx-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 1rem;
+                    border-bottom: 1px solid var(--bg-tertiary);
+                    padding-bottom: 0.75rem;
+                }
+
+                .tx-date { font-weight: 700; font-size: 0.9rem; }
+
+                .tx-row {
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 0.5rem;
+                    font-size: 0.95rem;
+                }
+
+                .tx-label { color: var(--text-secondary); }
+                .tx-value { font-weight: 600; text-align: right; }
+
+                .tx-footer {
+                    margin-top: 1rem;
+                    padding-top: 1rem;
+                    border-top: 1px dashed var(--border-subtle);
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+
+                .tx-net-amount {
+                    font-size: 1.25rem;
+                    font-weight: 800;
+                    color: #16a34a;
+                    margin-left: 0.5rem;
+                }
+
+                .tx-gross-info {
+                    font-size: 0.8rem;
+                    color: var(--text-tertiary);
+                }
+
+                @media (max-width: 768px) {
+                    .dashboard-container { padding: 1rem; }
+                    .dashboard-header { flex-direction: column; align-items: flex-start; gap: 1.5rem; }
+                    .dashboard-actions { width: 100%; }
+                    .dashboard-actions a { flex: 1; }
+                    .dashboard-actions button { width: 100%; }
+                    .dashboard-tabs { gap: 1rem; overflow-x: auto; white-space: nowrap; }
+                    .tab-button { padding: 0.75rem 0.5rem; font-size: 0.9rem; }
+                    .stats-grid { grid-template-columns: 1fr; }
+                    .stat-card { padding: 1.25rem; }
+                }
+            `}</style>
         </div>
     );
 };
-
-// Styles
-const statCardStyle = {
-    background: 'var(--bg-secondary)',
-    padding: '1.5rem',
-    borderRadius: 'var(--radius-md)',
-    border: '1px solid var(--border-subtle)'
-};
-const statLabelStyle = { color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '0.5rem' };
-const statValueStyle = { fontSize: '1.75rem', fontWeight: 'bold', color: 'var(--text-primary)' };
-
-const thStyle = { padding: '1rem', fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: '600' };
-const tdStyle = { padding: '1rem', fontSize: '0.9rem' };
 
 export default PhotographerDashboard;
