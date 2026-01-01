@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { createConnectedAccount, createAccountLink, getAccountStatus, createLoginLink } from '../../lib/stripe/service';
 import Button from '../ui/Button';
+import { RefreshCw, AlertTriangle, CheckCircle, ExternalLink } from 'lucide-react';
 
 const ConnectStripe = () => {
     const { user, profile } = useAuth();
@@ -81,24 +81,25 @@ const ConnectStripe = () => {
                 <div style={{ padding: '1.5rem', background: '#fffbeb', borderRadius: 'var(--radius-md)', border: '1px solid #f59e0b' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
                         <div>
-                            <strong style={{ color: '#d97706', display: 'block', fontSize: '1.1rem' }}>
-                                {isUnderReview ? '🔄 Vérification en cours' : '⚠️ Action Requise'}
+                            <strong style={{ color: '#d97706', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.1rem' }}>
+                                {isUnderReview ? <RefreshCw size={18} className="animate-spin" /> : <AlertTriangle size={18} />}
+                                {isUnderReview ? 'Verification in progress' : 'Action Required'}
                             </strong>
-                            <p style={{ fontSize: '0.9rem', color: '#b45309', marginTop: '0.25rem' }}>
+                            <p style={{ fontSize: '0.9rem', color: '#b45309', marginTop: '0.25rem', paddingLeft: '26px' }}>
                                 {isUnderReview
-                                    ? 'Stripe vérifie actuellement vos informations. Cela peut prendre quelques jours.'
-                                    : 'Stripe a besoin d\'informations complémentaires pour activer vos paiements.'}
+                                    ? 'Stripe is currently verifying your information. This may take a few days.'
+                                    : 'Stripe needs additional information to enable payouts.'}
                             </p>
                         </div>
                         <Button onClick={handleConnect} disabled={loading} style={{ background: '#d97706', color: 'white' }}>
-                            {loading ? 'Ouverture...' : (hasDueItems ? 'Compléter ma configuration' : 'Vérifier sur Stripe')}
+                            {loading ? 'Opening...' : (hasDueItems ? 'Complete setup' : 'Check on Stripe')}
                         </Button>
                     </div>
 
                     {hasDueItems && (
-                        <div style={{ background: 'rgba(217, 119, 6, 0.1)', padding: '1rem', borderRadius: '6px', marginTop: '1rem' }}>
+                        <div style={{ background: 'rgba(217, 119, 6, 0.1)', padding: '1rem', borderRadius: '6px', marginTop: '1rem', marginLeft: '26px' }}>
                             <p style={{ fontWeight: '600', color: '#d97706', fontSize: '0.85rem', marginBottom: '0.5rem' }}>
-                                Éléments à fournir :
+                                Required information:
                             </p>
                             <ul style={{ paddingLeft: '1.2rem', margin: '0' }}>
                                 {currentlyDue.map(req => (
@@ -116,9 +117,11 @@ const ConnectStripe = () => {
         return (
             <div style={{ padding: '1.25rem', background: '#ecfdf5', borderRadius: 'var(--radius-md)', border: '1px solid #059669', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                    <strong style={{ color: '#047857', display: 'block', fontSize: '1.1rem' }}>✅ Compte Actif</strong>
-                    <span style={{ fontSize: '0.9rem', color: '#065f46' }}>
-                        Votre compte est vérifié et prêt à recevoir des paiements.
+                    <strong style={{ color: '#047857', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.1rem' }}>
+                        <CheckCircle size={18} /> Account Active
+                    </strong>
+                    <span style={{ fontSize: '0.9rem', color: '#065f46', display: 'block', paddingLeft: '26px' }}>
+                        Your account is verified and ready to receive payments.
                     </span>
                 </div>
                 <Button
@@ -127,13 +130,13 @@ const ConnectStripe = () => {
                     disabled={loading}
                     style={{ fontSize: '0.85rem', padding: '0.5rem 1rem', background: 'white' }}
                 >
-                    {loading ? 'Ouverture...' : 'Tableau de bord Stripe'}
+                    {loading ? 'Opening...' : 'Stripe Dashboard'} <ExternalLink size={14} style={{ marginLeft: '4px' }} />
                 </Button>
             </div>
         );
     };
 
-    if (loadingStatus) return <div style={{ padding: '1rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)' }}>Vérification du statut Stripe...</div>;
+    if (loadingStatus) return <div style={{ padding: '1rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)' }}>Checking Stripe status...</div>;
 
     if (profile?.stripe_account_id) {
         return (
@@ -145,12 +148,12 @@ const ConnectStripe = () => {
 
     return (
         <div style={{ padding: '1.5rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--accent-primary)', marginBottom: '1.5rem' }}>
-            <h3 style={{ marginBottom: '0.5rem' }}>Configuration des paiements</h3>
+            <h3 style={{ marginBottom: '0.5rem' }}>Payment Setup</h3>
             <p style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>
-                Pour recevoir les revenus de vos ventes, vous devez connecter un compte Stripe.
+                To receive payouts from your sales, you must connect a Stripe account.
             </p>
             <Button onClick={handleConnect} disabled={loading} style={{ background: '#635bff' }}>
-                {loading ? 'Redirection...' : 'Se connecter avec Stripe'}
+                {loading ? 'Redirecting...' : 'Connect with Stripe'}
             </Button>
         </div>
     );

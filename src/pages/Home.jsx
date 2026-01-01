@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import Button from '../components/ui/Button';
+import { Search, Camera } from 'lucide-react';
 
 const Home = () => {
     return (
@@ -10,17 +11,14 @@ const Home = () => {
                     {/* Buyer Section */}
                     <div className="home-card buyer-card">
                         <div className="home-card-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
-                                <circle cx="9.5" cy="9.5" r="3" />
-                            </svg>
+                            <Search size={80} strokeWidth={1} />
                         </div>
                         <p className="home-card-text">
-                            Vous avez participé à un événement et souhaitez retrouver vos photos de sport en ligne.
+                            You participated in an event and want to find your sports photos online.
                         </p>
                         <Link to="/albums" className="home-card-link">
                             <Button className="home-btn buyer-btn">
-                                JE CHERCHE MES PHOTOS
+                                I'M LOOKING FOR MY PHOTOS
                             </Button>
                         </Link>
                     </div>
@@ -28,16 +26,14 @@ const Home = () => {
                     {/* Photographer Section */}
                     <div className="home-card photographer-card">
                         <div className="home-card-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                <path d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                            </svg>
+                            <Camera size={80} strokeWidth={1} />
                         </div>
                         <p className="home-card-text">
-                            Vous êtes un photographe, un évènement ou un club et souhaitez héberger et identifier vos photos de sport en ligne.
+                            You are a photographer, event, or club and want to host and identify your sports photos online.
                         </p>
                         <Link to="/login" className="home-card-link">
                             <Button variant="primary" className="home-btn photographer-btn">
-                                JE SUIS PHOTOGRAPHE / ORGANISATEUR
+                                I AM A PHOTOGRAPHER / ORGANIZER
                             </Button>
                         </Link>
                     </div>
@@ -83,11 +79,9 @@ const Home = () => {
                     height: 100px;
                     color: #4b5563;
                     margin-bottom: 2rem;
-                }
-
-                .home-card-icon svg {
-                    width: 100%;
-                    height: 100%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
                 }
 
                 .home-card-text {
@@ -120,6 +114,7 @@ const Home = () => {
 
                 .buyer-btn:hover {
                     background: #ffc300 !important;
+                    transform: translateY(-2px);
                 }
 
                 .photographer-btn {
@@ -129,6 +124,7 @@ const Home = () => {
 
                 .photographer-btn:hover {
                     background: #033a55 !important;
+                    transform: translateY(-2px);
                 }
 
                 @media (max-width: 768px) {

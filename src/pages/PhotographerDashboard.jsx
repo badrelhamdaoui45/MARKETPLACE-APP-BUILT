@@ -302,45 +302,55 @@ const PhotographerDashboard = () => {
                     display: grid;
                     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
                     gap: 1.5rem;
+                    align-items: start;
                 }
 
                 .album-card-mini {
                     background: #ffffff;
+                    border: 1px solid #e5e7eb;
                     border-radius: 8px;
                     overflow: hidden;
-                    border: 1px solid var(--border-subtle);
+                    transition: all 0.3s ease;
                     display: flex;
                     flex-direction: column;
                 }
 
+                .album-card-mini:hover {
+                    border-color: #d1d5db;
+                }
+
                 .album-card-mini-image {
-                    height: 180px;
-                    background: var(--bg-tertiary);
+                    /* Fixed height removed */
+                    background: #f3f4f6;
+                    position: relative;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    overflow: hidden;
                 }
 
                 .album-card-mini-image img {
                     width: 100%;
-                    height: 100%;
-                    object-fit: cover;
+                    height: auto;
+                    display: block;
                 }
 
                 .album-card-mini-body {
-                    padding: 1.25rem;
+                    padding: 1.5rem;
+                    text-align: center;
                 }
 
                 .album-card-mini-body h3 {
                     margin-bottom: 0.5rem;
                     font-size: 1.1rem;
+                    font-weight: 700;
+                    color: #1f2937;
                 }
 
                 .album-meta {
                     color: var(--text-secondary);
                     font-size: 0.9rem;
                     margin-bottom: 1.25rem;
+                    font-weight: 500;
                 }
 
                 .stats-grid {

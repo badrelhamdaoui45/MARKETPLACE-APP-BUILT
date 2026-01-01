@@ -1,8 +1,8 @@
-
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Link } from 'react-router-dom';
 import Button from '../components/ui/Button';
+import { Search, X, FolderOpen, Camera, Image, User } from 'lucide-react';
 
 const Albums = () => {
     const [albums, setAlbums] = useState([]);
@@ -51,16 +51,16 @@ const Albums = () => {
 
                 <div className="search-bar-container">
                     <div className="search-input-wrapper">
-                        <span className="search-icon">🔍</span>
+                        <span className="search-icon"><Search size={24} /></span>
                         <input
                             type="text"
-                            placeholder="Rechercher un album ou un photographe..."
+                            placeholder="Search for an album or photographer..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="search-input"
                         />
                         {searchTerm && (
-                            <button className="clear-search" onClick={() => setSearchTerm('')}>×</button>
+                            <button className="clear-search" onClick={() => setSearchTerm('')}><X size={16} /></button>
                         )}
                     </div>
                 </div>
@@ -73,7 +73,7 @@ const Albums = () => {
                 </div>
             ) : filteredAlbums.length === 0 ? (
                 <div className="empty-search-state">
-                    <div className="empty-icon">📂</div>
+                    <div className="empty-icon"><FolderOpen size={48} strokeWidth={1.5} /></div>
                     <h3>No albums found</h3>
                     <p>Try searching for something else or browse all collections.</p>
                     {searchTerm && (
@@ -92,17 +92,17 @@ const Albums = () => {
                                         <img src={album.cover_image_url} alt={album.title} loading="lazy" />
                                     ) : (
                                         <div className="no-cover">
-                                            <span>📷</span>
-                                            <span>No Cover</span>
+                                            <span><Image size={32} strokeWidth={1.5} /></span>
+                                            <span style={{ fontSize: '0.8rem', marginTop: '0.5rem' }}>No Cover</span>
                                         </div>
                                     )}
-                                    <div className="album-price-badge">${album.price}</div>
+                                    <div className="album-price-badge">{album.price}</div>
                                 </div>
                                 <div className="album-card-content">
                                     <h3 className="album-card-title">{album.title}</h3>
                                     <div className="album-card-photographer">
                                         <div className="photographer-logo-mini">
-                                            <span>📷</span>
+                                            <Camera size={14} />
                                         </div>
                                         <span className="photographer-name-text">
                                             {album.profiles?.full_name || 'Photographer'}
@@ -112,7 +112,7 @@ const Albums = () => {
                             </Link>
 
                             {/* Status label if needed - e.g. Pre-inscription or similar */}
-                            {false && <div className="album-status-label">Pré-inscription</div>}
+                            {false && <div className="album-status-label">Pre-registration</div>}
                         </div>
                     ))}
                 </div>
@@ -169,10 +169,10 @@ const Albums = () => {
                 }
 
                 .search-icon {
-                    font-size: 1.5rem;
+                    display: flex;
+                    align-items: center;
                     margin-right: 1.5rem;
                     color: #1f2937;
-                    transform: scaleX(-1); /* Mirror icon like in some search bars */
                     opacity: 0.8;
                 }
 
@@ -202,7 +202,6 @@ const Albums = () => {
                     justify-content: center;
                     cursor: pointer;
                     color: var(--text-secondary);
-                    font-size: 1.25rem;
                     margin-left: var(--spacing-sm);
                 }
 
@@ -221,9 +220,10 @@ const Albums = () => {
                 }
 
                 .empty-icon {
-                    font-size: 3rem;
+                    color: var(--text-tertiary);
                     margin-bottom: 1rem;
-                    opacity: 0.5;
+                    display: flex;
+                    justify-content: center;
                 }
 
                 .albums-grid {
@@ -232,6 +232,7 @@ const Albums = () => {
                     gap: 1.5rem; 
                     margin-top: 5rem;
                     width: 100%;
+                    align-items: start;
                 }
 
                 .album-card-main-link {
@@ -256,15 +257,29 @@ const Albums = () => {
                 }
 
                 .album-card-image {
-                    height: 320px; /* Slightly shorter to fit more in viewport */
+                    /* min-height removed */
                     background: #f3f4f6;
                     position: relative;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    min-height: 200px;
                 }
 
                 .album-card-image img {
                     width: 100%;
+                    height: auto;
+                    display: block;
+                }
+                
+                .no-cover {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    color: var(--text-tertiary);
+                    width: 100%;
                     height: 100%;
-                    object-fit: cover;
                 }
 
                 .album-price-badge {
@@ -308,7 +323,6 @@ const Albums = () => {
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    font-size: 0.75rem;
                     color: #9ca3af;
                 }
 
@@ -316,54 +330,6 @@ const Albums = () => {
                     font-size: 0.85rem;
                     font-weight: 600;
                     color: #4b5563;
-                }
-
-                .photographer-info-link {
-                    display: flex;
-                    align-items: center;
-                    gap: var(--spacing-sm);
-                    text-decoration: none;
-                    transition: all var(--transition-fast);
-                }
-
-                .photographer-info-link:hover {
-                    transform: translateX(4px);
-                }
-
-                .photographer-avatar {
-                    width: 32px;
-                    height: 32px;
-                    border-radius: 50%;
-                    background: linear-gradient(135deg, var(--primary-blue), var(--secondary-cyan));
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    color: white;
-                    font-size: 0.8rem;
-                    font-weight: 700;
-                }
-
-                .photographer-name {
-                    font-size: var(--font-size-sm);
-                    color: var(--text-secondary);
-                    font-weight: 500;
-                    transition: color var(--transition-fast);
-                }
-
-                .photographer-info-link:hover .photographer-name {
-                    color: var(--primary-blue);
-                }
-
-                .view-button-link {
-                    text-decoration: none;
-                }
-
-                .view-button {
-                    font-size: var(--font-size-xs);
-                    font-weight: 700;
-                    color: var(--primary-blue);
-                    text-transform: uppercase;
-                    letter-spacing: 0.05em;
                 }
 
                 .loading-state {
@@ -405,7 +371,6 @@ const Albums = () => {
                         padding: 0 1rem;
                     }
                     .search-icon {
-                        font-size: 1.2rem;
                         margin-right: 0.75rem;
                     }
                     .albums-grid {

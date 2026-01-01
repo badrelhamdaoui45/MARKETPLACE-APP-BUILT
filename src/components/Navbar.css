@@ -42,14 +42,45 @@
 .navbar-logo {
     display: flex;
     align-items: center;
-    height: 60px;
     margin-right: 15rem;
-    /* Even more space for that top-left logo look */
     text-decoration: none;
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--primary-blue);
     flex-shrink: 0;
+}
+
+.logo-text-container {
+    display: flex;
+    align-items: center;
+    font-family: 'Montserrat', 'Inter', sans-serif;
+    font-weight: 900;
+    font-size: 1.5rem;
+    letter-spacing: -0.05em;
+    /* Tracking tighter */
+    line-height: 1;
+}
+
+.logo-capture {
+    color: #0A162B;
+    /* Dark Slate Grey */
+    transition: color 0.3s ease;
+}
+
+.logo-run {
+    color: #F5A623;
+    /* Safety Orange */
+}
+
+.logo-square {
+    width: 8px;
+    height: 8px;
+    background-color: #F5A623;
+    margin-left: 2px;
+    margin-bottom: 4px;
+    /* Align visually */
+}
+
+/* Hover Effect: Capture becomes Orange */
+.navbar-logo:hover .logo-capture {
+    color: #F5A623;
 }
 
 @media (max-width: 1200px) {
@@ -61,14 +92,17 @@
 @media (max-width: 768px) {
     .navbar-logo {
         margin-right: 0;
-        height: 50px;
     }
-}
 
-.navbar-logo img {
-    height: 45px;
-    width: auto;
-    object-fit: contain;
+    .logo-text-container {
+        font-size: 1.25rem;
+    }
+
+    .logo-square {
+        width: 6px;
+        height: 6px;
+        margin-bottom: 3px;
+    }
 }
 
 .navbar-links {
@@ -112,15 +146,16 @@
     /* Push auth buttons to the far right */
 }
 
+
 .dashboard-btn {
     display: flex;
     align-items: center;
     gap: 0.75rem;
     padding: 0.75rem 1.25rem !important;
-    border: 1.5px solid #1f2937 !important;
-    color: #1f2937 !important;
+    border: 2px solid var(--primary-blue) !important;
+    color: var(--primary-blue) !important;
     background: white !important;
-    border-radius: 8px !important;
+    border-radius: var(--radius-md) !important;
     font-weight: 700 !important;
     font-size: 0.85rem !important;
     transition: all 0.2s ease !important;
@@ -128,7 +163,9 @@
 }
 
 .dashboard-btn:hover {
-    background: #f9fafb !important;
+    background: var(--bg-hover) !important;
+    color: var(--primary-blue-dark) !important;
+    border-color: var(--primary-blue-dark) !important;
 }
 
 .user-icon {
@@ -137,7 +174,7 @@
 
 .logout-btn-minimal {
     font-size: 0.85rem !important;
-    color: #6b7280 !important;
+    color: var(--text-secondary) !important;
     font-weight: 600 !important;
     text-transform: uppercase;
 }
@@ -174,14 +211,14 @@
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background: #f3f4f6;
-    color: #1f2937;
+    background: var(--bg-tertiary);
+    color: var(--primary-blue);
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 700;
     font-size: 1rem;
-    border: 1.5px solid #e5e7eb;
+    border: 2px solid var(--border-light);
 }
 
 .profile-dropdown-menu {
@@ -190,9 +227,9 @@
     right: 0;
     width: 250px;
     background: white;
-    border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-    border: 1px solid #f3f4f6;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl);
+    border: 1px solid var(--border-light);
     padding: 1rem;
     display: flex;
     flex-direction: column;
@@ -215,21 +252,21 @@
 
 .profile-menu-header {
     padding-bottom: 0.75rem;
-    border-bottom: 1px solid #f3f4f6;
+    border-bottom: 1px solid var(--border-light);
     margin-bottom: 0.5rem;
 }
 
 .profile-menu-name {
     display: block;
     font-weight: 700;
-    color: #1f2937;
+    color: var(--text-primary);
     font-size: 0.95rem;
 }
 
 .profile-menu-email {
     display: block;
     font-size: 0.8rem;
-    color: #6b7280;
+    color: var(--text-secondary);
 }
 
 .role-badge {
@@ -238,10 +275,10 @@
     font-size: 0.7rem;
     font-weight: 700;
     text-transform: uppercase;
-    background: #eff6ff;
-    color: #2563eb;
+    background: rgba(10, 22, 43, 0.1);
+    color: var(--primary-blue);
     padding: 2px 8px;
-    border-radius: 999px;
+    border-radius: var(--radius-full);
 }
 
 .profile-menu-item {
@@ -249,11 +286,11 @@
     align-items: center;
     gap: 0.75rem;
     padding: 0.75rem;
-    color: #374151;
+    color: var(--text-primary);
     text-decoration: none;
     font-size: 0.9rem;
     font-weight: 600;
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     transition: background 0.2s ease;
     border: none;
     background: none;
@@ -263,20 +300,20 @@
 }
 
 .profile-menu-item:hover {
-    background: #f9fafb;
-    color: #1f2937;
+    background: var(--bg-hover);
+    color: var(--primary-blue);
 }
 
 .logout-item {
-    color: #ef4444;
-    border-top: 1px solid #f3f4f6;
+    color: var(--danger-red);
+    border-top: 1px solid var(--border-light);
     margin-top: 0.5rem;
     padding-top: 1rem;
 }
 
 .logout-item:hover {
     background: #fef2f2;
-    color: #ef4444;
+    color: var(--danger-red);
 }
 
 /* Hamburger Menu - Hidden on Desktop */

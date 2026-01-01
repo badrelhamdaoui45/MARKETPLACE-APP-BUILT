@@ -31,7 +31,7 @@ const Login = () => {
     return (
         <div className="auth-container">
             <div className="auth-card">
-                <h2 className="auth-title">Connexion</h2>
+                <h2 className="auth-title">Log In</h2>
                 {error && <div className="error-alert">{error}</div>}
                 <form onSubmit={handleLogin}>
                     <Input
@@ -39,11 +39,11 @@ const Login = () => {
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        placeholder="votre@email.com"
+                        placeholder="your@email.com"
                         required
                     />
                     <Input
-                        label="Mot de passe"
+                        label="Password"
                         type="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
@@ -51,11 +51,11 @@ const Login = () => {
                         required
                     />
                     <Button type="submit" className="w-full" disabled={loading}>
-                        {loading ? 'Connexion...' : 'Se connecter'}
+                        {loading ? 'Logging in...' : 'Log In'}
                     </Button>
                 </form>
                 <p className="auth-footer">
-                    Vous n'avez pas de compte ? <Link to="/register">S'inscrire</Link>
+                    Don't have an account? <Link to="/register">Sign Up</Link>
                 </p>
             </div>
 

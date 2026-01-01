@@ -5,6 +5,7 @@ import Button from './ui/Button';
 import './Navbar.css';
 import LogoImage from '../assets/LogoImage.png';
 import { useCart } from '../context/CartContext';
+import { ShoppingCart, User, Menu, LogOut, Home, Image, HelpCircle, LayoutDashboard, X } from 'lucide-react';
 
 const Navbar = () => {
     const { user, profile, signOut } = useAuth();
@@ -37,11 +38,22 @@ const Navbar = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [isProfileOpen]);
 
+    const navigateToDashboard = () => {
+        if (profile?.role === 'admin') navigate('/admin');
+        else if (profile?.role === 'photographer') navigate('/photographer/dashboard');
+        else navigate('/my-purchases');
+        closeMenu();
+    };
+
     return (
         <nav className="navbar">
             <div className="navbar-container">
                 <Link to="/" className="navbar-logo" onClick={closeMenu}>
-                    <img src={LogoImage} alt="Logo" />
+                    <div className="logo-text-container">
+                        <span className="logo-capture">CAPTURE</span>
+                        <span className="logo-run">RUN</span>
+                        <div className="logo-square"></div>
+                    </div>
                 </Link>
 
                 {/* Hamburger Menu Button - Mobile Only */}
@@ -50,16 +62,14 @@ const Navbar = () => {
                     onClick={() => setIsMenuOpen(!isMenuOpen)}
                     aria-label="Toggle menu"
                 >
-                    <span className={`hamburger-line ${isMenuOpen ? 'open' : ''}`}></span>
-                    <span className={`hamburger-line ${isMenuOpen ? 'open' : ''}`}></span>
-                    <span className={`hamburger-line ${isMenuOpen ? 'open' : ''}`}></span>
+                    <Menu size={24} />
                 </button>
 
                 {/* Desktop Navigation */}
                 <div className="navbar-links desktop-nav">
-                    <Link to="/" className="nav-link">ACCUEIL</Link>
+                    <Link to="/" className="nav-link">HOME</Link>
                     <Link to="/albums" className="nav-link">ALBUMS</Link>
-                    <Link to="/how-it-works" className="nav-link">COMMENT ÇA MARCHE ?</Link>
+                    <Link to="/how-it-works" className="nav-link">HOW IT WORKS</Link>
                 </div>
 
                 {/* Desktop Auth/Dashboard Buttons */}
@@ -67,15 +77,12 @@ const Navbar = () => {
                     {user ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                             <Button
-                                variant="outline"
+                                variant="primary"
                                 className="dashboard-btn"
-                                onClick={() => {
-                                    if (profile?.role === 'admin') navigate('/admin');
-                                    else if (profile?.role === 'photographer') navigate('/photographer/dashboard');
-                                    else navigate('/my-purchases');
-                                }}
+                                onClick={navigateToDashboard}
                             >
-                                <span className="user-icon">👤</span> {profile?.role === 'photographer' || profile?.role === 'admin' ? 'DASHBOARD' : 'MY PURCHASES'}
+                                <span className="user-icon"><User size={18} /></span>
+                                {profile?.role === 'photographer' || profile?.role === 'admin' ? 'DASHBOARD' : 'MY PURCHASES'}
                             </Button>
 
                             {/* Profile Dropdown */}
@@ -92,34 +99,14 @@ const Navbar = () => {
                                 {isProfileOpen && (
                                     <div className="profile-dropdown-menu">
                                         <div className="profile-menu-header">
-                                            <span className="profile-menu-name">{profile?.full_name || 'Utilisateur'}</span>
+                                            <span className="profile-menu-name">{profile?.full_name || 'User'}</span>
                                             <span className="profile-menu-email">{user.email}</span>
                                             <span className="role-badge">{profile?.role || 'Client'}</span>
                                         </div>
 
-                                        <button
-                                            className="profile-menu-item"
-                                            onClick={() => {
-                                                if (profile?.role === 'admin') navigate('/admin');
-                                                else if (profile?.role === 'photographer') navigate('/photographer/dashboard');
-                                                else navigate('/my-purchases');
-                                                setIsProfileOpen(false);
-                                            }}
-                                        >
-                                            📁 {profile?.role === 'photographer' || profile?.role === 'admin' ? 'Mon Dashboard' : 'My Purchases'}
+                                        <button className="profile-menu-item" onClick={navigateToDashboard}>
+                                            <LayoutDashboard size={18} /> {profile?.role === 'photographer' || profile?.role === 'admin' ? 'My Dashboard' : 'My Purchases'}
                                         </button>
-
-                                        {profile?.role === 'photographer' && (
-                                            <button
-                                                className="profile-menu-item"
-                                                onClick={() => {
-                                                    navigate('/photographer/packages');
-                                                    setIsProfileOpen(false);
-                                                }}
-                                            >
-                                                ⚙️ Mes Tarifs
-                                            </button>
-                                        )}
 
                                         <button
                                             className="profile-menu-item"
@@ -128,11 +115,11 @@ const Navbar = () => {
                                                 setIsProfileOpen(false);
                                             }}
                                         >
-                                            🛒 Mon Panier {cartCount > 0 && <span className="cart-badge-inline">{cartCount}</span>}
+                                            <ShoppingCart size={18} /> My Cart {cartCount > 0 && <span className="cart-badge-inline">{cartCount}</span>}
                                         </button>
 
                                         <button onClick={handleLogout} className="profile-menu-item logout-item">
-                                            🚪 Se déconnecter
+                                            <LogOut size={18} /> Sign Out
                                         </button>
                                     </div>
                                 )}
@@ -159,6 +146,7 @@ const Navbar = () => {
                 <div className={`mobile-menu ${isMenuOpen ? 'open' : ''}`}>
                     <div className="mobile-menu-header">
                         <span className="mobile-menu-title">Menu</span>
+                        <button onClick={closeMenu} className="close-menu"><X size={24} /></button>
                     </div>
 
                     <div className="mobile-menu-content">
@@ -178,32 +166,23 @@ const Navbar = () => {
                         {/* Navigation Links */}
                         <div className="mobile-nav-links">
                             <Link to="/" className="mobile-nav-link" onClick={closeMenu}>
-                                <span className="mobile-nav-icon">🏠</span>
-                                ACCUEIL
+                                <span className="mobile-nav-icon"><Home size={20} /></span> HOME
                             </Link>
                             <Link to="/albums" className="mobile-nav-link" onClick={closeMenu}>
-                                <span className="mobile-nav-icon">🖼️</span>
-                                ALBUMS
+                                <span className="mobile-nav-icon"><Image size={20} /></span> ALBUMS
                             </Link>
                             <Link to="/how-it-works" className="mobile-nav-link" onClick={closeMenu}>
-                                <span className="mobile-nav-icon">❓</span>
-                                COMMENT ÇA MARCHE ?
+                                <span className="mobile-nav-icon"><HelpCircle size={20} /></span> HELP
                             </Link>
 
                             {user && (
-                                <Link
-                                    to={profile?.role === 'admin' ? '/admin' : (profile?.role === 'photographer' ? '/photographer/dashboard' : '/my-purchases')}
-                                    className="mobile-nav-link"
-                                    onClick={closeMenu}
-                                >
-                                    <span className="mobile-nav-icon">👤</span>
-                                    DASHBOARD
-                                </Link>
+                                <button className="mobile-nav-link" onClick={navigateToDashboard} style={{ background: 'none', border: 'none', textAlign: 'left', font: 'inherit', padding: '1rem', width: '100%' }}>
+                                    <span className="mobile-nav-icon"><LayoutDashboard size={20} /></span> DASHBOARD
+                                </button>
                             )}
 
                             <Link to="/cart" className="mobile-nav-link" onClick={closeMenu}>
-                                <span className="mobile-nav-icon">🛒</span>
-                                PANIER {cartCount > 0 && <span className="cart-badge-mobile">{cartCount}</span>}
+                                <span className="mobile-nav-icon"><ShoppingCart size={20} /></span> CART {cartCount > 0 && <span className="cart-badge-mobile">{cartCount}</span>}
                             </Link>
                         </div>
 
@@ -213,9 +192,9 @@ const Navbar = () => {
                                 <Button
                                     variant="outline"
                                     onClick={handleLogout}
-                                    style={{ width: '100%' }}
+                                    style={{ width: '100%', justifyContent: 'center' }}
                                 >
-                                    Sign Out
+                                    <LogOut size={18} /> Sign Out
                                 </Button>
                             ) : (
                                 <>
@@ -233,6 +212,7 @@ const Navbar = () => {
             </div>
         </nav>
     );
+
 };
 
 export default Navbar;

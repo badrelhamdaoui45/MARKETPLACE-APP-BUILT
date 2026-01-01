@@ -1,9 +1,9 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/ui/Button';
+import { ArrowLeft, Download, AlertCircle, CheckCircle } from 'lucide-react';
 
 const AlbumDownload = () => {
     const { albumId } = useParams();
@@ -94,11 +94,14 @@ const AlbumDownload = () => {
         <div className="download-page-container">
             <header className="download-page-header">
                 <Link to="/my-purchases" className="back-link">
-                    <span className="back-icon">←</span> Back to Purchases
+                    <ArrowLeft size={16} /> Back to Purchases
                 </Link>
                 <div className="header-content">
                     <h1 className="album-title">{album?.title || 'Album'}</h1>
-                    <span className="download-badge">Downloads Ready</span>
+                    <span className="download-badge">
+                        <CheckCircle size={14} style={{ marginRight: '4px' }} />
+                        Downloads Ready
+                    </span>
                 </div>
             </header>
 
@@ -137,12 +140,12 @@ const AlbumDownload = () => {
                                             className="download-anchor"
                                         >
                                             <Button className="download-button">
-                                                <span className="download-icon">📥</span> Download
+                                                <Download size={16} /> Download
                                             </Button>
                                         </a>
                                     ) : (
                                         <div className="access-denied">
-                                            <span className="denied-icon">⚠️</span>
+                                            <AlertCircle size={16} />
                                             Access Denied
                                         </div>
                                     )}
@@ -194,6 +197,8 @@ const AlbumDownload = () => {
                 }
 
                 .download-badge {
+                    display: inline-flex;
+                    align-items: center;
                     padding: var(--spacing-xs) var(--spacing-md);
                     background: rgba(16, 185, 129, 0.1);
                     color: var(--success-green);
@@ -363,7 +368,7 @@ const AlbumDownload = () => {
                     .download-grid {
                         grid-template-columns: 1fr;
                         gap: var(--spacing-md);
-                    }
+                        }
                     .download-stats {
                         flex-direction: column;
                         align-items: flex-start;

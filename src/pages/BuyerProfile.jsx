@@ -1,10 +1,10 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/ui/Button';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { calculateCommission } from '../config/platform';
+import { ShoppingBag, Camera, Download, Check } from 'lucide-react';
 
 const BuyerProfile = () => {
     const { user } = useAuth();
@@ -123,7 +123,7 @@ const BuyerProfile = () => {
                 </div>
             ) : purchases.length === 0 ? (
                 <div className="empty-state">
-                    <div className="empty-icon">🛍️</div>
+                    <div className="empty-icon"><ShoppingBag size={64} strokeWidth={1} /></div>
                     <h3 className="empty-title">No purchases yet</h3>
                     <p className="empty-text">Browse the albums to find amazing photography collections.</p>
                     <Button onClick={() => navigate('/albums')} className="mt-4">Explore Albums</Button>
@@ -138,7 +138,7 @@ const BuyerProfile = () => {
                                         {tx.albums?.cover_image_url ? (
                                             <img src={tx.albums.cover_image_url} alt="" />
                                         ) : (
-                                            <div className="no-preview">📷</div>
+                                            <div className="no-preview"><Camera size={24} /></div>
                                         )}
                                     </div>
                                     <div className="text-content">
@@ -157,13 +157,14 @@ const BuyerProfile = () => {
                                         className="download-btn"
                                         onClick={() => navigate(`/my-purchases/${tx.album_id}`)}
                                     >
+                                        <Download size={16} />
                                         Download Files
                                     </Button>
                                 </div>
                             </div>
                             <div className="purchase-footer">
                                 <div className="status-badge">
-                                    <span className="status-dot"></span>
+                                    <Check size={14} style={{ marginRight: '4px' }} />
                                     Lifetime Access Unlocked
                                 </div>
                             </div>
@@ -250,8 +251,7 @@ const BuyerProfile = () => {
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    font-size: 1.5rem;
-                    opacity: 0.3;
+                    color: var(--text-tertiary);
                 }
 
                 .album-title {
@@ -299,13 +299,6 @@ const BuyerProfile = () => {
                     color: var(--success-green);
                 }
 
-                .status-dot {
-                    width: 6px;
-                    height: 6px;
-                    background: var(--success-green);
-                    border-radius: 50%;
-                }
-
                 .empty-state {
                     text-align: center;
                     padding: 6rem var(--spacing-xl);
@@ -314,8 +307,10 @@ const BuyerProfile = () => {
                 }
 
                 .empty-icon {
-                    font-size: 4rem;
+                    color: var(--text-tertiary);
                     margin-bottom: var(--spacing-md);
+                    display: flex;
+                    justify-content: center;
                 }
 
                 .empty-title {

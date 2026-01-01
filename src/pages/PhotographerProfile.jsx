@@ -1,8 +1,8 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import Button from '../components/ui/Button';
+import { ArrowLeft, ArrowRight, Camera, Images } from 'lucide-react';
 
 const PhotographerProfile = () => {
     const { id } = useParams();
@@ -115,13 +115,13 @@ const PhotographerProfile = () => {
                 <div className="section-header">
                     <h2 className="section-title">Published Albums</h2>
                     <Link to="/albums" className="back-to-market">
-                        <span className="icon">←</span> Albums
+                        <span className="icon"><ArrowLeft size={18} /></span> Albums
                     </Link>
                 </div>
 
                 {albums.length === 0 ? (
                     <div className="empty-state">
-                        <div className="empty-icon">📂</div>
+                        <div className="empty-icon"><Images size={64} strokeWidth={1} /></div>
                         <p className="empty-text">
                             This photographer hasn't published any albums yet.
                         </p>
@@ -139,7 +139,7 @@ const PhotographerProfile = () => {
                                         {album.cover_image_url ? (
                                             <img src={album.cover_image_url} alt={album.title} loading="lazy" />
                                         ) : (
-                                            <div className="no-cover">📷</div>
+                                            <div className="no-cover"><Camera size={48} strokeWidth={1} /></div>
                                         )}
                                         <div className="album-price-overlay">
                                             {album.pricing_package_id ? (
@@ -157,7 +157,7 @@ const PhotographerProfile = () => {
                                         </p>
                                         <div className="album-card-action">
                                             <span>{album.pricing_package_id ? 'View Package' : 'Buy Now'}</span>
-                                            <span className="arrow">→</span>
+                                            <span className="arrow"><ArrowRight size={16} /></span>
                                         </div>
                                     </div>
                                 </div>
@@ -296,48 +296,47 @@ const PhotographerProfile = () => {
 
                 .profile-albums-grid {
                     display: grid;
-                    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-                    gap: var(--spacing-xl);
+                    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+                    gap: 1.5rem;
+                    align-items: start;
                 }
 
                 .album-card-link {
                     text-decoration: none;
                     color: inherit;
+                    display: block;
                 }
 
                 .profile-album-card {
                     background: var(--bg-primary);
-                    border-radius: var(--radius-xl);
+                    border-radius: 8px;
                     overflow: hidden;
                     border: 1px solid var(--border-light);
-                    transition: all var(--transition-base);
-                    height: 100%;
+                    transition: all 0.3s ease;
                     display: flex;
                     flex-direction: column;
                 }
 
                 .profile-album-card:hover {
-                    box-shadow: var(--shadow-xl);
-                    transform: translateY(-8px);
-                    border-color: var(--primary-blue-light);
+                    box-shadow: var(--shadow-lg);
+                    transform: translateY(-4px);
+                    border-color: var(--border-subtle);
                 }
 
                 .album-card-image {
-                    height: 240px;
+                    /* Removed fixed height for original ratio */
                     position: relative;
                     background: var(--bg-tertiary);
-                    overflow: hidden;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    min-height: 200px; /* Min height for no-cover */
                 }
 
                 .album-card-image img {
                     width: 100%;
-                    height: 100%;
-                    object-fit: cover;
-                    transition: transform 0.6s ease;
-                }
-
-                .profile-album-card:hover .album-card-image img {
-                    transform: scale(1.1);
+                    height: auto;
+                    display: block;
                 }
 
                 .album-price-overlay {
@@ -397,6 +396,8 @@ const PhotographerProfile = () => {
 
                 .album-card-action .arrow {
                     transition: transform var(--transition-base);
+                    display: flex;
+                    align-items: center;
                 }
 
                 .profile-album-card:hover .album-card-action .arrow {
@@ -412,8 +413,19 @@ const PhotographerProfile = () => {
                 }
 
                 .empty-icon {
-                    font-size: 4rem;
+                    color: var(--text-tertiary);
                     margin-bottom: var(--spacing-md);
+                    display: flex;
+                    justify-content: center;
+                }
+                
+                .no-cover {
+                    color: var(--text-tertiary);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 100%;
+                    height: 200px;
                 }
 
                 @media (max-width: 768px) {

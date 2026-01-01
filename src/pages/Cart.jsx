@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -6,6 +5,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import { supabase } from '../lib/supabase';
 import { calculateCommission } from '../config/platform';
+import { ShoppingCart, Trash2, CreditCard } from 'lucide-react';
 
 const Cart = () => {
     const { cartItems, removeFromCart, clearCart, calculateTotal } = useCart();
@@ -40,7 +40,7 @@ const Cart = () => {
                 .single();
 
             if (error || !photographer.stripe_account_id) {
-                alert("Ce photographe n'a pas encore configuré ses paiements.");
+                alert("This photographer has not set up payments yet.");
                 setPurchasing(false);
                 return;
             }
@@ -75,11 +75,11 @@ const Cart = () => {
             if (session.url) {
                 window.location.href = session.url;
             } else {
-                throw new Error("Erreur lors de la redirection vers le paiement.");
+                throw new Error("Error redirecting to payment.");
             }
         } catch (error) {
             console.error(error);
-            alert('Échec du paiement : ' + error.message);
+            alert('Payment failed: ' + error.message);
             setPurchasing(false);
         }
     };
@@ -183,10 +183,12 @@ const Cart = () => {
                 background: none;
                 border: none;
                 color: var(--text-tertiary);
-                font-size: 1.2rem;
                 cursor: pointer;
                 padding: 0.5rem;
                 transition: color 0.2s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
             }
 
             .remove-item-btn:hover {
@@ -203,6 +205,8 @@ const Cart = () => {
             .group-checkout-btn {
                 width: auto;
                 font-size: 0.9rem !important;
+                display: inline-flex;
+                align-items: center;
             }
 
             .cart-summary-card {
@@ -262,7 +266,7 @@ const Cart = () => {
             }
 
             .empty-icon {
-                font-size: 5rem;
+                color: var(--text-tertiary);
                 margin-bottom: 2rem;
                 opacity: 0.2;
             }
@@ -318,10 +322,6 @@ const Cart = () => {
                     font-size: 1.5rem;
                 }
 
-                .empty-icon {
-                    font-size: 3.5rem;
-                }
-
                 .cart-empty-state p {
                     font-size: 0.9rem;
                     padding: 0 1rem;
@@ -335,11 +335,11 @@ const Cart = () => {
             <div className="cart-container">
                 {styles}
                 <div className="cart-empty-state">
-                    <div className="empty-icon">🛒</div>
-                    <h2>Votre panier est vide</h2>
-                    <p>Parcourez nos albums et sélectionnez vos photos préférées.</p>
+                    <div className="empty-icon"><ShoppingCart size={80} strokeWidth={1} /></div>
+                    <h2>Your cart is empty</h2>
+                    <p>Browse our albums and select your favorite photos.</p>
                     <Link to="/albums">
-                        <Button variant="primary">Découvrir les albums</Button>
+                        <Button variant="primary">Explore Albums</Button>
                     </Link>
                 </div>
             </div>
@@ -348,7 +348,7 @@ const Cart = () => {
 
     return (
         <div className="cart-container">
-            <h1 className="cart-title">Mon Panier</h1>
+            <h1 className="cart-title">My Cart</h1>
 
             <div className="cart-grid">
                 <div className="cart-items-column">
@@ -357,7 +357,7 @@ const Cart = () => {
                             <div className="album-group-header">
                                 <div>
                                     <h3>{group.album_title}</h3>
-                                    <span className="photographer-tag">par {group.photographer_name}</span>
+                                    <span className="photographer-tag">by {group.photographer_name}</span>
                                 </div>
                                 <div className="group-count">
                                     {group.items.length} photo{group.items.length > 1 ? 's' : ''}
@@ -373,9 +373,9 @@ const Cart = () => {
                                         <button
                                             className="remove-item-btn"
                                             onClick={() => removeFromCart(item.id)}
-                                            title="Supprimer"
+                                            title="Remove"
                                         >
-                                            ✕
+                                            <Trash2 size={18} />
                                         </button>
                                     </div>
                                 ))}
@@ -388,7 +388,8 @@ const Cart = () => {
                                     onClick={() => handleCheckout(albumId, group)}
                                     disabled={purchasing}
                                 >
-                                    {purchasing ? 'Traitement...' : `Acheter ces ${group.items.length} photos`}
+                                    <CreditCard size={16} style={{ marginRight: '8px' }} />
+                                    {purchasing ? 'Processing...' : `Buy these ${group.items.length} photos`}
                                 </Button>
                             </div>
                         </div>
@@ -397,24 +398,24 @@ const Cart = () => {
 
                 <div className="cart-summary-column">
                     <div className="cart-summary-card">
-                        <h3>Résumé</h3>
+                        <h3>Summary</h3>
                         <div className="summary-row">
                             <span>Total photos</span>
                             <span>{cartItems.length}</span>
                         </div>
                         <div className="summary-row total">
-                            <span>Total estimé</span>
+                            <span>Estimated Total</span>
                             <span>${calculateTotal()}</span>
                         </div>
                         <p className="summary-note">
-                            * Le prix final est calculé par album selon les remises sur volume.
+                            * Final price is calculated per album based on volume discounts.
                         </p>
                         <Button
                             className="clear-cart-btn"
                             variant="ghost"
                             onClick={clearCart}
                         >
-                            Vider le panier
+                            Clear Cart
                         </Button>
                     </div>
                 </div>

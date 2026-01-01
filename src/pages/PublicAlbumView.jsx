@@ -1,10 +1,10 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import Button from '../components/ui/Button';
 import { calculateCommission } from '../config/platform';
 import { useCart } from '../context/CartContext';
+import { ShoppingCart, Check, Plus, Lock } from 'lucide-react';
 
 const PublicAlbumView = () => {
     const { id } = useParams();
@@ -79,15 +79,16 @@ const PublicAlbumView = () => {
         return album.price;
     };
 
+
     const getPackageName = () => {
         if (album && album.pricing_packages) {
             return album.pricing_packages.name;
         }
-        return "Accès Standard";
+        return "Standard Access";
     };
 
-    if (loading) return <div style={{ padding: '2rem' }}>Chargement...</div>;
-    if (!album) return <div style={{ padding: '2rem' }}>Album non trouvé ou non publié.</div>;
+    if (loading) return <div style={{ padding: '2rem' }}>Loading...</div>;
+    if (!album) return <div style={{ padding: '2rem' }}>Album not found or not published.</div>;
 
     const currentAlbumSelection = getSelectionForThisAlbum();
     const selectionCount = currentAlbumSelection.length;
@@ -104,13 +105,13 @@ const PublicAlbumView = () => {
                     <div className="album-header">
                         <h1 className="album-title">{album.title}</h1>
                         <p className="album-author">
-                            par <Link to={`/photographer/${album.photographer_id}`} className="photographer-link">
+                            by <Link to={`/photographer/${album.photographer_id}`} className="photographer-link">
                                 {album.profiles?.full_name}
                             </Link>
                         </p>
                         <div className="selection-hint">
-                            <span className="hint-icon">🛒</span>
-                            Cliquez sur le bouton sous les photos pour les ajouter au panier
+                            <span className="hint-icon"><ShoppingCart size={16} /></span>
+                            Click the button below photos to add to cart
                         </div>
                     </div>
 
@@ -132,7 +133,7 @@ const PublicAlbumView = () => {
                                         {/* Selection Overlay */}
                                         <div className="photo-selection-overlay">
                                             <div className="selection-indicator">
-                                                {selected ? '✓' : '+'}
+                                                {selected ? <Check size={24} strokeWidth={3} /> : <Plus size={24} strokeWidth={3} />}
                                             </div>
                                         </div>
 
@@ -147,7 +148,7 @@ const PublicAlbumView = () => {
                                                 toggleCartItem(photo);
                                             }}
                                         >
-                                            {selected ? 'Retirer du Panier' : 'Ajouter au Panier'}
+                                            {selected ? 'Remove from Cart' : 'Add to Cart'}
                                         </Button>
                                     </div>
                                 </div>
@@ -163,26 +164,26 @@ const PublicAlbumView = () => {
                             <h2 className="package-name">{pkgName}</h2>
                             <p className="package-description">
                                 {hasPackage
-                                    ? "Les tarifs dégressifs s'appliquent automatiquement dans votre panier."
-                                    : `Accès complet à l'album pour $${album.price}`}
+                                    ? "Volume discounts apply automatically in your cart."
+                                    : `Full album access for ${album.price}`}
                             </p>
                         </div>
 
                         <div className="purchase-details">
                             <div className="detail-row">
-                                <span>Sélectionnées (cet album)</span>
+                                <span>Selected (this album)</span>
                                 <span className="detail-value">{selectionCount} photos</span>
                             </div>
 
                             {/* Show Tiers Info */}
                             {hasPackage && album.pricing_packages.tiers && (
                                 <div className="pricing-tiers">
-                                    <p className="tiers-title">Tarifs dégressifs :</p>
+                                    <p className="tiers-title">Volume Discounts:</p>
                                     <div className="tiers-list">
                                         {album.pricing_packages.tiers.sort((a, b) => a.quantity - b.quantity).map((tier, i) => (
                                             <div key={i} className="tier-item">
                                                 <span>{tier.quantity}+ Photos</span>
-                                                <span className="tier-price">${tier.price} <small>/u</small></span>
+                                                <span className="tier-price">{tier.price} <small>/ea</small></span>
                                             </div>
                                         ))}
                                     </div>
@@ -192,8 +193,8 @@ const PublicAlbumView = () => {
                             <div className="price-divider"></div>
 
                             <div className="total-price-row">
-                                <span>Sous-total</span>
-                                <span className="total-amount">${finalPrice}</span>
+                                <span>Subtotal</span>
+                                <span className="total-amount">{finalPrice}</span>
                             </div>
                         </div>
 
@@ -201,11 +202,12 @@ const PublicAlbumView = () => {
                             className="buy-button"
                             onClick={() => navigate('/cart')}
                         >
-                            Voir mon Panier ({cartItems.length})
+                            <ShoppingCart size={20} style={{ marginRight: '8px' }} />
+                            View Cart ({cartItems.length})
                         </Button>
 
                         <p className="payment-note">
-                            🔒 Paiement sécurisé via Stripe
+                            <Lock size={12} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> Secure payment via Stripe
                         </p>
                     </div>
                 </div>
@@ -265,6 +267,11 @@ const PublicAlbumView = () => {
                     color: var(--primary-blue);
                     font-weight: 500;
                 }
+                
+                .hint-icon {
+                    display: flex;
+                    align-items: center;
+                }
 
                 .photos-grid {
                     display: grid;
@@ -284,7 +291,7 @@ const PublicAlbumView = () => {
                     overflow: hidden;
                     cursor: pointer;
                     background: var(--bg-tertiary);
-                    aspect-ratio: 3/2;
+                    /* aspect-ratio removed */
                     transition: transform var(--transition-base), box-shadow var(--transition-base);
                     box-shadow: var(--shadow-sm);
                 }
@@ -296,8 +303,7 @@ const PublicAlbumView = () => {
 
                 .photo-item img {
                     width: 100%;
-                    height: 100%;
-                    object-fit: cover;
+                    height: auto;
                     display: block;
                     transition: opacity var(--transition-base);
                 }
@@ -368,6 +374,7 @@ const PublicAlbumView = () => {
                     width: 100%;
                     font-size: 0.9rem !important;
                     height: 44px;
+                    border: 2px solid var(--primary-blue) !important; /* Added Border */
                 }
 
                 .purchase-card {
@@ -455,6 +462,9 @@ const PublicAlbumView = () => {
                     width: 100%;
                     height: 56px;
                     font-size: var(--font-size-lg) !important;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
                 }
 
                 .payment-note {
@@ -462,6 +472,9 @@ const PublicAlbumView = () => {
                     margin-top: var(--spacing-md);
                     font-size: var(--font-size-xs);
                     color: var(--text-tertiary);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
                 }
 
                 @media (max-width: 1024px) {

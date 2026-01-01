@@ -32,15 +32,15 @@ const Register = () => {
     return (
         <div className="auth-container">
             <div className="auth-card">
-                <h2 className="auth-title">Créer un compte</h2>
+                <h2 className="auth-title">Create Account</h2>
                 {error && <div className="error-alert">{error}</div>}
                 <form onSubmit={handleRegister}>
                     <Input
-                        label="Nom complet"
+                        label="Full Name"
                         type="text"
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
-                        placeholder="Jean Dupont"
+                        placeholder="John Doe"
                         required
                     />
                     <Input
@@ -48,11 +48,11 @@ const Register = () => {
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        placeholder="votre@email.com"
+                        placeholder="your@email.com"
                         required
                     />
                     <Input
-                        label="Mot de passe"
+                        label="Password"
                         type="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
@@ -61,7 +61,7 @@ const Register = () => {
                     />
 
                     <div className="role-selection">
-                        <label className="input-label">Je suis...</label>
+                        <label className="input-label">I am a...</label>
                         <div className="radio-group">
                             <label className="radio-label">
                                 <input
@@ -71,7 +71,7 @@ const Register = () => {
                                     checked={role === 'buyer'}
                                     onChange={(e) => setRole(e.target.value)}
                                 />
-                                Acheteur
+                                Buyer
                             </label>
                             <label className="radio-label">
                                 <input
@@ -81,17 +81,17 @@ const Register = () => {
                                     checked={role === 'photographer'}
                                     onChange={(e) => setRole(e.target.value)}
                                 />
-                                Photographe
+                                Photographer
                             </label>
                         </div>
                     </div>
 
                     <Button type="submit" className="w-full" disabled={loading}>
-                        {loading ? 'Création...' : 'S\'inscrire'}
+                        {loading ? 'Creating...' : 'Sign Up'}
                     </Button>
                 </form>
                 <p className="auth-footer">
-                    Déjà un compte ? <Link to="/login">Se connecter</Link>
+                    Already have an account? <Link to="/login">Log In</Link>
                 </p>
             </div>
 
