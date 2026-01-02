@@ -7,29 +7,42 @@ import { useCart } from '../context/CartContext';
 import { ShoppingCart, Check, Plus, Lock } from 'lucide-react';
 
 const PublicAlbumView = () => {
-    const { id } = useParams();
+    const { photographerName, albumTitle } = useParams();
     const navigate = useNavigate();
     const [album, setAlbum] = useState(null);
     const [photos, setPhotos] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [showWelcome, setShowWelcome] = useState(false);
 
     // Cart Interaction
     const { addToCart, removeFromCart, isInCart, cartItems } = useCart();
 
     useEffect(() => {
         fetchAlbumDetails();
-    }, [id]);
+
+        // Show welcome popup only once per album visit in this session
+        const welcomeKey = `welcome-seen-${photographerName}-${albumTitle}`;
+        const hasSeen = sessionStorage.getItem(welcomeKey);
+        if (!hasSeen) {
+            setTimeout(() => {
+                setShowWelcome(true);
+                sessionStorage.setItem(welcomeKey, 'true');
+            }, 1500);
+        }
+    }, [photographerName, albumTitle]);
 
     const fetchAlbumDetails = async () => {
         try {
+            // Find album by photographer name and album title
             const { data: albumData, error: albumError } = await supabase
                 .from('albums')
                 .select(`
                     *, 
-                    profiles:photographer_id(full_name),
+                    profiles:photographer_id!inner(full_name),
                     pricing_packages:pricing_package_id(*)
                 `)
-                .eq('id', id)
+                .ilike('profiles.full_name', decodeURIComponent(photographerName))
+                .ilike('title', decodeURIComponent(albumTitle))
                 .eq('is_published', true)
                 .single();
 
@@ -39,7 +52,7 @@ const PublicAlbumView = () => {
             const { data: photosData, error: photosError } = await supabase
                 .from('photos')
                 .select('*')
-                .eq('album_id', id);
+                .eq('album_id', albumData.id);
 
             if (photosError) throw photosError;
             setPhotos(photosData);
@@ -59,7 +72,8 @@ const PublicAlbumView = () => {
     };
 
     const getSelectionForThisAlbum = () => {
-        return cartItems.filter(item => item.album_id === id);
+        if (!album) return [];
+        return cartItems.filter(item => item.album_id === album.id);
     };
 
     const calculateCurrentAlbumPrice = () => {
@@ -364,7 +378,7 @@ const PublicAlbumView = () => {
                 .selected-border {
                     position: absolute;
                     inset: 0;
-                    border: 3px solid var(--primary-blue);
+                    border: 2px solid var(--primary-blue);
                     border-radius: var(--radius-lg);
                     pointer-events: none;
                 }
@@ -559,6 +573,155 @@ const PublicAlbumView = () => {
                     }
                 }
             `}</style>
+            {/* Dynamic Welcome Popup */}
+            {showWelcome && album && (
+                <div className="album-welcome-overlay" onClick={() => setShowWelcome(false)}>
+                    <div className="album-welcome-content" onClick={e => e.stopPropagation()}>
+                        <button className="welcome-close" onClick={() => setShowWelcome(false)}>&times;</button>
+
+                        <div className="welcome-header">
+                            <div className="welcome-icon">📸</div>
+                            <span className="welcome-tag">Special Offer</span>
+                        </div>
+
+                        <h2 className="welcome-title">Bienvenue dans l'album <br /><span>{album.title}</span></h2>
+                        <p className="welcome-msg">
+                            Utilisez le code parrainage pour obtenir une réduction sur vos photos préférées de cet événement.
+                        </p>
+
+                        <div className="welcome-coupon">
+                            <span className="coupon-label">COUPON CODE:</span>
+                            <span className="coupon-code">CAPTURE10</span>
+                        </div>
+
+                        <Button
+                            className="welcome-btn"
+                            onClick={() => setShowWelcome(false)}
+                        >
+                            DÉCOUVRIR LES PHOTOS
+                        </Button>
+                    </div>
+
+                    <style>{`
+                        .album-welcome-overlay {
+                            position: fixed;
+                            inset: 0;
+                            background: rgba(0,0,0,0.7);
+                            backdrop-filter: blur(5px);
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            z-index: 20000;
+                            animation: fadeIn 0.4s ease;
+                        }
+                        
+                        .album-welcome-content {
+                            background: white;
+                            width: 90%;
+                            max-width: 500px;
+                            padding: 3rem 2rem;
+                            border-radius: 24px;
+                            text-align: center;
+                            position: relative;
+                            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+                            animation: slideUp 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+                        }
+                        
+                        .welcome-close {
+                            position: absolute;
+                            top: 1rem;
+                            right: 1rem;
+                            background: none;
+                            border: none;
+                            font-size: 2rem;
+                            color: #94a3b8;
+                            cursor: pointer;
+                        }
+                        
+                        .welcome-header {
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            gap: 0.5rem;
+                            margin-bottom: 2rem;
+                        }
+                        
+                        .welcome-icon {
+                            font-size: 3rem;
+                        }
+                        
+                        .welcome-tag {
+                            background: #fef3c7;
+                            color: #92400e;
+                            padding: 0.25rem 0.75rem;
+                            border-radius: 99px;
+                            font-size: 0.75rem;
+                            font-weight: 800;
+                            text-transform: uppercase;
+                        }
+                        
+                        .welcome-title {
+                            font-size: 1.75rem;
+                            color: #1e293b;
+                            font-weight: 800;
+                            margin-bottom: 1rem;
+                            line-height: 1.2;
+                        }
+                        
+                        .welcome-title span {
+                            color: var(--primary-blue);
+                        }
+                        
+                        .welcome-msg {
+                            color: #64748b;
+                            font-size: 1rem;
+                            line-height: 1.5;
+                            margin-bottom: 2rem;
+                        }
+                        
+                        .welcome-coupon {
+                            background: #f8fafc;
+                            border: 2px dashed #cbd5e1;
+                            padding: 1.25rem;
+                            border-radius: 12px;
+                            margin-bottom: 2rem;
+                            display: flex;
+                            flex-direction: column;
+                            gap: 0.25rem;
+                        }
+                        
+                        .coupon-label {
+                            font-size: 0.7rem;
+                            color: #94a3b8;
+                            font-weight: 700;
+                        }
+                        
+                        .coupon-code {
+                            font-size: 1.5rem;
+                            color: #1e293b;
+                            font-weight: 900;
+                            letter-spacing: 0.1em;
+                        }
+                        
+                        .welcome-btn {
+                            width: 100%;
+                            height: 56px;
+                            font-weight: 800 !important;
+                            font-size: 1rem !important;
+                        }
+                        
+                        @keyframes fadeIn {
+                            from { opacity: 0; }
+                            to { opacity: 1; }
+                        }
+                        
+                        @keyframes slideUp {
+                            from { opacity: 0; transform: translateY(40px) scale(0.95); }
+                            to { opacity: 1; transform: translateY(0) scale(1); }
+                        }
+                    `}</style>
+                </div>
+            )}
         </div>
     );
 };

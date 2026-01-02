@@ -20,6 +20,7 @@ import Albums from './pages/Albums';
 import Home from './pages/Home';
 import Cart from './pages/Cart';
 import { CartProvider } from './context/CartContext';
+import AnnouncementPopup from './components/AnnouncementPopup';
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
         <Router>
           <div className="app-container">
             <Navbar />
+            <AnnouncementPopup />
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<Home />} />
@@ -37,7 +39,7 @@ function App() {
               <Route path="/cart" element={<Cart />} />
 
               {/* Public Viewing Route */}
-              <Route path="/albums/:id" element={<PublicAlbumView />} />
+              <Route path="/albums/:photographerName/:albumTitle" element={<PublicAlbumView />} />
               <Route path="/photographer/:name" element={<PhotographerProfile />} />
 
               {/* Protected Routes */}

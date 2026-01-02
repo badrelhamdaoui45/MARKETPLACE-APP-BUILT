@@ -5,11 +5,13 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/ui/Button';
 import ConnectStripe from '../components/stripe/ConnectStripe';
+import Toast from '../components/ui/Toast';
 import '../components/ui/ui.css';
 
 const PhotographerDashboard = () => {
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
     const [activeTab, setActiveTab] = useState('albums'); // 'albums' or 'sales'
+    const [toast, setToast] = useState(null);
 
     // Albums State
     const [albums, setAlbums] = useState([]);
@@ -140,9 +142,23 @@ const PhotographerDashboard = () => {
                                         <p className="album-meta">
                                             {album.is_published ? 'Publié' : 'Brouillon'} • ${album.price}
                                         </p>
-                                        <Link to={`/photographer/albums/${album.id}`}>
-                                            <Button className="w-full action-btn">Gérer l'album</Button>
-                                        </Link>
+                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                            <Link to={`/photographer/albums/${album.id}`} style={{ flex: 1 }}>
+                                                <Button className="w-full action-btn">Gérer</Button>
+                                            </Link>
+                                            <Button
+                                                variant="outline"
+                                                onClick={() => {
+                                                    const photogName = profile?.full_name || 'photographer';
+                                                    const shareUrl = `${window.location.origin}/albums/${encodeURIComponent(photogName)}/${encodeURIComponent(album.title)}`;
+                                                    navigator.clipboard.writeText(shareUrl);
+                                                    setToast({ message: 'Lien de l\'album copié !', type: 'success' });
+                                                }}
+                                                title="Copier le lien de partage"
+                                            >
+                                                Partager
+                                            </Button>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
@@ -584,6 +600,13 @@ const PhotographerDashboard = () => {
                     }
                 }
             `}</style>
+            {toast && (
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast(null)}
+                />
+            )}
         </div>
     );
 };

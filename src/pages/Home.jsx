@@ -102,7 +102,10 @@ const Home = () => {
                                     <div
                                         key={album.id}
                                         className="album-card"
-                                        onClick={() => navigate(`/albums/${album.id}`)}
+                                        onClick={() => {
+                                            const photogName = album.profiles?.full_name || 'unknown';
+                                            navigate(`/albums/${encodeURIComponent(photogName)}/${encodeURIComponent(album.title)}`);
+                                        }}
                                     >
                                         <div className="album-cover">
                                             {album.cover_image_url ? (

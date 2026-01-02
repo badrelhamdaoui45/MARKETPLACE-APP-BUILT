@@ -17,10 +17,16 @@ const BuyerProfile = () => {
     const processedRef = useRef(false);
 
     useEffect(() => {
-        if (user) {
-            handlePurchaseSuccess().then(() => fetchPurchases());
+        const sessionId = searchParams.get('session_id');
+        if (user || sessionId) {
+            handlePurchaseSuccess().then(() => {
+                if (user) fetchPurchases();
+                else if (sessionId) fetchGuestPurchase(sessionId);
+            });
+        } else {
+            setLoading(false);
         }
-    }, [user]);
+    }, [user, searchParams]);
 
     const handlePurchaseSuccess = async () => {
         const sessionId = searchParams.get('session_id');
@@ -58,7 +64,7 @@ const BuyerProfile = () => {
                     // 2. Insert Transaction
                     const transactionAmount = parseFloat(amount);
                     const { data: insertedData, error } = await supabase.from('transactions').insert({
-                        buyer_id: user.id,
+                        buyer_id: user?.id || null,
                         photographer_id: album.photographer_id,
                         album_id: albumId,
                         amount: transactionAmount,
@@ -82,6 +88,29 @@ const BuyerProfile = () => {
             } catch (err) {
                 console.error("Purchase success handler error:", err);
             }
+        }
+    };
+
+    const fetchGuestPurchase = async (sessionId) => {
+        try {
+            const { data, error } = await supabase
+                .from('transactions')
+                .select(`
+                    *,
+                    albums:album_id (
+                        *,
+                        profiles:photographer_id(full_name)
+                    )
+                `)
+                .eq('stripe_payment_intent_id', sessionId)
+                .single();
+
+            if (error) throw error;
+            if (data) setPurchases([data]);
+        } catch (error) {
+            console.error('Error fetching guest purchase:', error);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -153,11 +182,14 @@ const BuyerProfile = () => {
                                 </div>
                                 <div className="purchase-actions">
                                     <Button
-                                        className="download-btn action-btn"
-                                        onClick={() => navigate(`/my-purchases/${tx.album_id}`)}
+                                        className="download-btn"
+                                        onClick={() => {
+                                            const url = `/my-purchases/${tx.album_id}${!user ? `?session_id=${tx.stripe_payment_intent_id}` : ''}`;
+                                            navigate(url);
+                                        }}
                                     >
                                         <Download size={16} />
-                                        Download Files
+                                        DOWNLOAD FILES
                                     </Button>
                                 </div>
                             </div>
@@ -296,6 +328,28 @@ const BuyerProfile = () => {
                     font-size: var(--font-size-xs);
                     font-weight: 600;
                     color: var(--success-green);
+                }
+
+                .download-btn {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                    padding: 0.75rem 1.25rem !important;
+                    border: 2px solid var(--primary-blue) !important;
+                    color: var(--primary-blue) !important;
+                    background: white !important;
+                    border-radius: var(--radius-md) !important;
+                    font-weight: 700 !important;
+                    font-size: 0.85rem !important;
+                    transition: all 0.2s ease !important;
+                    text-transform: uppercase;
+                    cursor: pointer;
+                }
+
+                .download-btn:hover {
+                    background: var(--bg-hover) !important;
+                    color: var(--primary-blue-dark) !important;
+                    border-color: var(--primary-blue-dark) !important;
                 }
 
                 .empty-state {

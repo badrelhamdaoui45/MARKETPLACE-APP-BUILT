@@ -258,6 +258,14 @@ const Cart = () => {
                 font-size: 0.85rem !important;
             }
 
+            .clear-cart-btn:hover {
+                background: #F5A623 !important;
+                border-color: #F5A623 !important;
+                color: white !important;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(245, 166, 35, 0.3) !important;
+            }
+
             .cart-empty-state {
                 display: flex;
                 flex-direction: column;

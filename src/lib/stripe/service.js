@@ -97,6 +97,22 @@ export const createCheckoutSession = async (albumId, price, photographerStripeId
 
         console.log("Redirect URL:", successUrl);
 
+        const sessionParams = {
+            'mode': 'payment',
+            'success_url': successUrl,
+            'cancel_url': cancelUrl || `${window.location.origin}/cart`,
+            'line_items[0][price_data][currency]': 'usd',
+            'line_items[0][price_data][product_data][name]': 'Photo Album Access',
+            'line_items[0][price_data][unit_amount]': Math.round(price * 100),
+            'line_items[0][quantity]': '1',
+            'payment_intent_data[application_fee_amount]': Math.round(commissionAmount * 100),
+            'payment_intent_data[transfer_data][destination]': photographerStripeId,
+        };
+
+        if (customerEmail) {
+            sessionParams['customer_email'] = customerEmail;
+        }
+
         // Simulate Stripe API call
         const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
             method: 'POST',
@@ -104,18 +120,7 @@ export const createCheckoutSession = async (albumId, price, photographerStripeId
                 'Authorization': `Bearer ${STRIPE_SECRET_KEY}`,
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
-            body: new URLSearchParams({
-                'mode': 'payment',
-                'success_url': successUrl,
-                'cancel_url': cancelUrl || `${window.location.origin}/cart`,
-                'customer_email': customerEmail,
-                'line_items[0][price_data][currency]': 'usd',
-                'line_items[0][price_data][product_data][name]': 'Photo Album Access',
-                'line_items[0][price_data][unit_amount]': Math.round(price * 100),
-                'line_items[0][quantity]': '1',
-                'payment_intent_data[application_fee_amount]': Math.round(commissionAmount * 100),
-                'payment_intent_data[transfer_data][destination]': photographerStripeId,
-            }),
+            body: new URLSearchParams(sessionParams),
         });
 
         const session = await response.json();

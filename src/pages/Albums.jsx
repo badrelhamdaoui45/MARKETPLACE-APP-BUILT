@@ -86,7 +86,10 @@ const Albums = () => {
                 <div className="albums-grid">
                     {filteredAlbums.map((album) => (
                         <div key={album.id} className="album-card">
-                            <Link to={`/albums/${album.id}`} className="album-card-main-link">
+                            <Link
+                                to={`/albums/${encodeURIComponent(album.profiles?.full_name || 'unknown')}/${encodeURIComponent(album.title)}`}
+                                className="album-card-main-link"
+                            >
                                 <div className="album-card-image">
                                     {album.cover_image_url ? (
                                         <img src={album.cover_image_url} alt={album.title} loading="lazy" />

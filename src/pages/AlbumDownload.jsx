@@ -13,10 +13,11 @@ const AlbumDownload = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (user) fetchData();
+        const sessionId = new URLSearchParams(window.location.search).get('session_id');
+        if (user || sessionId) fetchData(sessionId);
     }, [albumId, user]);
 
-    const fetchData = async () => {
+    const fetchData = async (sessionId = null) => {
         try {
             // 1. Fetch Album Info
             const { data: albumData } = await supabase.from('albums').select('*').eq('id', albumId).single();
@@ -24,11 +25,18 @@ const AlbumDownload = () => {
 
             // 2. Fetch Transaction to check for unlocked_photo_ids
             // Note: User might have purchased same album multiple times, get the most recent
-            const { data: transactions, error: txError } = await supabase
+            let txQuery = supabase
                 .from('transactions')
                 .select('unlocked_photo_ids')
-                .eq('buyer_id', user.id)
-                .eq('album_id', albumId)
+                .eq('album_id', albumId);
+
+            if (user) {
+                txQuery = txQuery.eq('buyer_id', user.id);
+            } else if (sessionId) {
+                txQuery = txQuery.eq('stripe_payment_intent_id', sessionId);
+            }
+
+            const { data: transactions, error: txError } = await txQuery
                 .order('created_at', { ascending: false });
 
             console.log("Transaction data:", transactions);
@@ -140,7 +148,7 @@ const AlbumDownload = () => {
                                             className="download-anchor"
                                         >
                                             <Button className="download-button">
-                                                <Download size={16} /> Download
+                                                <Download size={16} /> DOWNLOAD
                                             </Button>
                                         </a>
                                     ) : (
@@ -313,11 +321,27 @@ const AlbumDownload = () => {
                 }
 
                 .download-button {
-                    width: 100%;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    gap: var(--spacing-sm);
+                    gap: 0.75rem;
+                    padding: 0.75rem 1.25rem !important;
+                    border: 2px solid var(--primary-blue) !important;
+                    color: var(--primary-blue) !important;
+                    background: white !important;
+                    border-radius: var(--radius-md) !important;
+                    font-weight: 700 !important;
+                    font-size: 0.8rem !important;
+                    transition: all 0.2s ease !important;
+                    text-transform: uppercase;
+                    cursor: pointer;
+                    width: 100%;
+                }
+
+                .download-button:hover {
+                    background: var(--bg-hover) !important;
+                    color: var(--primary-blue-dark) !important;
+                    border-color: var(--primary-blue-dark) !important;
                 }
 
                 .access-denied {

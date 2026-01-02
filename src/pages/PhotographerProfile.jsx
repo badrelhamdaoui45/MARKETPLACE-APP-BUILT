@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import Button from '../components/ui/Button';
-import { ArrowLeft, ArrowRight, Camera, Images } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Camera, Images, Phone, Globe } from 'lucide-react';
 
 const PhotographerProfile = () => {
     const { name } = useParams();
@@ -198,7 +198,7 @@ const PhotographerProfile = () => {
                         {albums.map(album => (
                             <Link
                                 key={album.id}
-                                to={`/albums/${album.id}`}
+                                to={`/albums/${encodeURIComponent(photographer.full_name)}/${encodeURIComponent(album.title)}`}
                                 className="album-card-link"
                             >
                                 <div className="profile-album-card">
@@ -209,9 +209,7 @@ const PhotographerProfile = () => {
                                             <div className="no-cover"><Camera size={48} strokeWidth={1} /></div>
                                         )}
                                         <div className="album-price-overlay">
-                                            {album.pricing_package_id ? (
-                                                <span className="pkg-badge">Package</span>
-                                            ) : (
+                                            {!album.pricing_package_id && (
                                                 <span className="price-badge">${album.price}</span>
                                             )}
                                         </div>

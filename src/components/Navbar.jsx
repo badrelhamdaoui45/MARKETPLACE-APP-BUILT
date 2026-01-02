@@ -57,13 +57,15 @@ const Navbar = () => {
                 </Link>
 
                 {/* Hamburger Menu Button - Mobile Only */}
-                <button
-                    className="hamburger-menu"
-                    onClick={() => setIsMenuOpen(!isMenuOpen)}
-                    aria-label="Toggle menu"
-                >
-                    <Menu size={24} />
-                </button>
+                {!isMenuOpen && (
+                    <button
+                        className="hamburger-menu"
+                        onClick={() => setIsMenuOpen(true)}
+                        aria-label="Toggle menu"
+                    >
+                        <Menu size={24} />
+                    </button>
+                )}
 
                 {/* Desktop Navigation */}
                 <div className="navbar-links desktop-nav">
