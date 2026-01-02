@@ -139,6 +139,7 @@ const CreateAlbum = () => {
                             <Button
                                 type="button"
                                 variant="outline"
+                                className="action-btn"
                                 onClick={() => document.getElementById('cover-upload').click()}
                             >
                                 {coverPreview ? 'Changer l\'image' : 'Télécharger une image'}
@@ -208,8 +209,8 @@ const CreateAlbum = () => {
                 )}
 
                 <div className="form-actions">
-                    <Button type="button" variant="outline" onClick={() => navigate(-1)}>Annuler</Button>
-                    <Button type="submit" disabled={loading}>
+                    <Button type="button" variant="outline" className="action-btn" onClick={() => navigate(-1)}>Annuler</Button>
+                    <Button type="submit" className="action-btn" disabled={loading}>
                         {loading ? 'Création...' : 'Créer l\'album'}
                     </Button>
                 </div>
@@ -246,8 +247,8 @@ const CreateAlbum = () => {
                 }
 
                 .cover-preview-box {
-                    width: 120px;
-                    height: 120px;
+                    width: 240px;
+                    height: 240px;
                     border-radius: var(--radius-md);
                     border: 2px dashed var(--border-subtle);
                     background: var(--bg-tertiary);
@@ -256,6 +257,10 @@ const CreateAlbum = () => {
                     justify-content: center;
                     overflow: hidden;
                     flex-shrink: 0;
+                }
+
+                .input-field, .input-group select, .input-group textarea {
+                    border: 2px solid var(--primary-blue) !important;
                 }
 
                 .cover-preview-box img {

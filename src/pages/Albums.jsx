@@ -51,10 +51,10 @@ const Albums = () => {
 
                 <div className="search-bar-container">
                     <div className="search-input-wrapper">
-                        <span className="search-icon"><Search size={24} /></span>
+                        <span className="search-icon"><Search size={22} strokeWidth={2} /></span>
                         <input
                             type="text"
-                            placeholder="Search for an album or photographer..."
+                            placeholder="Rechercher un album ou un photographe ..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="search-input"
@@ -96,17 +96,21 @@ const Albums = () => {
                                             <span style={{ fontSize: '0.8rem', marginTop: '0.5rem' }}>No Cover</span>
                                         </div>
                                     )}
-                                    <div className="album-price-badge">{album.price}</div>
                                 </div>
                                 <div className="album-card-content">
                                     <h3 className="album-card-title">{album.title}</h3>
                                     <div className="album-card-photographer">
                                         <div className="photographer-logo-mini">
-                                            <Camera size={14} />
+                                            <User size={14} />
                                         </div>
-                                        <span className="photographer-name-text">
+                                        <Link
+                                            to={`/photographer/${encodeURIComponent(album.profiles?.full_name)}`}
+                                            className="photographer-name-text"
+                                            onClick={(e) => e.stopPropagation()}
+                                            style={{ textDecoration: 'none' }}
+                                        >
                                             {album.profiles?.full_name || 'Photographer'}
-                                        </span>
+                                        </Link>
                                     </div>
                                 </div>
                             </Link>
@@ -144,7 +148,7 @@ const Albums = () => {
 
                 .search-bar-container {
                     max-width: 1200px;
-                    width: 90%;
+                    width: 95%;
                     margin: 0 auto;
                     position: absolute;
                     bottom: -35px;
@@ -157,23 +161,30 @@ const Albums = () => {
                     display: flex;
                     align-items: center;
                     background: #ffffff;
-                    border-radius: 8px;
-                    padding: 0 2rem;
-                    border: 1px solid #e5e7eb; /* No shadow anymore */
-                    height: 70px;
-                    transition: all 0.3s ease;
+                    border-radius: 14px;
+                    padding: 0 1.5rem;
+                    border: 1px solid #e5e7eb;
+                    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08); /* Bigger shadow */
+                    height: 64px; /* Slightly taller for prominence */
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                 }
 
                 .search-input-wrapper:focus-within {
                     border-color: #d1d5db;
+                    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+                    transform: scale(1.01); /* Stable scale, lift handled by parent */
+                }
+
+                /* Specific override for focus-within lift since parent is absolute */
+                .search-bar-container:focus-within {
+                    transform: translateX(-50%) translateY(-2px);
                 }
 
                 .search-icon {
                     display: flex;
                     align-items: center;
-                    margin-right: 1.5rem;
-                    color: #1f2937;
-                    opacity: 0.8;
+                    margin-right: 1.25rem;
+                    color: #6b7280;
                 }
 
                 .search-input {
@@ -181,9 +192,9 @@ const Albums = () => {
                     border: none;
                     background: transparent;
                     padding: 1rem 0;
-                    font-size: 1.1rem;
+                    font-size: 1.15rem; /* Larger font */
                     color: #1f2937;
-                    outline: none;
+                    outline: none !important; /* Remove black outline */
                 }
 
                 .search-input::placeholder {
@@ -194,8 +205,8 @@ const Albums = () => {
                 .clear-search {
                     background: var(--bg-tertiary);
                     border: none;
-                    width: 24px;
-                    height: 24px;
+                    width: 28px;
+                    height: 28px;
                     border-radius: 50%;
                     display: flex;
                     align-items: center;
@@ -203,11 +214,50 @@ const Albums = () => {
                     cursor: pointer;
                     color: var(--text-secondary);
                     margin-left: var(--spacing-sm);
+                    transition: all 0.2s ease;
                 }
 
                 .clear-search:hover {
                     background: var(--border-light);
                     color: var(--text-primary);
+                    transform: scale(1.1);
+                }
+
+                @media (max-width: 768px) {
+                    .search-bar-container {
+                        width: 92%;
+                        bottom: -30px;
+                    }
+
+                    .search-input-wrapper {
+                        height: 56px;
+                        padding: 0 1rem;
+                        border-radius: 12px;
+                    }
+
+                    .search-input {
+                        font-size: 1rem;
+                    }
+
+                    .search-icon {
+                        margin-right: 0.75rem;
+                    }
+                }
+
+                @media (max-width: 480px) {
+                    .search-bar-container {
+                        width: 90%;
+                        bottom: -25px;
+                    }
+
+                    .search-input-wrapper {
+                        height: 52px;
+                        padding: 0 0.85rem;
+                    }
+                    
+                    .search-icon {
+                        margin-right: 0.5rem;
+                    }
                 }
 
                 .empty-search-state {
@@ -282,17 +332,6 @@ const Albums = () => {
                     height: 100%;
                 }
 
-                .album-price-badge {
-                    position: absolute;
-                    bottom: 0;
-                    right: 0;
-                    background: #ffb703;
-                    color: white;
-                    padding: 0.5rem 1rem;
-                    font-weight: 700;
-                    font-size: 0.9rem;
-                    border-top-left-radius: 8px;
-                }
 
                 .album-card-content {
                     padding: 1.5rem;

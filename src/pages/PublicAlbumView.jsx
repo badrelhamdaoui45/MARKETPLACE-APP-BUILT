@@ -105,7 +105,7 @@ const PublicAlbumView = () => {
                     <div className="album-header">
                         <h1 className="album-title">{album.title}</h1>
                         <p className="album-author">
-                            by <Link to={`/photographer/${album.photographer_id}`} className="photographer-link">
+                            by <Link to={`/photographer/${encodeURIComponent(album.profiles?.full_name)}`} className="photographer-link">
                                 {album.profiles?.full_name}
                             </Link>
                         </p>
@@ -141,10 +141,13 @@ const PublicAlbumView = () => {
                                     </div>
                                     <div className="photo-actions">
                                         <Button
-                                            variant={selected ? 'primary' : 'outline'}
-                                            className="add-to-cart-btn"
+                                            variant="outline"
+                                            className={`add-to-cart-btn action-btn cart-btn-grid ${selected ? 'in-cart' : ''}`}
                                             onClick={(e) => {
                                                 e.stopPropagation();
+                                                const btn = e.currentTarget;
+                                                btn.classList.add('animate-orange');
+                                                setTimeout(() => btn.classList.remove('animate-orange'), 600);
                                                 toggleCartItem(photo);
                                             }}
                                         >
@@ -199,7 +202,7 @@ const PublicAlbumView = () => {
                         </div>
 
                         <Button
-                            className="buy-button"
+                            className="buy-button action-btn"
                             onClick={() => navigate('/cart')}
                         >
                             <ShoppingCart size={20} style={{ marginRight: '8px' }} />
@@ -467,6 +470,55 @@ const PublicAlbumView = () => {
                     align-items: center;
                 }
 
+                .cart-btn-grid {
+                    height: 44px !important;
+                    padding: 0 1rem !important;
+                    font-size: 0.75rem !important;
+                    background: rgba(255, 255, 255, 0.9) !important;
+                    backdrop-filter: blur(4px);
+                }
+
+                /* Orange Click Animation */
+                @keyframes cart-flash-orange {
+                    0% {
+                        background-color: white !important;
+                        border-color: var(--primary-blue) !important;
+                        color: var(--primary-blue) !important;
+                        transform: scale(1);
+                    }
+                    20% {
+                        background-color: #ffb703 !important; /* Safety Orange */
+                        border-color: #ffb703 !important;
+                        color: white !important;
+                        transform: scale(0.92);
+                    }
+                    50% {
+                        box-shadow: 0 0 20px rgba(255, 183, 3, 0.6);
+                    }
+                    100% {
+                        background-color: white !important;
+                        border-color: var(--primary-blue) !important;
+                        color: var(--primary-blue) !important;
+                        transform: scale(1);
+                    }
+                }
+
+                .animate-orange {
+                    animation: cart-flash-orange 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+                    z-index: 10;
+                }
+
+                .in-cart {
+                    background-color: #ffb703 !important; /* Safety Orange */
+                    border-color: #ffb703 !important;
+                    color: white !important;
+                }
+
+                .in-cart:hover {
+                    background-color: #e6a600 !important;
+                    border-color: #e6a600 !important;
+                }
+
                 .payment-note {
                     text-align: center;
                     margin-top: var(--spacing-md);
@@ -500,8 +552,10 @@ const PublicAlbumView = () => {
                     }
 
                     .add-to-cart-btn {
-                        font-size: 0.8rem !important;
-                        height: 40px;
+                        font-size: 0.7rem !important;
+                        height: 36px !important;
+                        padding: 0 0.5rem !important;
+                        letter-spacing: 0 !important;
                     }
                 }
             `}</style>

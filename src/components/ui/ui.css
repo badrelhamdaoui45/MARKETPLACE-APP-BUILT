@@ -22,11 +22,13 @@
 .btn-primary {
     background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
     color: white;
-    border: none;
+    border: 2px solid rgba(0, 0, 0, 0.15);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .btn-primary:hover:not(:disabled) {
     filter: brightness(1.05);
+    border-color: rgba(0, 0, 0, 0.2);
 }
 
 .btn-secondary {
@@ -61,6 +63,41 @@
 .btn-ghost:hover {
     color: var(--accent-primary);
     background: rgba(79, 70, 229, 0.05);
+}
+
+/* Action Button - Unified Style (Dashboard Button Style) */
+.action-btn,
+.btn-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem !important;
+    border: 2px solid var(--primary-blue) !important;
+    color: var(--primary-blue) !important;
+    background: white !important;
+    border-radius: var(--radius-md) !important;
+    font-weight: 700 !important;
+    font-size: 0.85rem !important;
+    transition: all 0.2s ease !important;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    box-shadow: none !important;
+}
+
+.action-btn:hover:not(:disabled),
+.btn-action:hover:not(:disabled) {
+    background: var(--bg-hover) !important;
+    color: var(--primary-blue-dark) !important;
+    border-color: var(--primary-blue-dark) !important;
+    filter: none !important;
+}
+
+.action-btn:disabled,
+.btn-action:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    filter: grayscale(0.5);
 }
 
 

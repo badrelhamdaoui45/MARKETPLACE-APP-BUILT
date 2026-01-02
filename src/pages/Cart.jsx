@@ -3,6 +3,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import Button from '../components/ui/Button';
+import Modal from '../components/ui/Modal';
 import { supabase } from '../lib/supabase';
 import { calculateCommission } from '../config/platform';
 import { ShoppingCart, Trash2, CreditCard } from 'lucide-react';
@@ -12,6 +13,8 @@ const Cart = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const [purchasing, setPurchasing] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     // Group items by album for better UI and pricing logic
     const groupedItems = cartItems.reduce((acc, item) => {
@@ -87,23 +90,24 @@ const Cart = () => {
     const styles = (
         <style>{`
             .cart-container {
-                max-width: 1100px;
+                max-width: 1400px;
                 margin: 0 auto;
-                padding: 3rem 1.5rem;
+                padding: 3rem 4rem;
                 min-height: calc(100vh - 80px);
+                width: 100%;
             }
 
             .cart-title {
-                font-size: 2.5rem;
+                font-size: clamp(2rem, 5vw, 3rem);
                 font-weight: 800;
-                margin-bottom: 2.5rem;
+                margin-bottom: 3rem;
                 letter-spacing: -0.02em;
             }
 
             .cart-grid {
                 display: grid;
-                grid-template-columns: 1fr 340px;
-                gap: 2.5rem;
+                grid-template-columns: 1fr 380px;
+                gap: 4rem;
                 align-items: start;
             }
 
@@ -294,8 +298,13 @@ const Cart = () => {
             }
 
             @media (max-width: 900px) {
+                .cart-container {
+                    padding: 2rem 1.5rem;
+                }
+
                 .cart-grid {
                     grid-template-columns: 1fr;
+                    gap: 2rem;
                 }
 
                 .cart-summary-column {
@@ -372,7 +381,10 @@ const Cart = () => {
                                         </div>
                                         <button
                                             className="remove-item-btn"
-                                            onClick={() => removeFromCart(item.id)}
+                                            onClick={() => {
+                                                setItemToDelete(item.id);
+                                                setIsModalOpen(true);
+                                            }}
                                             title="Remove"
                                         >
                                             <Trash2 size={18} />
@@ -383,8 +395,7 @@ const Cart = () => {
 
                             <div className="album-group-footer">
                                 <Button
-                                    variant="outline"
-                                    className="group-checkout-btn"
+                                    className="group-checkout-btn action-btn"
                                     onClick={() => handleCheckout(albumId, group)}
                                     disabled={purchasing}
                                 >
@@ -411,8 +422,7 @@ const Cart = () => {
                             * Final price is calculated per album based on volume discounts.
                         </p>
                         <Button
-                            className="clear-cart-btn"
-                            variant="ghost"
+                            className="clear-cart-btn action-btn"
                             onClick={clearCart}
                         >
                             Clear Cart
@@ -422,6 +432,22 @@ const Cart = () => {
             </div>
 
             {styles}
+
+            <Modal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onConfirm={() => {
+                    if (itemToDelete) {
+                        removeFromCart(itemToDelete);
+                        setItemToDelete(null);
+                    }
+                }}
+                title="Remove Photo"
+                message="Are you sure you want to remove this photo from your cart?"
+                confirmText="Remove"
+                cancelText="Keep"
+                variant="danger"
+            />
         </div>
     );
 };

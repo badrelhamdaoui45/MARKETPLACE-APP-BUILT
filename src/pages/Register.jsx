@@ -86,7 +86,7 @@ const Register = () => {
                         </div>
                     </div>
 
-                    <Button type="submit" className="w-full" disabled={loading}>
+                    <Button type="submit" className="w-full action-btn" disabled={loading}>
                         {loading ? 'Creating...' : 'Sign Up'}
                     </Button>
                 </form>

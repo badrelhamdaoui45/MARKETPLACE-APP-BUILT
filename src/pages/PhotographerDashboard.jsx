@@ -86,10 +86,10 @@ const PhotographerDashboard = () => {
                 <h1>Tableau de bord Photographe</h1>
                 <div className="dashboard-actions">
                     <Link to="/photographer/packages">
-                        <Button variant="secondary">Réglages Prix</Button>
+                        <Button className="action-btn">Réglages Prix</Button>
                     </Link>
                     <Link to="/photographer/albums/new">
-                        <Button>+ Créer un Album</Button>
+                        <Button className="action-btn">+ Créer un Album</Button>
                     </Link>
                 </div>
             </header>
@@ -141,7 +141,7 @@ const PhotographerDashboard = () => {
                                             {album.is_published ? 'Publié' : 'Brouillon'} • ${album.price}
                                         </p>
                                         <Link to={`/photographer/albums/${album.id}`}>
-                                            <Button variant="outline" className="w-full">Gérer l'album</Button>
+                                            <Button className="w-full action-btn">Gérer l'album</Button>
                                         </Link>
                                     </div>
                                 </div>
@@ -272,6 +272,10 @@ const PhotographerDashboard = () => {
                 .dashboard-actions {
                     display: flex;
                     gap: 1rem;
+                }
+                
+                .dashboard-actions button {
+                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
                 }
 
                 .dashboard-tabs {
@@ -484,15 +488,100 @@ const PhotographerDashboard = () => {
                 }
 
                 @media (max-width: 768px) {
-                    .dashboard-container { padding: 1rem; }
-                    .dashboard-header { flex-direction: column; align-items: flex-start; gap: 1.5rem; }
-                    .dashboard-actions { width: 100%; }
-                    .dashboard-actions a { flex: 1; }
-                    .dashboard-actions button { width: 100%; }
-                    .dashboard-tabs { gap: 1rem; overflow-x: auto; white-space: nowrap; }
-                    .tab-button { padding: 0.75rem 0.5rem; font-size: 0.9rem; }
-                    .stats-grid { grid-template-columns: 1fr; }
-                    .stat-card { padding: 1.25rem; }
+                    .dashboard-container { 
+                        padding: 1rem; 
+                    }
+                    .dashboard-header { 
+                        flex-direction: column; 
+                        align-items: flex-start; 
+                        gap: 1rem;
+                        margin-bottom: 1.5rem;
+                    }
+                    .dashboard-header h1 {
+                        font-size: 1.5rem;
+                    }
+                    .dashboard-actions { 
+                        width: 100%; 
+                        flex-direction: column;
+                        gap: 0.75rem;
+                    }
+                    .dashboard-actions a { 
+                        flex: 1; 
+                        width: 100%;
+                    }
+                    .dashboard-actions button { 
+                        width: 100%; 
+                    }
+                    .dashboard-tabs { 
+                        gap: 0.5rem; 
+                        overflow-x: auto; 
+                        white-space: nowrap;
+                        margin-bottom: 1.5rem;
+                        -webkit-overflow-scrolling: touch;
+                        padding-bottom: 0.5rem;
+                    }
+                    .tab-button { 
+                        padding: 0.75rem 1rem; 
+                        font-size: 0.875rem;
+                        min-width: fit-content;
+                    }
+                    .stats-grid { 
+                        grid-template-columns: 1fr; 
+                        gap: 1rem;
+                        margin-bottom: 1.5rem;
+                    }
+                    .stat-card { 
+                        padding: 1.25rem; 
+                    }
+                    .stat-value {
+                        font-size: 1.75rem;
+                    }
+                    .dashboard-albums-grid {
+                        grid-template-columns: 1fr;
+                        gap: 1rem;
+                    }
+                    .album-card-mini-body {
+                        padding: 1.25rem;
+                    }
+                    .transactions-table-wrapper {
+                        overflow-x: auto;
+                        -webkit-overflow-scrolling: touch;
+                        margin: 0 -1rem;
+                        padding: 0 1rem;
+                    }
+                    .transactions-table {
+                        min-width: 600px;
+                    }
+                    .transactions-table th,
+                    .transactions-table td {
+                        padding: 0.75rem 0.5rem;
+                        font-size: 0.875rem;
+                    }
+                }
+                
+                @media (max-width: 480px) {
+                    .dashboard-container {
+                        padding: 0.75rem;
+                    }
+                    .dashboard-header h1 {
+                        font-size: 1.35rem;
+                    }
+                    .dashboard-actions {
+                        gap: 0.5rem;
+                    }
+                    .tab-button {
+                        font-size: 0.8rem;
+                        padding: 0.65rem 0.85rem;
+                    }
+                    .stat-card {
+                        padding: 1rem;
+                    }
+                    .stat-value {
+                        font-size: 1.5rem;
+                    }
+                    .stat-label {
+                        font-size: 0.85rem;
+                    }
                 }
             `}</style>
         </div>

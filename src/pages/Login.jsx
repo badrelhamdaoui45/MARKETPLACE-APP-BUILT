@@ -50,7 +50,7 @@ const Login = () => {
                         placeholder="••••••••"
                         required
                     />
-                    <Button type="submit" className="w-full" disabled={loading}>
+                    <Button type="submit" className="w-full action-btn" disabled={loading}>
                         {loading ? 'Logging in...' : 'Log In'}
                     </Button>
                 </form>

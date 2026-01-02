@@ -15,6 +15,7 @@ import PublicAlbumView from './pages/PublicAlbumView';
 import BuyerProfile from './pages/BuyerProfile';
 import AdminDashboard from './pages/AdminDashboard';
 import PhotographerProfile from './pages/PhotographerProfile';
+import PhotographerSettings from './pages/PhotographerSettings';
 import Albums from './pages/Albums';
 import Home from './pages/Home';
 import Cart from './pages/Cart';
@@ -37,10 +38,11 @@ function App() {
 
               {/* Public Viewing Route */}
               <Route path="/albums/:id" element={<PublicAlbumView />} />
-              <Route path="/photographer/:id" element={<PhotographerProfile />} />
+              <Route path="/photographer/:name" element={<PhotographerProfile />} />
 
               {/* Protected Routes */}
               <Route path="/photographer/dashboard" element={<PhotographerDashboard />} />
+              <Route path="/photographer/settings" element={<PhotographerSettings />} />
               <Route path="/photographer/packages" element={<PackageSettings />} />
               <Route path="/photographer/albums/new" element={<CreateAlbum />} />
               <Route path="/photographer/albums/:id" element={<AlbumDetails />} />

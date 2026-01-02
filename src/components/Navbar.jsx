@@ -104,6 +104,18 @@ const Navbar = () => {
                                             <span className="role-badge">{profile?.role || 'Client'}</span>
                                         </div>
 
+                                        {profile?.role === 'photographer' && (
+                                            <button
+                                                className="profile-menu-item"
+                                                onClick={() => {
+                                                    navigate('/photographer/settings');
+                                                    setIsProfileOpen(false);
+                                                }}
+                                            >
+                                                <User size={18} /> Profile Info
+                                            </button>
+                                        )}
+
                                         <button className="profile-menu-item" onClick={navigateToDashboard}>
                                             <LayoutDashboard size={18} /> {profile?.role === 'photographer' || profile?.role === 'admin' ? 'My Dashboard' : 'My Purchases'}
                                         </button>
@@ -128,10 +140,10 @@ const Navbar = () => {
                     ) : (
                         <div style={{ display: 'flex', gap: '0.75rem' }}>
                             <Link to="/login">
-                                <Button variant="outline">Log In</Button>
+                                <Button variant="outline" className="action-btn">Log In</Button>
                             </Link>
                             <Link to="/register">
-                                <Button variant="primary">Sign Up</Button>
+                                <Button variant="primary" className="action-btn">Sign Up</Button>
                             </Link>
                         </div>
                     )}
@@ -199,10 +211,10 @@ const Navbar = () => {
                             ) : (
                                 <>
                                     <Link to="/login" onClick={closeMenu} style={{ width: '100%' }}>
-                                        <Button variant="outline" style={{ width: '100%' }}>Log In</Button>
+                                        <Button variant="outline" className="action-btn" style={{ width: '100%' }}>Log In</Button>
                                     </Link>
                                     <Link to="/register" onClick={closeMenu} style={{ width: '100%' }}>
-                                        <Button variant="primary" style={{ width: '100%' }}>Sign Up</Button>
+                                        <Button variant="primary" className="action-btn" style={{ width: '100%' }}>Sign Up</Button>
                                     </Link>
                                 </>
                             )}

@@ -153,8 +153,7 @@ const BuyerProfile = () => {
                                 </div>
                                 <div className="purchase-actions">
                                     <Button
-                                        variant="primary"
-                                        className="download-btn"
+                                        className="download-btn action-btn"
                                         onClick={() => navigate(`/my-purchases/${tx.album_id}`)}
                                     >
                                         <Download size={16} />

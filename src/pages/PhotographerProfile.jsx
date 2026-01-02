@@ -5,7 +5,7 @@ import Button from '../components/ui/Button';
 import { ArrowLeft, ArrowRight, Camera, Images } from 'lucide-react';
 
 const PhotographerProfile = () => {
-    const { id } = useParams();
+    const { name } = useParams();
     const [photographer, setPhotographer] = useState(null);
     const [albums, setAlbums] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -13,26 +13,50 @@ const PhotographerProfile = () => {
 
     useEffect(() => {
         fetchPhotographerData();
-    }, [id]);
+    }, [name]);
 
     const fetchPhotographerData = async () => {
         try {
-            // 1. Fetch Photographer Info
-            const { data: photographerData, error: photographerError } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', id)
-                .eq('role', 'photographer')
-                .single();
+            const decodedParam = decodeURIComponent(name);
+            const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(decodedParam);
 
-            if (photographerError) throw photographerError;
+            let photographerData = null;
+
+            if (isUuid) {
+                // Try fetching by ID first if it looks like a UUID
+                const { data } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', decodedParam)
+                    .eq('role', 'photographer')
+                    .single();
+                photographerData = data;
+            }
+
+            // If not found by ID or not a UUID, try by name
+            if (!photographerData) {
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .ilike('full_name', decodedParam) // Use ilike for case-insensitive
+                    .eq('role', 'photographer')
+                    .single();
+
+                if (!error) photographerData = data;
+            }
+
+            if (!photographerData) {
+                setLoading(false);
+                return;
+            }
+
             setPhotographer(photographerData);
 
             // 2. Fetch Published Albums
             const { data: albumsData, error: albumsError } = await supabase
                 .from('albums')
                 .select('*')
-                .eq('photographer_id', id)
+                .eq('photographer_id', photographerData.id)
                 .eq('is_published', true)
                 .order('created_at', { ascending: false });
 
@@ -63,19 +87,45 @@ const PhotographerProfile = () => {
 
     if (loading) {
         return (
-            <div style={{ padding: '4rem 2rem', textAlign: 'center' }}>
-                <p>Loading photographer profile...</p>
+            <div className="profile-loading-screen" style={{
+                padding: '10rem 2rem',
+                textAlign: 'center',
+                background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+                minHeight: '100vh'
+            }}>
+                <div className="spinner" style={{
+                    width: '40px',
+                    height: '40px',
+                    border: '4px solid rgba(59, 130, 246, 0.1)',
+                    borderTopColor: 'var(--primary-blue)',
+                    borderRadius: '50%',
+                    margin: '0 auto 1.5rem',
+                    animation: 'spin 1s linear infinite'
+                }}></div>
+                <p style={{ color: 'var(--text-secondary)', fontWeight: '600' }}>Loading photographer profile...</p>
+                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
             </div>
         );
     }
 
     if (!photographer) {
         return (
-            <div style={{ padding: '4rem 2rem', textAlign: 'center' }}>
-                <h2>Photographer not found</h2>
-                <Link to="/albums">
-                    <Button variant="outline" style={{ marginTop: '1rem' }}>Back to Albums</Button>
-                </Link>
+            <div className="profile-error-screen" style={{
+                padding: '8rem 2rem',
+                textAlign: 'center',
+                background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+                minHeight: '100vh'
+            }}>
+                <div style={{ maxWidth: '400px', margin: '0 auto', background: 'white', padding: '3rem', borderRadius: '24px', boxShadow: 'var(--shadow-xl)' }}>
+                    <div style={{ width: '80px', height: '80px', background: '#fee2e2', color: '#ef4444', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
+                        <Camera size={40} />
+                    </div>
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: '800', marginBottom: '1rem' }}>Photographer not found</h2>
+                    <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>The profile you are looking for might have been moved or renamed.</p>
+                    <Link to="/albums">
+                        <Button variant="primary" style={{ width: '100%' }}>Explore Marketplace</Button>
+                    </Link>
+                </div>
             </div>
         );
     }
@@ -93,6 +143,23 @@ const PhotographerProfile = () => {
                     <div className="photographer-main-info">
                         <h1 className="photographer-name">{photographer.full_name}</h1>
                         <p className="photographer-email">{photographer.email}</p>
+
+                        {photographer.bio && (
+                            <p className="photographer-bio">{photographer.bio}</p>
+                        )}
+
+                        <div className="photographer-social-links">
+                            {photographer.whatsapp && (
+                                <a href={`https://wa.me/${photographer.whatsapp.replace(/\s+/g, '')}`} target="_blank" rel="noopener noreferrer" className="social-link whatsapp">
+                                    <Phone size={16} /> WhatsApp
+                                </a>
+                            )}
+                            {photographer.website && (
+                                <a href={photographer.website.startsWith('http') ? photographer.website : `https://${photographer.website}`} target="_blank" rel="noopener noreferrer" className="social-link website">
+                                    <Globe size={16} /> Website
+                                </a>
+                            )}
+                        </div>
                     </div>
 
                     {/* Stats */}
@@ -155,10 +222,6 @@ const PhotographerProfile = () => {
                                         <p className="album-desc">
                                             {album.description || 'Professional collection'}
                                         </p>
-                                        <div className="album-card-action">
-                                            <span>{album.pricing_package_id ? 'View Package' : 'Buy Now'}</span>
-                                            <span className="arrow"><ArrowRight size={16} /></span>
-                                        </div>
                                     </div>
                                 </div>
                             </Link>
@@ -172,6 +235,8 @@ const PhotographerProfile = () => {
                     padding: var(--spacing-xl);
                     max-width: 1400px;
                     margin: 0 auto;
+                    width: 100%;
+                    text-align: left; /* Force left alignment against any global centering */
                 }
 
                 .profile-header-card {
@@ -182,53 +247,104 @@ const PhotographerProfile = () => {
                     border: 1px solid var(--border-light);
                     margin-bottom: var(--spacing-2xl);
                     box-shadow: var(--shadow-md);
+                    width: 100%;
+                    min-height: 450px; /* Ensure a minimum presence even with short content */
                 }
 
                 .header-bg-gradient {
-                    height: 160px;
+                    height: 200px;
                     background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-cyan) 100%);
                     opacity: 0.9;
                 }
 
                 .header-content {
-                    padding: 0 var(--spacing-xl) var(--spacing-xl);
+                    padding: 0 var(--spacing-xl) var(--spacing-2xl);
                     display: flex;
                     flex-direction: column;
-                    align-items: center;
-                    margin-top: -60px;
+                    align-items: center; /* Avatar and stats stay centered within their own flow */
+                    margin-top: -70px;
                     text-align: center;
+                    width: 100%;
                 }
 
                 .photographer-avatar-large {
-                    width: 120px;
-                    height: 120px;
+                    width: 140px;
+                    height: 140px;
                     border-radius: 50%;
                     background: var(--bg-primary);
-                    border: 6px solid var(--bg-primary);
-                    box-shadow: var(--shadow-lg);
+                    border: 4px solid var(--bg-primary);
+                    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    font-size: 3rem;
+                    font-size: 4rem;
                     font-weight: 800;
                     color: var(--primary-blue);
-                    margin-bottom: var(--spacing-md);
+                    margin-bottom: var(--spacing-lg);
+                    z-index: 5;
+                    position: relative;
                 }
 
                 .photographer-main-info {
                     margin-bottom: var(--spacing-xl);
+                    width: 100%;
+                    max-width: 800px;
                 }
 
                 .photographer-name {
-                    font-size: clamp(1.5rem, 6vw, 2.5rem);
+                    font-size: clamp(2rem, 6vw, 3rem); /* Slightly larger for premium feel */
                     font-weight: 800;
                     color: var(--text-primary);
                     margin-bottom: var(--spacing-xs);
+                    width: 100%;
                 }
 
                 .photographer-email {
                     color: var(--text-secondary);
                     font-size: var(--font-size-md);
+                    margin-bottom: var(--spacing-md);
+                }
+
+                .photographer-bio {
+                    max-width: 600px;
+                    margin: 0 auto var(--spacing-lg);
+                    color: var(--text-secondary);
+                    line-height: 1.6;
+                    font-size: 0.95rem;
+                }
+
+                .photographer-social-links {
+                    display: flex;
+                    gap: var(--spacing-md);
+                    justify-content: center;
+                    margin-bottom: var(--spacing-xl);
+                }
+
+                .social-link {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    padding: 0.5rem 1rem;
+                    border-radius: var(--radius-full);
+                    font-size: var(--font-size-sm);
+                    font-weight: 600;
+                    text-decoration: none;
+                    transition: all 0.2s ease;
+                }
+
+                .social-link.whatsapp {
+                    background: #25d366;
+                    color: white;
+                }
+
+                .social-link.website {
+                    background: var(--primary-blue);
+                    color: white;
+                }
+
+                .social-link:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
                 }
 
                 .photographer-stats {
@@ -267,11 +383,16 @@ const PhotographerProfile = () => {
                     background: var(--border-light);
                 }
 
+                .albums-section-container {
+                    width: 100%;
+                }
+
                 .section-header {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
                     margin-bottom: var(--spacing-xl);
+                    width: 100%;
                 }
 
                 .section-title {
