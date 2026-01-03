@@ -25,6 +25,25 @@ const PhotoUpload = ({ albumId, onUploadComplete }) => {
         setUploadedPhotos([]); // Clear previous uploads
         let successCount = 0;
 
+        // Fetch user's custom watermark text
+        let customWatermarkText = "© RUN CAPTURE"; // Default
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('watermark_text')
+                    .eq('id', user.id)
+                    .single();
+
+                if (profile && profile.watermark_text) {
+                    customWatermarkText = profile.watermark_text;
+                }
+            }
+        } catch (err) {
+            console.warn("Could not fetch watermark text, using default:", err);
+        }
+
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
 
@@ -48,7 +67,7 @@ const PhotoUpload = ({ albumId, onUploadComplete }) => {
                 if (originalError) throw originalError;
 
                 // 2. Generate Watermark
-                const watermarkedBlob = await watermarkImage(file);
+                const watermarkedBlob = await watermarkImage(file, customWatermarkText);
 
                 // 3. Upload Watermarked (Public Bucket)
                 const { data: publicData, error: publicError } = await supabase.storage
@@ -77,7 +96,8 @@ const PhotoUpload = ({ albumId, onUploadComplete }) => {
                 if (dbError) throw dbError;
 
                 // Add to uploaded list for display
-                setUploadedPhotos(prev => [...prev, { name: file.name, url: publicUrl }]);
+                // USER REQUEST: Show ORIGINAL image in the upload preview, not the watermarked result
+                setUploadedPhotos(prev => [...prev, { name: file.name, url: URL.createObjectURL(file) }]);
                 successCount++;
 
             } catch (error) {

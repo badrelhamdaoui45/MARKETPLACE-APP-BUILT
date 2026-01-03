@@ -18,7 +18,7 @@ const Onboarding = () => {
     // Form data state
     const [formData, setFormData] = useState({
         userType: '',
-        language: 'fr',
+        language: 'en',
         fullName: '',
         email: '',
         password: '',
@@ -174,23 +174,7 @@ const Onboarding = () => {
                 </div>
             </div>
 
-            <div className="form-section">
-                <label className="section-label">Your language</label>
-                <div className="language-options">
-                    {['Français', 'English', 'Español'].map((lang) => (
-                        <label key={lang} className="lang-option">
-                            <input
-                                type="radio"
-                                name="language"
-                                value={lang === 'Français' ? 'fr' : lang === 'English' ? 'en' : 'es'}
-                                checked={formData.language === (lang === 'Français' ? 'fr' : lang === 'English' ? 'en' : 'es')}
-                                onChange={handleInputChange}
-                            />
-                            <span className="lang-text">{lang}</span>
-                        </label>
-                    ))}
-                </div>
-            </div>
+            {/* Language Selection Removed - Forced to English */}
 
             <Button type="submit" className="w-full action-btn step-btn">
                 NEXT

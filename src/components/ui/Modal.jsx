@@ -1,7 +1,7 @@
 import React from 'react';
 import Button from './Button';
 
-const Modal = ({ isOpen, onClose, onConfirm, title, message, confirmText = 'Confirm', cancelText = 'Cancel', variant = 'danger' }) => {
+const Modal = ({ isOpen, onClose, onConfirm, title, message, confirmText = 'Confirm', cancelText = 'Cancel', variant = 'danger', showCancel = true }) => {
     if (!isOpen) return null;
 
     return (
@@ -65,13 +65,15 @@ const Modal = ({ isOpen, onClose, onConfirm, title, message, confirmText = 'Conf
                     gap: '1rem',
                     justifyContent: 'flex-end'
                 }}>
-                    <Button
-                        variant="outline"
-                        onClick={onClose}
-                        style={{ minWidth: '100px' }}
-                    >
-                        {cancelText}
-                    </Button>
+                    {showCancel && (
+                        <Button
+                            variant="outline"
+                            onClick={onClose}
+                            style={{ minWidth: '100px' }}
+                        >
+                            {cancelText}
+                        </Button>
+                    )}
                     <Button
                         onClick={() => {
                             onConfirm();

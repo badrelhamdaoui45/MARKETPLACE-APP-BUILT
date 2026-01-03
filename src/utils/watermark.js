@@ -22,23 +22,47 @@ export const watermarkImage = (file, text = "PREVIEW - PhotoMarket") => {
                 ctx.drawImage(img, 0, 0);
 
                 // Configure watermark style
-                const fontSize = Math.floor(img.width / 15); // Dynamic font size
+                // USER REQUEST: Repeating pattern logic based on uploaded reference (Re-applied)
+
+                // Set font style
+                const fontSize = Math.floor(img.width * 0.05); // 5% of width
                 ctx.font = `bold ${fontSize}px sans-serif`;
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'; // White with transparency
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
 
-                // Add rotation and diagonal repeating text
+                // Add shadow for better visibility
+                ctx.shadowColor = 'rgba(0,0,0,0.5)';
+                ctx.shadowBlur = 4;
+                ctx.shadowOffsetX = 1;
+                ctx.shadowOffsetY = 1;
+
+                // Pattern settings
+                const angle = -Math.PI / 4; // -45 degrees
+                const spacingX = img.width * 0.25; // Closer horizontal spacing
+                const spacingY = img.width * 0.25; // Closer vertical spacing
+
+                // Calculate diagonal coverage
+                const diag = Math.sqrt(canvas.width * canvas.width + canvas.height * canvas.height);
+
                 ctx.save();
-                ctx.translate(canvas.width / 2, canvas.height / 2);
-                ctx.rotate(-Math.PI / 4);
 
-                // Draw single large centered watermark
-                ctx.fillText(text.toUpperCase(), 0, 0);
+                // Loop through a large enough grid to cover the canvas at any rotation
+                for (let y = -diag; y < diag * 2; y += spacingY) {
+                    for (let x = -diag; x < diag * 2; x += spacingX) {
+                        ctx.save();
 
-                // Optional: Draw pattern
-                // ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
-                // for(let i = -10; i < 10; i++) { ... }
+                        // Add offset for "brick" pattern look
+                        const offsetX = (Math.floor(y / spacingY) % 2 === 0) ? 0 : spacingX / 2;
+
+                        // Translate to position, then rotate
+                        ctx.translate(x + offsetX, y);
+                        ctx.rotate(angle);
+                        ctx.fillText(text.toUpperCase(), 0, 0);
+
+                        ctx.restore();
+                    }
+                }
 
                 ctx.restore();
 

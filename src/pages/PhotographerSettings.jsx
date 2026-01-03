@@ -5,6 +5,7 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import { User, Mail, Phone, Globe, Save, ArrowLeft, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Image as ImageIcon } from 'lucide-react';
 
 const PhotographerSettings = () => {
     const { user, profile } = useAuth();
@@ -18,7 +19,8 @@ const PhotographerSettings = () => {
         email: '',
         whatsapp: '',
         website: '',
-        bio: ''
+        bio: '',
+        watermark_text: ''
     });
 
     useEffect(() => {
@@ -28,7 +30,8 @@ const PhotographerSettings = () => {
                 email: profile.email || '',
                 whatsapp: profile.whatsapp || '',
                 website: profile.website || '',
-                bio: profile.bio || ''
+                bio: profile.bio || '',
+                watermark_text: profile.watermark_text || '© RUN CAPTURE'
             });
             setLoading(false);
         }
@@ -51,7 +54,8 @@ const PhotographerSettings = () => {
                     full_name: formData.full_name,
                     whatsapp: formData.whatsapp,
                     website: formData.website,
-                    bio: formData.bio
+                    bio: formData.bio,
+                    watermark_text: formData.watermark_text
                 })
                 .eq('id', user.id);
 
@@ -136,6 +140,17 @@ const PhotographerSettings = () => {
                                     onChange={handleInputChange}
                                     placeholder="https://yourwebsite.com"
                                 />
+                            </div>
+
+                            <div className="form-group">
+                                <label><ImageIcon size={16} /> Custom Watermark Text</label>
+                                <Input
+                                    name="watermark_text"
+                                    value={formData.watermark_text}
+                                    onChange={handleInputChange}
+                                    placeholder="e.g. © MY STUDIO"
+                                />
+                                <small className="input-hint">This text will appear on all new photo uploads.</small>
                             </div>
                         </div>
 

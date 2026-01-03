@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import PhotoUpload from '../components/PhotoUpload';
 import Button from '../components/ui/Button';
+import Modal from '../components/ui/Modal';
 import { ArrowLeft, Trash2, Upload, Eye, EyeOff, Share2, Copy, Check, Hash } from 'lucide-react';
 import Toast from '../components/ui/Toast';
 import { detectBibs } from '../lib/gemini';
@@ -85,6 +86,24 @@ const AlbumDetails = () => {
         }
     };
 
+    const [modalConfig, setModalConfig] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => { },
+        variant: 'info',
+        confirmText: 'Confirm',
+        showCancel: true
+    });
+
+    const openModal = (config) => {
+        setModalConfig({ ...config, isOpen: true });
+    };
+
+    const closeModal = () => {
+        setModalConfig(prev => ({ ...prev, isOpen: false }));
+    };
+
     const handleShare = () => {
         const photogName = album?.profiles?.full_name || 'photographer';
         const shareUrl = `${window.location.origin}/albums/${encodeURIComponent(photogName)}/${encodeURIComponent(album.title)}`;
@@ -96,19 +115,14 @@ const AlbumDetails = () => {
         });
     };
 
-    const handleDetectAllBibs = async () => {
-        if (photos.length === 0) return;
-        if (!confirm(`This will use AI to scan ${photos.length} photos for bib numbers. Continue?`)) return;
 
+    const performBibDetection = async () => {
         setIsDetecting(true);
         let successCount = 0;
         let errorCount = 0;
 
         try {
             for (const photo of photos) {
-                // Skip if already has bibs (optional optimization)
-                // if (photo.bib_numbers && photo.bib_numbers.length > 0) continue;
-
                 const detected = await detectBibs(photo.watermarked_url);
 
                 if (detected && detected.length > 0) {
@@ -121,16 +135,30 @@ const AlbumDetails = () => {
                     else errorCount++;
                 }
 
-                // Small delay to avoid rate limiting
                 await new Promise(r => setTimeout(r, 1000));
             }
 
-            setToast({
-                message: `Detection complete! Found bibs in ${successCount} photos.${errorCount > 0 ? ` (${errorCount} errors)` : ''}`,
-                type: successCount > 0 ? 'success' : 'info'
-            });
+            // USER REQUEST: Show MODULE (Modal) for results, not Alert/Toast
+            if (successCount > 0) {
+                openModal({
+                    title: 'Detection Complete',
+                    message: `Found bib numbers in ${successCount} photos.${errorCount > 0 ? ` (${errorCount} errors)` : ''}`,
+                    variant: 'success',
+                    confirmText: 'Close',
+                    showCancel: false, // Single button for info
+                    onConfirm: closeModal
+                });
+            } else {
+                openModal({
+                    title: 'No Bibs Found',
+                    message: 'The AI did not detect any bib numbers in the scanned photos.',
+                    variant: 'info',
+                    confirmText: 'Close',
+                    showCancel: false, // Single button
+                    onConfirm: closeModal
+                });
+            }
 
-            // Refresh photos to show tags
             fetchAlbumDetails();
         } catch (error) {
             console.error("Batch detection error:", error);
@@ -141,6 +169,21 @@ const AlbumDetails = () => {
         } finally {
             setIsDetecting(false);
         }
+    };
+
+    const handleDetectAllBibs = () => {
+        if (photos.length === 0) return;
+
+        // USER REQUEST: Show MODULE (Modal) for confirmation
+        openModal({
+            title: 'Start AI Detection?',
+            message: `This will use AI to scan ${photos.length} photos for bib numbers. This may take a few moments.`,
+            variant: 'info',
+            confirmText: 'Start Scan',
+            cancelText: 'Cancel',
+            showCancel: true,
+            onConfirm: performBibDetection
+        });
     };
 
     if (loading) return <div style={{ padding: '2rem' }}>Loading...</div>;
@@ -690,6 +733,18 @@ const AlbumDetails = () => {
                     onClose={() => setToast(null)}
                 />
             )}
+
+            <Modal
+                isOpen={modalConfig.isOpen}
+                title={modalConfig.title}
+                message={modalConfig.message}
+                onConfirm={modalConfig.onConfirm}
+                onClose={closeModal}
+                variant={modalConfig.variant}
+                confirmText={modalConfig.confirmText}
+                cancelText={modalConfig.cancelText}
+                showCancel={modalConfig.showCancel}
+            />
         </div >
     );
 };

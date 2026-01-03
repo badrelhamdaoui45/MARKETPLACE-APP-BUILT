@@ -138,6 +138,188 @@ const Home = () => {
                     </div>
                 </div>
 
+                {/* Comparison Table Section */}
+                <div style={{ marginTop: '6rem', marginBottom: '6rem' }}>
+                    <div className="section-header">
+                        <h2 className="section-title">Why Choose Run Capture?</h2>
+                        <p className="section-subtitle">See how we stack up against the competition</p>
+                    </div>
+
+                    <div className="comparison-table-container">
+                        <div className="comparison-header-row">
+                            <div className="col-feature">Feature</div>
+                            <div className="col-us">
+                                <div className="brand-badge">RUN CAPTURE</div>
+                            </div>
+                            <div className="col-others">Other Platforms</div>
+                        </div>
+
+                        {[
+                            { feature: "Starting Cost", us: "Free", others: "Monthly Fees" },
+                            { feature: "AI Bib Detection", us: "Included (Unlimited)", others: "Paid Add-on / None" },
+                            { feature: "Payout Speed", us: "Instant (Stripe)", others: "Monthly / Net-30" },
+                            { feature: "Commission", us: "Fair (15%)", others: "High (20-30%)" },
+                            { feature: "Watermark", us: "Fully Customizable", others: "Fixed / Generic" },
+                            { feature: "Setup Time", us: "Instant", others: "Manual Approval" },
+                        ].map((row, idx) => (
+                            <div key={idx} className={`comparison-row ${idx % 2 === 0 ? 'bg-stripe' : ''}`}>
+                                <div className="col-feature">{row.feature}</div>
+                                <div className="col-us">
+                                    <span className="check-icon">✓</span> {row.us}
+                                </div>
+                                <div className="col-others">
+                                    <span className="cross-icon">✕</span> {row.others}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                <style>{`
+                    .comparison-table-container {
+                        max-width: 900px;
+                        margin: 0 auto;
+                        background: white;
+                        border-radius: 16px;
+                        box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+                        overflow: hidden;
+                        border: 1px solid var(--border-subtle);
+                    }
+
+                    .comparison-header-row {
+                        display: grid;
+                        grid-template-columns: 1.5fr 1.5fr 1.5fr;
+                        background: #f8fafc;
+                        padding: 1.5rem;
+                        border-bottom: 2px solid #e2e8f0;
+                        font-weight: 800;
+                        color: var(--text-primary);
+                    }
+
+                    .col-feature { 
+                        display: flex; 
+                        align-items: center; 
+                        color: var(--text-secondary);
+                        font-weight: 600;
+                    }
+
+                    .col-us { 
+                        display: flex; 
+                        align-items: center; 
+                        justify-content: center; 
+                        font-weight: 800;
+                        color: var(--text-primary);
+                        position: relative;
+                        background: rgba(255, 255, 255, 0.5);
+                    }
+
+                    .col-others { 
+                        display: flex; 
+                        align-items: center; 
+                        justify-content: center; 
+                        color: var(--text-tertiary);
+                        font-weight: 500;
+                    }
+
+                    .brand-badge {
+                        background: var(--primary-blue);
+                        color: white;
+                        padding: 0.5rem 1rem;
+                        border-radius: 50px;
+                        font-size: 0.9rem;
+                        letter-spacing: 0.05em;
+                        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+                    }
+
+                    .comparison-row {
+                        display: grid;
+                        grid-template-columns: 1.5fr 1.5fr 1.5fr;
+                        padding: 1.25rem 1.5rem;
+                        border-bottom: 1px solid #f1f5f9;
+                        transition: background 0.2s;
+                    }
+
+                    .comparison-row:last-child {
+                        border-bottom: none;
+                    }
+
+                    .comparison-row:hover {
+                        background: #f8fafc !important;
+                    }
+
+                    .bg-stripe {
+                        background: #fff;
+                    }
+
+                    .check-icon {
+                        color: #10b981;
+                        font-weight: 900;
+                        margin-right: 0.5rem;
+                        font-size: 1.1rem;
+                    }
+
+                    .cross-icon {
+                        color: #ef4444;
+                        font-weight: 900;
+                        margin-right: 0.5rem;
+                        font-size: 1.1rem;
+                    }
+
+                    /* Highlight the middle column */
+                    .comparison-row .col-us {
+                        color: var(--primary-blue);
+                        font-weight: 700;
+                        background: #eff6ff;
+                        margin: -1.25rem 0;
+                        padding: 1.25rem 0;
+                        border-left: 1px solid #dbeafe;
+                        border-right: 1px solid #dbeafe;
+                    }
+                    
+                    /* Header middle column highlight */
+                    .comparison-header-row .col-us {
+                        background: transparent;
+                    }
+
+                    @media (max-width: 768px) {
+                        .comparison-table-container {
+                            border-radius: 12px;
+                            font-size: 0.9rem;
+                        }
+                        
+                        .comparison-header-row, .comparison-row {
+                            padding: 1rem;
+                            grid-template-columns: 1fr 1fr 1fr;
+                            gap: 0.5rem;
+                        }
+
+                        .col-feature {
+                            font-size: 0.85rem;
+                        }
+
+                        .brand-badge {
+                            padding: 0.25rem 0.75rem;
+                            font-size: 0.7rem;
+                        }
+                    }
+
+                    @media (max-width: 480px) {
+                        .comparison-table-container {
+                            font-size: 0.8rem;
+                        }
+                        
+                        .comparison-header-row, .comparison-row {
+                            padding: 0.75rem 0.5rem;
+                        }
+                        
+                        .col-feature {
+                            font-weight: 700;
+                            justify-content: center;
+                            text-align: center;
+                        }
+                    }
+                `}</style>
+
                 {/* Recent Albums Carousel */}
                 {!loading && recentAlbums.length > 0 && (
                     <div className="recent-albums-section">
