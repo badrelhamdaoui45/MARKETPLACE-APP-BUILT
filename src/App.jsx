@@ -20,7 +20,7 @@ import Albums from './pages/Albums';
 import Home from './pages/Home';
 import Cart from './pages/Cart';
 import { CartProvider } from './context/CartContext';
-import AnnouncementPopup from './components/AnnouncementPopup';
+import DynamicPopup from './components/DynamicPopup';
 
 function App() {
   return (
@@ -29,7 +29,7 @@ function App() {
         <Router>
           <div className="app-container">
             <Navbar />
-            <AnnouncementPopup />
+            <DynamicPopup type="announcement" />
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<Home />} />
