@@ -3,8 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import PhotoUpload from '../components/PhotoUpload';
 import Button from '../components/ui/Button';
-import { ArrowLeft, Trash2, Upload, Eye, EyeOff, Share2, Copy, Check } from 'lucide-react';
+import { ArrowLeft, Trash2, Upload, Eye, EyeOff, Share2, Copy, Check, Hash } from 'lucide-react';
 import Toast from '../components/ui/Toast';
+import { detectBibs } from '../lib/gemini';
 
 const AlbumDetails = () => {
     const { id } = useParams();
@@ -14,6 +15,7 @@ const AlbumDetails = () => {
     const [loading, setLoading] = useState(true);
     const [copied, setCopied] = useState(false);
     const [toast, setToast] = useState(null);
+    const [isDetecting, setIsDetecting] = useState(false);
 
     useEffect(() => {
         fetchAlbumDetails();
@@ -92,6 +94,53 @@ const AlbumDetails = () => {
             setToast({ message: 'Lien copié avec succès !', type: 'success' });
             setTimeout(() => setCopied(false), 2000);
         });
+    };
+
+    const handleDetectAllBibs = async () => {
+        if (photos.length === 0) return;
+        if (!confirm(`This will use AI to scan ${photos.length} photos for bib numbers. Continue?`)) return;
+
+        setIsDetecting(true);
+        let successCount = 0;
+        let errorCount = 0;
+
+        try {
+            for (const photo of photos) {
+                // Skip if already has bibs (optional optimization)
+                // if (photo.bib_numbers && photo.bib_numbers.length > 0) continue;
+
+                const detected = await detectBibs(photo.watermarked_url);
+
+                if (detected && detected.length > 0) {
+                    const { error } = await supabase
+                        .from('photos')
+                        .update({ bib_numbers: detected })
+                        .eq('id', photo.id);
+
+                    if (!error) successCount++;
+                    else errorCount++;
+                }
+
+                // Small delay to avoid rate limiting
+                await new Promise(r => setTimeout(r, 1000));
+            }
+
+            setToast({
+                message: `Detection complete! Found bibs in ${successCount} photos.${errorCount > 0 ? ` (${errorCount} errors)` : ''}`,
+                type: successCount > 0 ? 'success' : 'info'
+            });
+
+            // Refresh photos to show tags
+            fetchAlbumDetails();
+        } catch (error) {
+            console.error("Batch detection error:", error);
+            setToast({
+                message: `AI Detection failed: ${error.message || 'Check your API key and network.'}`,
+                type: 'error'
+            });
+        } finally {
+            setIsDetecting(false);
+        }
     };
 
     if (loading) return <div style={{ padding: '2rem' }}>Loading...</div>;
@@ -194,9 +243,28 @@ const AlbumDetails = () => {
             </section >
 
             {/* Photos Grid Section */}
-            < section className="photos-section" >
-                <div className="section-header">
+            <section className="photos-section">
+                <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <h2>Gallery ({photos.length})</h2>
+                    {photos.length > 0 && (
+                        <Button
+                            variant="outline"
+                            onClick={handleDetectAllBibs}
+                            disabled={isDetecting}
+                            className="detect-bibs-btn"
+                            style={{ gap: '0.5rem' }}
+                        >
+                            {isDetecting ? (
+                                <>
+                                    <span className="spinner"></span> Detecting...
+                                </>
+                            ) : (
+                                <>
+                                    <Upload size={16} /> Detect Bibs
+                                </>
+                            )}
+                        </Button>
+                    )}
                 </div>
 
                 {
@@ -208,11 +276,20 @@ const AlbumDetails = () => {
                         <div className="album-manage-grid">
                             {photos.map(photo => (
                                 <div key={photo.id} className="album-manage-item">
-                                    <img
-                                        src={photo.watermarked_url}
-                                        alt={photo.title}
-                                        className="manage-photo-img"
-                                    />
+                                    <div className="photo-image-container">
+                                        <img
+                                            src={photo.watermarked_url}
+                                            alt={photo.title}
+                                            className="manage-photo-img"
+                                        />
+                                        {photo.bib_numbers && photo.bib_numbers.length > 0 && (
+                                            <div className="bib-tags">
+                                                {photo.bib_numbers.map((bib, i) => (
+                                                    <span key={i} className="bib-tag">#{bib}</span>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
                                     <div className="manage-overlay">
                                         <div className="photo-info-overlay">
                                             <span className="photo-name">{photo.title}</span>
@@ -396,7 +473,8 @@ const AlbumDetails = () => {
 
                 .manage-photo-img {
                     width: 100%;
-                    height: auto;
+                    height: 100%;
+                    object-fit: cover;
                     display: block;
                 }
 
@@ -437,14 +515,172 @@ const AlbumDetails = () => {
                     justify-content: center;
                 }
 
+                .photo-image-container {
+                    position: relative;
+                    width: 100%;
+                    aspect-ratio: 4/5;
+                    overflow: hidden;
+                    background: #f8fafc;
+                }
+
+                .bib-tags {
+                    position: absolute;
+                    top: 8px;
+                    left: 8px;
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 4px;
+                    z-index: 5;
+                }
+
+                .bib-tag {
+                    background: rgba(15, 23, 42, 0.8);
+                    color: white;
+                    padding: 2px 6px;
+                    border-radius: 4px;
+                    font-size: 0.7rem;
+                    font-weight: 700;
+                    backdrop-filter: blur(4px);
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                }
+
+                .detect-bibs-btn {
+                    font-size: 0.85rem !important;
+                    font-weight: 700 !important;
+                    border: 2px solid var(--primary-blue) !important;
+                    color: var(--primary-blue) !important;
+                }
+
+                .detect-bibs-btn:hover {
+                    background: var(--bg-tertiary) !important;
+                }
+
+                .detect-bibs-btn:disabled {
+                    opacity: 0.7;
+                    cursor: not-allowed;
+                }
+
+                .spinner {
+                    width: 14px;
+                    height: 14px;
+                    border: 2px solid currentColor;
+                    border-top-color: transparent;
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                    display: inline-block;
+                }
+
+                @keyframes spin {
+                    to { transform: rotate(360deg); }
+                }
+
                 @media (max-width: 768px) {
                     .album-details-container { padding: 1rem; }
-                    .header-content { flex-direction: column; align-items: flex-start; gap: 1.5rem; }
-                    .header-actions { width: 100%; }
-                    .publish-btn { width: 100%; justify-content: center; }
-                    .album-title { font-size: 1.8rem; }
-                    .album-meta-row { gap: 1.5rem; flex-wrap: wrap; }
-                    .upload-section-card { padding: 1.25rem; }
+                    
+                    .header-top {
+                        flex-direction: column;
+                        align-items: flex-start;
+                        gap: 1rem;
+                        margin-bottom: 1.5rem;
+                    }
+
+                    .header-content { 
+                        flex-direction: column; 
+                        align-items: flex-start; 
+                        gap: 1.5rem; 
+                    }
+                    
+                    .header-actions { 
+                        width: 100%; 
+                    }
+                    
+                    .publish-btn { 
+                        width: 100%; 
+                        justify-content: center; 
+                    }
+                    
+                    .album-title { 
+                        font-size: 1.85rem; 
+                        letter-spacing: -0.02em;
+                    }
+                    
+                    .album-description {
+                        font-size: 1rem;
+                    }
+
+                    .album-meta-row { 
+                        gap: 1.25rem; 
+                        display: grid;
+                        grid-template-columns: repeat(2, 1fr);
+                        width: 100%;
+                        background: #f8fafc;
+                        padding: 1rem;
+                        border-radius: 12px;
+                        margin-bottom: 2rem;
+                    }
+
+                    .share-link-banner {
+                        padding: 0.75rem !important;
+                        flex-direction: column;
+                        align-items: stretch !important;
+                        gap: 0.75rem !important;
+                        margin-top: 0 !important;
+                        margin-bottom: 1.5rem !important;
+                    }
+
+                    .share-link-banner .header-info {
+                        padding-right: 0;
+                    }
+
+                    .share-link-banner button {
+                        width: 100%;
+                    }
+
+                    .album-manage-grid {
+                        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                        gap: 1rem;
+                    }
+
+                    .section-header {
+                        flex-direction: column;
+                        align-items: flex-start !important;
+                        gap: 1rem;
+                    }
+
+                    .detect-bibs-btn {
+                        width: 100%;
+                        justify-content: center;
+                    }
+
+                    /* Make actions more visible on mobile since hover isn't reliable */
+                    .manage-overlay {
+                        opacity: 1;
+                        background: linear-gradient(to bottom, rgba(0,0,0,0) 40%, rgba(0,0,0,0.6) 100%);
+                        padding: 0.75rem;
+                    }
+
+                    .photo-name {
+                        display: none; /* Hide name to save space on small grid */
+                    }
+
+                    .delete-btn {
+                        padding: 6px !important;
+                        font-size: 0.75rem !important;
+                    }
+
+                    .bib-tag {
+                        font-size: 0.65rem;
+                        padding: 2px 4px;
+                    }
+                }
+
+                @media (max-width: 480px) {
+                    .album-title { font-size: 1.6rem; }
+                    .album-meta-row { grid-template-columns: 1fr; }
+                    .album-manage-grid {
+                        grid-template-columns: repeat(2, 1fr); /* Force 2 columns on very small screens */
+                        gap: 0.75rem;
+                    }
                 }
             `}</style>
             {toast && (

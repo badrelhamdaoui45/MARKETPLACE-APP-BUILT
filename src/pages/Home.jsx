@@ -9,6 +9,23 @@ const Home = () => {
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
+    const [currentSportIndex, setCurrentSportIndex] = useState(0);
+    const heroData = [
+        { text: "your trail running", image: "/hero_trail_running.png" },
+        { text: "your equestrian", image: "/hero_equestrian.png" },
+        { text: "your rugby", image: "/hero_rugby.png" },
+        { text: "your triathlon", image: "/hero_triathlon.png" },
+        { text: "your football", image: "/hero_football.png" },
+        { text: "your rally", image: "/hero_rally.png" }
+    ];
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setCurrentSportIndex((prev) => (prev + 1) % heroData.length);
+        }, 3500); // Slightly slower for better readability
+        return () => clearInterval(interval);
+    }, []);
+
     useEffect(() => {
         fetchRecentAlbums();
     }, []);
@@ -48,6 +65,47 @@ const Home = () => {
     return (
         <div className="home-container">
             <div className="home-content">
+                {/* Hero Section */}
+                <div className="hero-section">
+                    <div className="hero-text">
+                        <h1 className="hero-headline">
+                            REVOLUTIONIZE <br />
+                            <span className="animated-sport">
+                                {heroData[currentSportIndex].text.toUpperCase()}
+                            </span> <br />
+                            PHOTO MANAGEMENT
+                        </h1>
+                        <p className="hero-subtext">
+                            Manage, share, and monetize your event and sports club photo albums with our online application
+                        </p>
+                        <p className="hero-ai-hint">
+                            <strong>Our AI-based technology and automatic image analysis</strong> simplify the management of your sports photos.
+                        </p>
+                        <div className="hero-actions">
+                            <Button variant="outline" className="hero-btn-contact" onClick={() => navigate('/contact')}>
+                                Contact Us
+                            </Button>
+                            <Button className="hero-btn-try action-btn" onClick={() => navigate('/login')}>
+                                Try Sportpxl
+                            </Button>
+                        </div>
+                    </div>
+                    <div className="hero-image-container">
+                        <div className="bg-box-orange"></div>
+                        <div className="bg-box-blue"></div>
+                        <div className="hero-images-stack">
+                            {heroData.map((item, idx) => (
+                                <img
+                                    key={idx}
+                                    src={item.image}
+                                    alt={`Professional ${item.text} photography management`}
+                                    className={`hero-main-img ${idx === currentSportIndex ? 'active' : ''}`}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
                 <div className="home-grid">
                     {/* Buyer Section */}
                     <div className="home-card buyer-card">
@@ -158,8 +216,136 @@ const Home = () => {
                 }
 
                 .home-content {
-                    max-width: 1100px;
+                    max-width: 1200px;
                     width: 100%;
+                }
+
+                .hero-section {
+                    display: grid;
+                    grid-template-columns: 1.2fr 1fr;
+                    gap: 4rem;
+                    align-items: center;
+                    margin-bottom: 6rem;
+                    padding: 2rem 0;
+                }
+
+                .hero-headline {
+                    font-size: 3.5rem;
+                    font-weight: 900;
+                    line-height: 1;
+                    color: #0f172a;
+                    margin-bottom: 1.5rem;
+                    letter-spacing: -0.02em;
+                }
+
+                .animated-sport {
+                    color: #ff9f1c;
+                    display: inline-block;
+                    min-height: 1em;
+                    animation: fadeScale 0.8s ease-out;
+                }
+
+                @keyframes fadeScale {
+                    from { opacity: 0; transform: translateY(15px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+
+                .hero-subtext {
+                    font-size: 1.25rem;
+                    color: #475569;
+                    margin-bottom: 1.5rem;
+                    line-height: 1.6;
+                    max-width: 500px;
+                }
+
+                .hero-ai-hint {
+                    background: #f1f5f9;
+                    padding: 1rem 1.5rem;
+                    border-radius: 12px;
+                    font-size: 0.95rem;
+                    color: #334155;
+                    margin-bottom: 2.5rem;
+                    border-left: 4px solid var(--primary-blue);
+                }
+
+                .hero-actions {
+                    display: flex;
+                    gap: 1.5rem;
+                }
+
+                .hero-btn-contact {
+                    border: 2px solid #0f172a !important;
+                    color: #0f172a !important;
+                    height: 56px;
+                    min-width: 160px;
+                }
+
+                .hero-btn-try {
+                    background: #0f172a !important;
+                    color: white !important;
+                    height: 56px;
+                    min-width: 160px;
+                }
+
+                .hero-image-container {
+                    position: relative;
+                    padding: 2rem;
+                    height: 500px; /* Fixed height for consistent layout */
+                    display: flex;
+                    align-items: center;
+                    width: 100%;
+                    max-width: 600px;
+                    margin: 0 auto;
+                }
+
+                .hero-images-stack {
+                    position: relative;
+                    width: 100%;
+                    height: 100%;
+                    z-index: 2;
+                }
+
+                .bg-box-orange {
+                    position: absolute;
+                    top: 0;
+                    right: 0;
+                    width: 70%;
+                    height: 50%;
+                    background: #ffb703;
+                    border-radius: 20px;
+                    z-index: 1;
+                    opacity: 0.9;
+                }
+
+                .bg-box-blue {
+                    position: absolute;
+                    bottom: 0;
+                    left: 0;
+                    width: 40%;
+                    height: 30%;
+                    background: #a2d2ff;
+                    border-radius: 12px;
+                    z-index: 1;
+                    opacity: 0.6;
+                }
+
+                .hero-main-img {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    border-radius: 20px;
+                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+                    object-fit: cover;
+                    opacity: 0;
+                    transition: opacity 1s ease-in-out, transform 1s ease-in-out;
+                    transform: scale(1.05);
+                }
+
+                .hero-main-img.active {
+                    opacity: 1;
+                    transform: scale(1);
                 }
 
                 .home-grid {
@@ -397,11 +583,81 @@ const Home = () => {
                     right: -24px;
                 }
 
+                @media (max-width: 1024px) {
+                    .hero-section {
+                        grid-template-columns: 1fr;
+                        gap: 3rem;
+                        text-align: center;
+                    }
+
+                    .hero-headline {
+                        font-size: 3rem;
+                    }
+
+                    .hero-subtext, .hero-ai-hint {
+                        margin-left: auto;
+                        margin-right: auto;
+                    }
+
+                    .hero-actions {
+                        justify-content: center;
+                    }
+
+                    .hero-image-container {
+                        width: 100%;
+                        max-width: 550px;
+                        height: 450px; /* Taller on tablet to fit square images better */
+                        margin: 0 auto;
+                        padding: 1rem;
+                    }
+                }
+
                 @media (max-width: 768px) {
                     .home-container {
                         padding: 1.5rem 1rem;
                         min-height: calc(100vh - 70px);
                     }
+
+                    .hero-section {
+                        margin-bottom: 4rem;
+                        gap: 2rem;
+                    }
+
+                    .hero-headline {
+                        font-size: 2.25rem;
+                    }
+
+                    .hero-subtext {
+                        font-size: 1.1rem;
+                        margin-bottom: 1rem;
+                    }
+
+                    .hero-ai-hint {
+                        font-size: 0.85rem;
+                        padding: 0.75rem 1rem;
+                        margin-bottom: 2rem;
+                    }
+
+                    .hero-image-container {
+                        width: 100%;
+                        height: 400px; /* Taller on mobile to prevent excessive cropping */
+                        padding: 0.5rem;
+                        margin: 2rem auto;
+                    }
+
+                    .hero-actions {
+                        flex-direction: column;
+                        gap: 1rem;
+                        width: 100%;
+                        max-width: 320px;
+                        margin: 0 auto;
+                    }
+
+                    .hero-btn-contact, .hero-btn-try {
+                        width: 100%;
+                        min-width: unset;
+                    }
+
                     .home-grid {
                         grid-template-columns: 1fr;
                         gap: 1.5rem;
@@ -455,6 +711,33 @@ const Home = () => {
                     .home-container {
                         padding: 1rem 0.75rem;
                     }
+
+                    .hero-section {
+                        margin-bottom: 3rem;
+                        padding: 1rem 0;
+                    }
+
+                    .hero-headline {
+                        font-size: 1.85rem;
+                    }
+
+                    .hero-image-container {
+                        height: 100vw; /* Use viewport width to maintain square aspect ratio on small mobile */
+                        max-height: 350px;
+                        padding: 0;
+                        margin: 1.5rem auto;
+                    }
+
+                    .bg-box-orange {
+                        width: 90%;
+                        height: 60%;
+                    }
+
+                    .bg-box-blue {
+                        width: 60%;
+                        height: 40%;
+                    }
+                    
                     .home-card {
                         padding: 2rem 1.25rem;
                         border-radius: 8px;

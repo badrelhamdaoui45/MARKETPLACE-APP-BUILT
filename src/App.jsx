@@ -19,6 +19,7 @@ import PhotographerSettings from './pages/PhotographerSettings';
 import Albums from './pages/Albums';
 import Home from './pages/Home';
 import Cart from './pages/Cart';
+import Contact from './pages/Contact';
 import { CartProvider } from './context/CartContext';
 import DynamicPopup from './components/DynamicPopup';
 
@@ -51,6 +52,7 @@ function App() {
               <Route path="/photographer/upload" element={<UploadPage />} />
 
               <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/contact" element={<Contact />} />
               <Route path="/my-purchases" element={<BuyerProfile />} />
               <Route path="/my-purchases/:albumId" element={<AlbumDownload />} />
             </Routes>
