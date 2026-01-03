@@ -316,6 +316,40 @@
     color: var(--danger-red);
 }
 
+/* Mobile Header Actions */
+.mobile-header-actions {
+    display: none;
+    align-items: center;
+    gap: 1.25rem;
+    margin-left: auto;
+}
+
+.mobile-cart-trigger {
+    position: relative;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+}
+
+.cart-badge-dot {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: var(--primary-blue);
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 800;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid white;
+}
+
 /* Hamburger Menu - Hidden on Desktop */
 .hamburger-menu {
     display: none;

@@ -1,20 +1,124 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import Button from '../components/ui/Button';
+import CheckoutModal from '../components/CheckoutModal';
 import Modal from '../components/ui/Modal';
 import { supabase } from '../lib/supabase';
 import { calculateCommission } from '../config/platform';
-import { ShoppingCart, Trash2, CreditCard } from 'lucide-react';
+import { ShoppingCart, Trash2, CreditCard, CheckCircle } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 
 const Cart = () => {
     const { cartItems, removeFromCart, clearCart, calculateTotal } = useCart();
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
+
     const [purchasing, setPurchasing] = useState(false);
     const [itemToDelete, setItemToDelete] = useState(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [processedSessionId, setProcessedSessionId] = useState(null);
+
+    // Checkout Modal State
+    const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+    const [activeGroup, setActiveGroup] = useState(null); // The album group being purchased
+    const [activeAlbumId, setActiveAlbumId] = useState(null);
+
+    // Success Modal State
+    const [showSuccess, setShowSuccess] = useState(false);
+
+    // Ref to prevent double processing
+    const processedRef = React.useRef(false);
+
+    const successParam = searchParams.get('success');
+    const sessionIdParam = searchParams.get('session_id');
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const handleTransactionRecording = async () => {
+            // Only run if success=true and we have a session ID
+            if (successParam !== 'true' || !sessionIdParam) return;
+
+            // Wait for auth to settle
+            if (authLoading) return;
+
+            // Prevent double-firing within the same mount
+            if (processedRef.current) return;
+            processedRef.current = true;
+
+            const albumId = searchParams.get('album_id');
+            const photographerId = searchParams.get('photographer_id');
+            const amountStr = searchParams.get('amount');
+            const photosParam = searchParams.get('photos');
+
+            try {
+                // 1. Idempotency Check: Don't insert if we already have this transaction
+                const { data: existing } = await supabase
+                    .from('transactions')
+                    .select('id')
+                    .eq('stripe_payment_intent_id', sessionIdParam)
+                    .maybeSingle();
+
+                if (existing) {
+                    console.log("Transaction already exists. Skipping insert.");
+                } else {
+                    // 2. Prepare Data
+                    const amount = parseFloat(amountStr);
+                    let photoIds = null;
+                    if (photosParam) {
+                        try {
+                            photoIds = JSON.parse(decodeURIComponent(photosParam));
+                        } catch (e) {
+                            console.error("Error parsing photo IDs:", e);
+                        }
+                    }
+
+                    // 3. Insert Transaction
+                    const { error } = await supabase.from('transactions').insert({
+                        buyer_id: user?.id || null, // Can be null (guest)
+                        photographer_id: photographerId,
+                        album_id: albumId,
+                        amount: amount,
+                        commission_amount: calculateCommission(amount),
+                        stripe_payment_intent_id: sessionIdParam,
+                        status: 'paid',
+                        unlocked_photo_ids: photoIds
+                    });
+
+                    if (error) {
+                        console.error("Failed to record transaction:", error);
+                        alert("Database Error: " + error.message + ". Please contact support with Session ID: " + sessionIdParam);
+                    } else {
+                        console.log("Transaction recorded successfully via Cart return.");
+                    }
+                }
+            } catch (err) {
+                console.error("Error processing return:", err);
+                alert("Unexpected Error during recording: " + err.message);
+            } finally {
+                if (isMounted) {
+                    setProcessedSessionId(sessionIdParam);
+                    setShowSuccess(true);
+                    clearCart();
+
+                    // 4. Clean URL (Critical to stop loops)
+                    setSearchParams(prev => {
+                        const newParams = new URLSearchParams(prev);
+                        ['success', 'session_id', 'album_id', 'amount', 'photographer_id', 'photos']
+                            .forEach(key => newParams.delete(key));
+                        return newParams;
+                    }, { replace: true });
+                }
+            }
+        };
+
+        handleTransactionRecording();
+
+        return () => { isMounted = false; };
+    }, [successParam, sessionIdParam, authLoading, clearCart, setSearchParams]);
 
     // Group items by album for better UI and pricing logic
     const groupedItems = cartItems.reduce((acc, item) => {
@@ -32,9 +136,18 @@ const Cart = () => {
         return acc;
     }, {});
 
-    const handleCheckout = async (albumId, group) => {
+    const initiateCheckout = (albumId, group) => {
+        setActiveAlbumId(albumId);
+        setActiveGroup(group);
+        setIsCheckoutOpen(true);
+    };
+
+    const handleConfirmCheckout = async (checkoutData) => {
         setPurchasing(true);
         try {
+            const group = activeGroup;
+            const albumId = activeAlbumId;
+
             // 1. Get Photographer Stripe ID
             const { data: photographer, error } = await supabase
                 .from('profiles')
@@ -45,6 +158,7 @@ const Cart = () => {
             if (error || !photographer.stripe_account_id) {
                 alert("This photographer has not set up payments yet.");
                 setPurchasing(false);
+                setIsCheckoutOpen(false);
                 return;
             }
 
@@ -60,10 +174,15 @@ const Cart = () => {
                 groupPrice = group.album_price;
             }
 
-            // 2. Create Session
+
+
+            // 2. Create Session (Mode: Embedded)
             const { createCheckoutSession } = await import('../lib/stripe/service');
             const commission = calculateCommission(groupPrice);
             const photoIdsArray = group.items.map(i => i.id);
+
+            // Use the passed email from modal, or user's email as fallback
+            const customerEmail = checkoutData.email || user?.email;
 
             const session = await createCheckoutSession(
                 albumId,
@@ -71,19 +190,24 @@ const Cart = () => {
                 photographer.stripe_account_id,
                 commission,
                 photoIdsArray,
-                `${window.location.origin}/cart`,
-                user?.email
+                null,
+                customerEmail,
+                'embedded',
+                group.photographer_id // <--- Correct Supabase UUID
             );
 
-            if (session.url) {
-                window.location.href = session.url;
+            setPurchasing(false);
+
+            if (session.client_secret) {
+                return session.client_secret;
             } else {
-                throw new Error("Error redirecting to payment.");
+                throw new Error("No client secret received.");
             }
         } catch (error) {
             console.error(error);
             alert('Payment failed: ' + error.message);
             setPurchasing(false);
+            setIsCheckoutOpen(false);
         }
     };
 
@@ -307,7 +431,7 @@ const Cart = () => {
 
             @media (max-width: 900px) {
                 .cart-container {
-                    padding: 2rem 1.5rem;
+                    padding: 2rem 1rem; /* Reduced horizontal padding */
                 }
 
                 .cart-grid {
@@ -322,17 +446,31 @@ const Cart = () => {
                 .cart-summary-card {
                     position: static;
                     margin-bottom: 2rem;
+                    padding: 1.5rem; /* Slightly reduced padding */
                 }
             }
 
             @media (max-width: 600px) {
                 .cart-title {
-                    font-size: 2rem;
+                    font-size: 1.75rem; /* Smaller title */
+                    margin-bottom: 2rem;
+                    text-align: center;
+                }
+
+                .album-group-header {
+                    flex-direction: column;
+                    align-items: flex-start;
+                    gap: 0.5rem;
+                }
+                
+                .group-count {
+                    align-self: flex-start;
+                    font-size: 0.8rem;
                 }
 
                 .item-preview {
-                    width: 60px;
-                    height: 45px;
+                    width: 70px;
+                    height: 50px;
                 }
 
                 .cart-empty-state h2 {
@@ -342,6 +480,21 @@ const Cart = () => {
                 .cart-empty-state p {
                     font-size: 0.9rem;
                     padding: 0 1rem;
+                }
+
+                /* Full width buttons for easier tapping */
+                .group-checkout-btn {
+                    width: 100% !important; 
+                    justify-content: center;
+                    padding: 1rem !important; /* Larger touch target */
+                }
+                
+                .remove-item-btn {
+                    padding: 0.75rem; /* Larger touch target */
+                }
+                
+                .cart-items-list {
+                    padding: 0.75rem;
                 }
             }
         `}</style>
@@ -391,7 +544,7 @@ const Cart = () => {
                                             className="remove-item-btn"
                                             onClick={() => {
                                                 setItemToDelete(item.id);
-                                                setIsModalOpen(true);
+                                                setIsDeleteModalOpen(true);
                                             }}
                                             title="Remove"
                                         >
@@ -404,7 +557,7 @@ const Cart = () => {
                             <div className="album-group-footer">
                                 <Button
                                     className="group-checkout-btn action-btn"
-                                    onClick={() => handleCheckout(albumId, group)}
+                                    onClick={() => initiateCheckout(albumId, group)}
                                     disabled={purchasing}
                                 >
                                     <CreditCard size={16} style={{ marginRight: '8px' }} />
@@ -442,12 +595,13 @@ const Cart = () => {
             {styles}
 
             <Modal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
                 onConfirm={() => {
                     if (itemToDelete) {
                         removeFromCart(itemToDelete);
                         setItemToDelete(null);
+                        setIsDeleteModalOpen(false);
                     }
                 }}
                 title="Remove Photo"
@@ -455,6 +609,45 @@ const Cart = () => {
                 confirmText="Remove"
                 cancelText="Keep"
                 variant="danger"
+            />
+
+            <CheckoutModal
+                isOpen={isCheckoutOpen}
+                onClose={() => setIsCheckoutOpen(false)}
+                onConfirm={handleConfirmCheckout}
+                totalAmount={(function () {
+                    // Calculate total for just this group
+                    if (!activeGroup) return 0;
+                    const count = activeGroup.items.length;
+                    if (activeGroup.pricing_package && activeGroup.pricing_package.tiers) {
+                        const tiers = [...activeGroup.pricing_package.tiers].sort((a, b) => b.quantity - a.quantity);
+                        const activeTier = tiers.find(tier => count >= tier.quantity);
+                        const unitPrice = activeTier ? activeTier.price : (tiers[tiers.length - 1]?.price || 0);
+                        return (count * unitPrice).toFixed(2);
+                    }
+                    return activeGroup.album_price.toFixed(2);
+                })()}
+                isLoading={purchasing}
+            />
+
+            <Modal
+                isOpen={showSuccess}
+                onClose={() => setShowSuccess(false)}
+                title="Payment Successful!"
+                message={
+                    <div style={{ textAlign: 'center' }}>
+                        <div style={{ color: '#10b981', marginBottom: '1rem' }}>
+                            <CheckCircle size={48} />
+                        </div>
+                        <p>Thank you for your purchase. Your photos have been unlocked and are ready for download.</p>
+                    </div>
+                }
+                confirmText="View My Photos"
+                onConfirm={() => {
+                    const url = processedSessionId ? `/my-purchases?session_id=${processedSessionId}` : '/my-purchases';
+                    navigate(url);
+                }}
+                showCancel={false}
             />
         </div>
     );

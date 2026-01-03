@@ -73,34 +73,18 @@ export const createAccountLink = async (accountId) => {
  * SIMULATED BACKEND FUNCTION: Create Checkout Session
  * In production, this MUST run on the server/edge function.
  */
-export const createCheckoutSession = async (albumId, price, photographerStripeId, commissionAmount, photoIds = [], cancelUrl = null, customerEmail = null) => {
+export const createCheckoutSession = async (albumId, price, photographerStripeId, commissionAmount, photoIds = [], cancelUrl = null, customerEmail = null, uiMode = 'hosted', photographerProfileId = null) => {
     try {
-        // In a real implementation, this would call your backend API
-        // For now, we're using a mock session that redirects to success page
+        // ...
+        const photosParam = (photoIds && photoIds.length > 0) ? `&photos=${encodeURIComponent(JSON.stringify(photoIds))}` : '';
 
-        console.log("Creating checkout session with photoIds:", photoIds);
-
-        // Build success URL with all parameters
-        const params = new URLSearchParams({
-            session_id: 'cs_test_' + Math.random().toString(36).substr(2, 9),
-            album_id: albumId,
-            amount: price.toString(),
-            photographer_id: photographerStripeId
-        });
-
-        // Add photo IDs if they exist
-        if (photoIds && photoIds.length > 0) {
-            params.append('photos', JSON.stringify(photoIds));
-        }
-
-        const successUrl = `${window.location.origin}/my-purchases?${params.toString()}`;
-
-        console.log("Redirect URL:", successUrl);
+        // Modified for embedded flow return - INCLUDE METADATA
+        // IMPORTANT: We pass the Supabase photographerProfileId and explicitly include the Stripe Session ID template
+        const pId = photographerProfileId || photographerStripeId;
+        const successUrl = `${window.location.origin}/cart?success=true&session_id={CHECKOUT_SESSION_ID}&album_id=${albumId}&amount=${price}&photographer_id=${pId}${photosParam}`;
 
         const sessionParams = {
             'mode': 'payment',
-            'success_url': successUrl,
-            'cancel_url': cancelUrl || `${window.location.origin}/cart`,
             'line_items[0][price_data][currency]': 'usd',
             'line_items[0][price_data][product_data][name]': 'Photo Album Access',
             'line_items[0][price_data][unit_amount]': Math.round(price * 100),
@@ -108,6 +92,14 @@ export const createCheckoutSession = async (albumId, price, photographerStripeId
             'payment_intent_data[application_fee_amount]': Math.round(commissionAmount * 100),
             'payment_intent_data[transfer_data][destination]': photographerStripeId,
         };
+
+        if (uiMode === 'embedded') {
+            sessionParams['ui_mode'] = 'embedded';
+            sessionParams['return_url'] = successUrl;
+        } else {
+            sessionParams['success_url'] = successUrl;
+            sessionParams['cancel_url'] = cancelUrl || `${window.location.origin}/cart`;
+        }
 
         if (customerEmail) {
             sessionParams['customer_email'] = customerEmail;

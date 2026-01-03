@@ -18,78 +18,40 @@ const BuyerProfile = () => {
 
     useEffect(() => {
         const sessionId = searchParams.get('session_id');
-        if (user || sessionId) {
-            handlePurchaseSuccess().then(() => {
-                if (user) fetchPurchases();
-                else if (sessionId) fetchGuestPurchase(sessionId);
-            });
-        } else {
-            setLoading(false);
-        }
-    }, [user, searchParams]);
 
-    const handlePurchaseSuccess = async () => {
-        const sessionId = searchParams.get('session_id');
-        const albumId = searchParams.get('album_id');
-        const amount = searchParams.get('amount');
-        const photosParam = searchParams.get('photos');
-
-        console.log("Purchase Success Handler - Params:", { sessionId, albumId, amount, photosParam });
-
-        // Check if we have parameters AND haven't processed yet
-        if (sessionId && albumId && !processedRef.current) {
-            processedRef.current = true;
-
+        const initialize = async () => {
+            setLoading(true);
             try {
-                // 1. Fetch Album to get Photographer ID
-                const { data: album, error: albumError } = await supabase.from('albums').select('photographer_id').eq('id', albumId).single();
+                let userPurchases = [];
+                let guestPurchases = [];
 
-                if (albumError) {
-                    console.error("Album fetch error:", albumError);
-                    throw albumError;
+                // Fetch by User ID if logged in
+                if (user) {
+                    userPurchases = await fetchPurchases(user.id);
                 }
 
-                let photoIds = null;
-                if (photosParam) {
-                    try {
-                        photoIds = JSON.parse(decodeURIComponent(photosParam));
-                        console.log("Parsed photo IDs:", photoIds);
-                    } catch (e) {
-                        console.error("Failed to parse photos param", e);
-                    }
+                // Fetch by Session ID if present (regardless of auth)
+                if (sessionId) {
+                    guestPurchases = await fetchGuestPurchase(sessionId);
                 }
 
-                if (album) {
-                    console.log("Inserting transaction for album:", album);
-                    // 2. Insert Transaction
-                    const transactionAmount = parseFloat(amount);
-                    const { data: insertedData, error } = await supabase.from('transactions').insert({
-                        buyer_id: user?.id || null,
-                        photographer_id: album.photographer_id,
-                        album_id: albumId,
-                        amount: transactionAmount,
-                        commission_amount: calculateCommission(transactionAmount),
-                        stripe_payment_intent_id: sessionId,
-                        status: 'paid',
-                        unlocked_photo_ids: photoIds // Save specific photos if partial buy
-                    }).select();
+                // Merge and remove duplicates by transaction ID
+                const allPurchases = [...userPurchases, ...guestPurchases];
+                const uniquePurchases = Array.from(new Map(allPurchases.map(p => [p.id, p])).values());
 
-                    if (error) {
-                        console.error("Transaction insert error:", error);
-                        alert("Failed to record purchase: " + error.message);
-                    } else {
-                        console.log("Transaction inserted successfully:", insertedData);
-                    }
-                }
+                // Sort by date
+                uniquePurchases.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-                // 3. Clear URL params
-                setSearchParams({});
-
+                setPurchases(uniquePurchases);
             } catch (err) {
-                console.error("Purchase success handler error:", err);
+                console.error("Initialization error:", err);
+            } finally {
+                setLoading(false);
             }
-        }
-    };
+        };
+
+        initialize();
+    }, [user, searchParams]);
 
     const fetchGuestPurchase = async (sessionId) => {
         try {
@@ -102,38 +64,35 @@ const BuyerProfile = () => {
                         profiles:photographer_id(full_name)
                     )
                 `)
-                .eq('stripe_payment_intent_id', sessionId)
-                .single();
+                .eq('stripe_payment_intent_id', sessionId);
 
             if (error) throw error;
-            if (data) setPurchases([data]);
+            return data || [];
         } catch (error) {
             console.error('Error fetching guest purchase:', error);
-        } finally {
-            setLoading(false);
+            return [];
         }
     };
 
-    const fetchPurchases = async () => {
+    const fetchPurchases = async (userId) => {
         try {
             const { data, error } = await supabase
                 .from('transactions')
                 .select(`
-          *,
-          albums:album_id (
-            *,
-            profiles:photographer_id(full_name)
-          )
-        `)
-                .eq('buyer_id', user.id)
+                  *,
+                  albums:album_id (
+                    *,
+                    profiles:photographer_id(full_name)
+                  )
+                `)
+                .eq('buyer_id', userId)
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
-            setPurchases(data);
+            return data || [];
         } catch (error) {
             console.error('Error fetching purchases:', error);
-        } finally {
-            setLoading(false);
+            return [];
         }
     };
 
