@@ -665,7 +665,9 @@ const AlbumDetails = () => {
                 }
 
                 @media (max-width: 768px) {
-                    .album-details-container { padding: 1rem; }
+                    .album-details-container { 
+                        padding: 1.25rem 1.5rem; 
+                    }
                     
                     .header-top {
                         flex-direction: column;
@@ -765,22 +767,75 @@ const AlbumDetails = () => {
                 }
 
                 @media (max-width: 480px) {
-                    .album-details-container { padding: 0.75rem; }
-                    .album-info-card { padding: 1.25rem; gap: 1rem; }
+                    .album-details-container { 
+                        padding: 1rem 1.25rem; 
+                    }
+                    .album-info-card { 
+                        padding: 1.25rem; 
+                        gap: 1rem;
+                        margin-bottom: 1rem;
+                    }
                     .album-title-modern { font-size: 1.5rem; }
                     .album-description-modern { font-size: 0.9rem; }
                     .meta-value-modern { font-size: 1.1rem; }
                     
                     .share-link-banner {
-                        padding: 0.75rem;
+                        padding: 1rem;
                         gap: 0.5rem;
+                        margin-bottom: 2rem !important;
                     }
                     .share-icon-wrapper { display: none; }
                     .copy-link-btn { min-width: 80px !important; }
 
+                    .upload-section-card {
+                        padding: 1.25rem;
+                        margin-bottom: 2rem;
+                    }
+
                     .album-manage-grid {
                         grid-template-columns: repeat(2, 1fr); /* Force 2 columns on very small screens */
                         gap: 0.75rem;
+                    }
+                }
+
+                @media (max-width: 430px) {
+                    .album-details-container { 
+                        padding: 0.75rem 1rem; 
+                    }
+                    .album-info-card { 
+                        padding: 1rem; 
+                        border-radius: 12px;
+                    }
+                    .album-title-modern { 
+                        font-size: 1.35rem; 
+                    }
+                    .modern-meta-grid { 
+                        gap: 1rem; 
+                        padding-top: 1rem;
+                    }
+                    .meta-value-modern { 
+                        font-size: 1rem; 
+                    }
+                    .share-link-banner {
+                        padding: 0.75rem;
+                        margin-bottom: 1.5rem !important;
+                    }
+                    .share-url-text {
+                        font-size: 0.75rem !important;
+                    }
+                    .copy-link-btn { 
+                        min-width: 70px !important; 
+                        height: 36px !important;
+                        font-size: 0.75rem !important;
+                    }
+                    .upload-section-card {
+                        padding: 1rem;
+                    }
+                    .section-header h2 {
+                        font-size: 1.25rem;
+                    }
+                    .album-manage-grid {
+                        gap: 0.5rem;
                     }
                 }
             `}</style>
