@@ -22,6 +22,7 @@ import Cart from './pages/Cart';
 import Contact from './pages/Contact';
 import { CartProvider } from './context/CartContext';
 import DynamicPopup from './components/DynamicPopup';
+import FloatingCart from './components/FloatingCart';
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
         <Router>
           <div className="app-container">
             <Navbar />
+            <FloatingCart />
             <DynamicPopup type="announcement" />
             <Routes>
               {/* Public Routes */}
