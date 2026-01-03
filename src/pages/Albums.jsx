@@ -42,12 +42,16 @@ const Albums = () => {
     return (
         <div className="albums-container">
             <header className="albums-header">
-                <h1 className="albums-title">
-                    Explore Albums
-                </h1>
-                <p className="albums-subtitle">
-                    Find and purchase high-quality photo collections from professional photographers.
-                </p>
+                <div className="header-overlay"></div>
+
+                <div className="header-content-inner">
+                    <h1 className="albums-hero-title">
+                        Explore Our Collections
+                    </h1>
+                    <p className="albums-hero-subtitle">
+                        High-quality photo albums from pro photographers
+                    </p>
+                </div>
 
                 <div className="search-bar-container">
                     <div className="search-input-wrapper">
@@ -136,25 +140,50 @@ const Albums = () => {
                 .albums-header {
                     margin-bottom: 3rem;
                     text-align: center;
-                    padding: 6rem 0 8rem; /* Tall header for the floating effect */
-                    background: #f8f9fa; /* Light grey background area */
+                    padding: 6rem 1rem 8rem;
+                    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
                     position: relative;
+                    overflow: visible; /* Allow search bar to float out */
+                    border-radius: 0 0 40px 40px;
                 }
 
-                .albums-title {
-                    display: none; /* Hidden as per reference visual focus */
+                .header-overlay {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: radial-gradient(circle at 50% 50%, rgba(79, 70, 229, 0.1) 0%, transparent 70%);
+                    z-index: 1;
+                    border-radius: 0 0 40px 40px;
                 }
 
-                .albums-subtitle {
-                    display: none; /* Hidden as per reference visual focus */
+                .header-content-inner {
+                    position: relative;
+                    z-index: 2;
+                }
+
+                .albums-hero-title {
+                    font-size: 2.75rem;
+                    font-weight: 800;
+                    color: #ffffff;
+                    margin-bottom: 1rem;
+                    letter-spacing: -0.02em;
+                }
+
+                .albums-hero-subtitle {
+                    font-size: 1.15rem;
+                    color: #94a3b8;
+                    max-width: 600px;
+                    margin: 0 auto;
+                    font-weight: 400;
                 }
 
                 .search-bar-container {
-                    max-width: 1200px;
-                    width: 95%;
-                    margin: 0 auto;
+                    max-width: 800px;
+                    width: 90%;
                     position: absolute;
-                    bottom: -35px;
+                    bottom: -32px;
                     left: 50%;
                     transform: translateX(-50%);
                     z-index: 10;
@@ -227,13 +256,26 @@ const Albums = () => {
                 }
 
                 @media (max-width: 768px) {
+                    .albums-header {
+                        padding: 4rem 1rem 6rem;
+                        border-radius: 0 0 24px 24px;
+                    }
+
+                    .albums-hero-title {
+                        font-size: 2rem;
+                    }
+
+                    .albums-hero-subtitle {
+                        font-size: 1rem;
+                    }
+
                     .search-bar-container {
+                        bottom: -28px;
                         width: 92%;
-                        bottom: -30px;
                     }
 
                     .search-input-wrapper {
-                        height: 56px;
+                        height: 52px;
                         padding: 0 1rem;
                         border-radius: 12px;
                     }
@@ -248,18 +290,26 @@ const Albums = () => {
                 }
 
                 @media (max-width: 480px) {
+                    .albums-header {
+                        padding: 3.5rem 1rem 5.5rem;
+                    }
+
                     .search-bar-container {
+                        bottom: -24px;
                         width: 90%;
-                        bottom: -25px;
                     }
 
                     .search-input-wrapper {
-                        height: 52px;
+                        height: 48px;
                         padding: 0 0.85rem;
                     }
                     
                     .search-icon {
                         margin-right: 0.5rem;
+                    }
+
+                    .albums-grid {
+                        margin-top: 3.5rem;
                     }
                 }
 

@@ -134,7 +134,10 @@ const PhotographerDashboard = () => {
                                         {album.cover_image_url ? (
                                             <img src={album.cover_image_url} alt={album.title} />
                                         ) : (
-                                            <span className="no-cover-text">Pas de couverture</span>
+                                            <div className="album-placeholder">
+                                                <div className="placeholder-logo">RUN CAPTURE</div>
+                                                <span className="no-cover-badge">No Cover Image</span>
+                                            </div>
                                         )}
                                     </div>
                                     <div className="album-card-mini-body">
@@ -340,18 +343,57 @@ const PhotographerDashboard = () => {
                 }
 
                 .album-card-mini-image {
-                    /* Fixed height removed */
-                    background: #f3f4f6;
+                    width: 100%;
+                    aspect-ratio: 16 / 9;
+                    background: #f1f5f9;
                     position: relative;
                     display: flex;
                     align-items: center;
                     justify-content: center;
+                    overflow: hidden;
+                    border-bottom: 1px solid #f1f5f9;
                 }
 
                 .album-card-mini-image img {
                     width: 100%;
-                    height: auto;
+                    height: 100%;
+                    object-fit: cover;
                     display: block;
+                    transition: transform 0.5s ease;
+                }
+
+                .album-card-mini:hover .album-card-mini-image img {
+                    transform: scale(1.05);
+                }
+
+                .album-placeholder {
+                    width: 100%;
+                    height: 100%;
+                    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 0.5rem;
+                }
+
+                .placeholder-logo {
+                    font-weight: 900;
+                    font-size: 1.25rem;
+                    color: #cbd5e1;
+                    letter-spacing: 0.1em;
+                    text-transform: uppercase;
+                }
+
+                .no-cover-badge {
+                    font-size: 0.7rem;
+                    color: #94a3b8;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    background: white;
+                    padding: 4px 8px;
+                    border-radius: 4px;
+                    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
                 }
 
                 .album-card-mini-body {
