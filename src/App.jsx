@@ -52,7 +52,7 @@ function App() {
               <Route path="/photographer/settings" element={<PhotographerSettings />} />
               <Route path="/photographer/packages" element={<PackageSettings />} />
               <Route path="/photographer/albums/new" element={<CreateAlbum />} />
-              <Route path="/photographer/albums/:id" element={<AlbumDetails />} />
+              <Route path="/photographer/albums/:albumTitle/edit" element={<AlbumDetails />} />
               <Route path="/photographer/upload" element={<UploadPage />} />
 
               <Route path="/admin" element={<AdminDashboard />} />

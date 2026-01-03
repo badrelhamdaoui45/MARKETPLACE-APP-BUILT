@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/ui/Button';
+import { Copy, Check } from 'lucide-react';
 import ConnectStripe from '../components/stripe/ConnectStripe';
 import Toast from '../components/ui/Toast';
 import '../components/ui/ui.css';
@@ -21,6 +22,7 @@ const PhotographerDashboard = () => {
     const [sales, setSales] = useState([]);
     const [loadingSales, setLoadingSales] = useState(false);
     const [salesStats, setSalesStats] = useState({ total: 0, net: 0, count: 0 });
+    const [copiedAlbumId, setCopiedAlbumId] = useState(null);
 
     useEffect(() => {
         if (user) {
@@ -82,6 +84,16 @@ const PhotographerDashboard = () => {
         }
     };
 
+    const handleShare = (album) => {
+        const photogName = profile?.full_name || 'photographer';
+        const shareUrl = `${window.location.origin}/albums/${encodeURIComponent(photogName)}/${encodeURIComponent(album.title)}`;
+        navigator.clipboard.writeText(shareUrl).then(() => {
+            setCopiedAlbumId(album.id);
+            setToast({ message: 'Lien de l\'album copié !', type: 'success' });
+            setTimeout(() => setCopiedAlbumId(null), 2000);
+        });
+    };
+
     return (
         <div className="dashboard-container">
             <header className="dashboard-header">
@@ -110,7 +122,7 @@ const PhotographerDashboard = () => {
                     onClick={() => setActiveTab('sales')}
                     className={`tab-button ${activeTab === 'sales' ? 'active' : ''}`}
                 >
-                    Ventes & Revenus
+                    Sales
                 </button>
             </div>
 
@@ -146,20 +158,17 @@ const PhotographerDashboard = () => {
                                             {album.is_published ? 'Publié' : 'Brouillon'} • ${album.price}
                                         </p>
                                         <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                            <Link to={`/photographer/albums/${album.id}`} style={{ flex: 1 }}>
-                                                <Button className="w-full action-btn">Gérer</Button>
+                                            <Link to={`/photographer/albums/${encodeURIComponent(album.title)}/edit`} style={{ flex: 1 }}>
+                                                <Button className="w-full action-btn">Edit</Button>
                                             </Link>
                                             <Button
-                                                variant="outline"
-                                                onClick={() => {
-                                                    const photogName = profile?.full_name || 'photographer';
-                                                    const shareUrl = `${window.location.origin}/albums/${encodeURIComponent(photogName)}/${encodeURIComponent(album.title)}`;
-                                                    navigator.clipboard.writeText(shareUrl);
-                                                    setToast({ message: 'Lien de l\'album copié !', type: 'success' });
-                                                }}
+                                                variant={copiedAlbumId === album.id ? "secondary" : "outline"}
+                                                onClick={() => handleShare(album)}
+                                                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
                                                 title="Copier le lien de partage"
                                             >
-                                                Partager
+                                                {copiedAlbumId === album.id ? <Check size={14} /> : <Copy size={14} />}
+                                                {copiedAlbumId === album.id ? 'Copied!' : 'Copy Link'}
                                             </Button>
                                         </div>
                                     </div>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
 import PhotoUpload from '../components/PhotoUpload';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
@@ -9,8 +10,9 @@ import Toast from '../components/ui/Toast';
 import { detectBibs } from '../lib/gemini';
 
 const AlbumDetails = () => {
-    const { id } = useParams();
+    const { albumTitle } = useParams();
     const navigate = useNavigate();
+    const { user } = useAuth();
     const [album, setAlbum] = useState(null);
     const [photos, setPhotos] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -19,29 +21,32 @@ const AlbumDetails = () => {
     const [isDetecting, setIsDetecting] = useState(false);
 
     useEffect(() => {
-        fetchAlbumDetails();
-    }, [id]);
+        if (user && albumTitle) {
+            fetchAlbumDetails();
+        }
+    }, [albumTitle, user]);
 
     const fetchAlbumDetails = async () => {
         try {
-            // Fetch Album
+            // Fetch Album by title and photographer_id
             const { data: albumData, error: albumError } = await supabase
                 .from('albums')
                 .select(`
                     *,
                     profiles:photographer_id (full_name)
                 `)
-                .eq('id', id)
+                .eq('photographer_id', user.id)
+                .ilike('title', decodeURIComponent(albumTitle))
                 .single();
 
             if (albumError) throw albumError;
             setAlbum(albumData);
 
-            // Fetch Photos
+            // Fetch Photos using the fetched album ID
             const { data: photosData, error: photosError } = await supabase
                 .from('photos')
                 .select('*')
-                .eq('album_id', id)
+                .eq('album_id', albumData.id)
                 .order('created_at', { ascending: false });
 
             if (photosError) throw photosError;
@@ -58,7 +63,7 @@ const AlbumDetails = () => {
             const { error } = await supabase
                 .from('albums')
                 .update({ is_published: !album.is_published })
-                .eq('id', id);
+                .eq('id', album.id);
 
             if (error) throw error;
             setAlbum({ ...album, is_published: !album.is_published });
@@ -242,15 +247,26 @@ const AlbumDetails = () => {
                             justifyContent: 'space-between',
                             gap: '1rem',
                             border: '1px solid var(--border-light)',
-                            boxShadow: 'var(--shadow-sm)'
+                            boxShadow: 'var(--shadow-sm)',
+                            overflow: 'hidden'
                         }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: 0 }}>
-                                <div style={{ background: '#eff6ff', width: '36px', height: '36px', borderRadius: '8px', color: '#1d4ed8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                <div className="share-icon-wrapper" style={{
+                                    background: '#eff6ff',
+                                    width: '36px',
+                                    height: '36px',
+                                    borderRadius: '8px',
+                                    color: '#1d4ed8',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    flexShrink: 0
+                                }}>
                                     <Share2 size={18} />
                                 </div>
-                                <div style={{ overflow: 'hidden' }}>
-                                    <p style={{ fontSize: '0.7rem', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '2px', letterSpacing: '0.05em' }}>SHAREABLE LINK</p>
-                                    <p style={{ fontSize: '0.85rem', color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: '500' }}>
+                                <div style={{ overflow: 'hidden', flex: 1 }}>
+                                    <p className="share-label" style={{ fontSize: '0.7rem', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '2px', letterSpacing: '0.05em' }}>SHAREABLE LINK</p>
+                                    <p className="share-url-text" style={{ fontSize: '0.85rem', color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: '500' }}>
                                         {album?.profiles?.full_name ? `${window.location.origin}/albums/${encodeURIComponent(album.profiles.full_name)}/${encodeURIComponent(album.title)}` : 'Generating link...'}
                                     </p>
                                 </div>
@@ -258,10 +274,11 @@ const AlbumDetails = () => {
                             <Button
                                 variant={copied ? "secondary" : "outline"}
                                 onClick={handleShare}
+                                className="copy-link-btn"
                                 style={{ minWidth: '110px', height: '40px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
                             >
                                 {copied ? <Check size={16} /> : <Copy size={16} />}
-                                {copied ? 'Copied!' : 'Copy Link'}
+                                {copied ? 'Copied!' : 'Link'}
                             </Button>
                         </div>
                     </div>
@@ -292,7 +309,7 @@ const AlbumDetails = () => {
                         </div>
                     </div>
                 </div>
-                <PhotoUpload albumId={id} onUploadComplete={fetchAlbumDetails} />
+                <PhotoUpload albumId={album.id} onUploadComplete={fetchAlbumDetails} />
             </section >
 
             {/* Photos Grid Section */}
@@ -748,8 +765,19 @@ const AlbumDetails = () => {
                 }
 
                 @media (max-width: 480px) {
-                    .album-title { font-size: 1.6rem; }
-                    .album-meta-row { grid-template-columns: 1fr; }
+                    .album-details-container { padding: 0.75rem; }
+                    .album-info-card { padding: 1.25rem; gap: 1rem; }
+                    .album-title-modern { font-size: 1.5rem; }
+                    .album-description-modern { font-size: 0.9rem; }
+                    .meta-value-modern { font-size: 1.1rem; }
+                    
+                    .share-link-banner {
+                        padding: 0.75rem;
+                        gap: 0.5rem;
+                    }
+                    .share-icon-wrapper { display: none; }
+                    .copy-link-btn { min-width: 80px !important; }
+
                     .album-manage-grid {
                         grid-template-columns: repeat(2, 1fr); /* Force 2 columns on very small screens */
                         gap: 0.75rem;
