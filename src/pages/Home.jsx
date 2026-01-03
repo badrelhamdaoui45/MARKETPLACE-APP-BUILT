@@ -147,20 +147,22 @@ const Home = () => {
 
                     <div className="comparison-table-container">
                         <div className="comparison-header-row">
-                            <div className="col-feature">Feature</div>
-                            <div className="col-us">
-                                <div className="brand-badge">RUN CAPTURE</div>
+                            <div className="col-feature">
+                                <span className="d-none-mobile">Feature</span>
                             </div>
-                            <div className="col-others">Other Platforms</div>
+                            <div className="col-us">
+                                <span className="brand-text-logo">RUN CAPTURE</span>
+                            </div>
+                            <div className="col-others">Other Apps</div>
                         </div>
 
                         {[
                             { feature: "Starting Cost", us: "Free", others: "Monthly Fees" },
-                            { feature: "AI Bib Detection", us: "Included (Unlimited)", others: "Paid Add-on / None" },
-                            { feature: "Payout Speed", us: "Instant (Stripe)", others: "Monthly / Net-30" },
+                            { feature: "AI Detection", us: "Unlimited", others: "Add-on / None" },
+                            { feature: "Payouts", us: "Instant", others: "Monthly" },
                             { feature: "Commission", us: "Fair (15%)", others: "High (20-30%)" },
-                            { feature: "Watermark", us: "Fully Customizable", others: "Fixed / Generic" },
-                            { feature: "Setup Time", us: "Instant", others: "Manual Approval" },
+                            { feature: "Watermark", us: "Custom", others: "Fixed" },
+                            { feature: "Setup", us: "Instant", others: "Manual" },
                         ].map((row, idx) => (
                             <div key={idx} className={`comparison-row ${idx % 2 === 0 ? 'bg-stripe' : ''}`}>
                                 <div className="col-feature">{row.feature}</div>
@@ -188,19 +190,31 @@ const Home = () => {
 
                     .comparison-header-row {
                         display: grid;
-                        grid-template-columns: 1.5fr 1.5fr 1.5fr;
+                        grid-template-columns: 1.2fr 1.4fr 1.2fr;
                         background: #f8fafc;
                         padding: 1.5rem;
                         border-bottom: 2px solid #e2e8f0;
                         font-weight: 800;
                         color: var(--text-primary);
+                        align-items: center;
+                    }
+
+                    .brand-text-logo {
+                        font-family: 'Montserrat', sans-serif; /* Assuming app uses a nice font, fallback to sans */
+                        font-weight: 900;
+                        font-size: 1.2rem;
+                        color: var(--primary-blue);
+                        letter-spacing: -0.02em;
+                        text-transform: uppercase;
+                        display: inline-block;
                     }
 
                     .col-feature { 
                         display: flex; 
                         align-items: center; 
                         color: var(--text-secondary);
-                        font-weight: 600;
+                        font-weight: 700;
+                        font-size: 0.95rem;
                     }
 
                     .col-us { 
@@ -218,7 +232,9 @@ const Home = () => {
                         align-items: center; 
                         justify-content: center; 
                         color: var(--text-tertiary);
-                        font-weight: 500;
+                        font-weight: 600;
+                        text-align: center;
+                        font-size: 0.95rem;
                     }
 
                     .brand-badge {
@@ -233,10 +249,29 @@ const Home = () => {
 
                     .comparison-row {
                         display: grid;
-                        grid-template-columns: 1.5fr 1.5fr 1.5fr;
+                        grid-template-columns: 1.2fr 1.4fr 1.2fr;
                         padding: 1.25rem 1.5rem;
                         border-bottom: 1px solid #f1f5f9;
                         transition: background 0.2s;
+                        align-items: center;
+                    }
+
+                    /* Highlight the middle column */
+                    .comparison-row .col-us {
+                        color: var(--primary-blue);
+                        font-weight: 700;
+                        background: #eff6ff;
+                        margin: -1.25rem 0;
+                        padding: 1.25rem 0;
+                        border-left: 1px solid #dbeafe;
+                        border-right: 1px solid #dbeafe;
+                        font-size: 1rem;
+                    }
+                    
+                    /* Header middle column highlight */
+                    .comparison-header-row .col-us {
+                        background: transparent;
+                        justify-content: center;
                     }
 
                     .comparison-row:last-child {
@@ -265,57 +300,66 @@ const Home = () => {
                         font-size: 1.1rem;
                     }
 
-                    /* Highlight the middle column */
-                    .comparison-row .col-us {
-                        color: var(--primary-blue);
-                        font-weight: 700;
-                        background: #eff6ff;
-                        margin: -1.25rem 0;
-                        padding: 1.25rem 0;
-                        border-left: 1px solid #dbeafe;
-                        border-right: 1px solid #dbeafe;
-                    }
-                    
-                    /* Header middle column highlight */
-                    .comparison-header-row .col-us {
-                        background: transparent;
-                    }
-
                     @media (max-width: 768px) {
                         .comparison-table-container {
                             border-radius: 12px;
                             font-size: 0.9rem;
+                            margin: 0 -1rem; /* Full width on mobile */
+                            border-radius: 0;
+                            border-left: none;
+                            border-right: none;
                         }
                         
                         .comparison-header-row, .comparison-row {
-                            padding: 1rem;
+                            padding: 1rem 0.5rem;
                             grid-template-columns: 1fr 1fr 1fr;
-                            gap: 0.5rem;
+                            gap: 0.25rem;
+                        }
+
+                        .comparison-logo {
+                            height: 24px;
                         }
 
                         .col-feature {
-                            font-size: 0.85rem;
+                            font-size: 0.8rem;
+                            padding-left: 0.5rem;
                         }
 
-                        .brand-badge {
-                            padding: 0.25rem 0.75rem;
-                            font-size: 0.7rem;
+                        .col-others {
+                            font-size: 0.8rem;
+                        }
+                        
+                        .comparison-row .col-us {
+                            font-size: 0.85rem;
+                            padding: 1rem 0;
+                            margin: -1rem 0;
                         }
                     }
 
                     @media (max-width: 480px) {
                         .comparison-table-container {
-                            font-size: 0.8rem;
+                            font-size: 0.75rem;
                         }
                         
                         .comparison-header-row, .comparison-row {
-                            padding: 0.75rem 0.5rem;
+                            padding: 0.75rem 0.25rem;
+                            grid-template-columns: 0.8fr 1.2fr 0.8fr; /* Give more space to middle column */
                         }
                         
                         .col-feature {
-                            font-weight: 700;
-                            justify-content: center;
-                            text-align: center;
+                            justify-content: flex-start; /* Align text left */
+                            text-align: left;
+                            font-size: 0.75rem;
+                        }
+
+                        .check-icon, .cross-icon {
+                            font-size: 0.9rem;
+                            margin-right: 0.25rem;
+                        }
+                        
+                        .comparison-row .col-us {
+                            font-weight: 800;
+                            background: #eff6ff;
                         }
                     }
                 `}</style>
