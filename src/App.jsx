@@ -23,6 +23,7 @@ import Contact from './pages/Contact';
 import { CartProvider } from './context/CartContext';
 import DynamicPopup from './components/DynamicPopup';
 import FloatingCart from './components/FloatingCart';
+import Onboarding from './pages/Onboarding';
 
 function App() {
   return (
@@ -39,6 +40,7 @@ function App() {
               <Route path="/albums" element={<Albums />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/cart" element={<Cart />} />
 
               {/* Public Viewing Route */}

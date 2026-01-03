@@ -48,8 +48,9 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const signUp = async (email, password, fullName, role) => {
+    const signUp = async (email, password, fullName, role, metadata = {}) => {
         // Pass metadata so trigger handles profile creation
+        console.log("Signing up with:", { email, fullName, role, metadata });
         const { data, error } = await supabase.auth.signUp({
             email,
             password,
@@ -57,6 +58,7 @@ export const AuthProvider = ({ children }) => {
                 data: {
                     full_name: fullName,
                     role: role,
+                    ...metadata,
                 },
             },
         });

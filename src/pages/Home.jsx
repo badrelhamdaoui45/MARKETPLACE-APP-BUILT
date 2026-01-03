@@ -85,8 +85,8 @@ const Home = () => {
                             <Button variant="outline" className="hero-btn-contact" onClick={() => navigate('/contact')}>
                                 Contact Us
                             </Button>
-                            <Button className="hero-btn-try action-btn" onClick={() => navigate('/login')}>
-                                Try Sportpxl
+                            <Button className="hero-btn-try action-btn" onClick={() => navigate('/onboarding')}>
+                                Try Run Capture
                             </Button>
                         </div>
                     </div>

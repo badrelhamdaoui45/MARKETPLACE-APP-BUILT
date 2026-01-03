@@ -15,6 +15,11 @@ const Navbar = () => {
     const { getItemCount } = useCart();
     const cartCount = getItemCount();
 
+    const isProvider = (role) => {
+        const providerRoles = ['photographer', 'Event', 'Club', 'Agency', 'Federation', 'Club/Association', 'Other'];
+        return providerRoles.includes(role);
+    };
+
     const handleLogout = async () => {
         await signOut();
         navigate('/login');
@@ -40,7 +45,7 @@ const Navbar = () => {
 
     const navigateToDashboard = () => {
         if (profile?.role === 'admin') navigate('/admin');
-        else if (profile?.role === 'photographer') navigate('/photographer/dashboard');
+        else if (isProvider(profile?.role)) navigate('/photographer/dashboard');
         else navigate('/my-purchases');
         closeMenu();
     };
@@ -84,7 +89,7 @@ const Navbar = () => {
                                 onClick={navigateToDashboard}
                             >
                                 <span className="user-icon"><User size={18} /></span>
-                                {profile?.role === 'photographer' || profile?.role === 'admin' ? 'DASHBOARD' : 'MY PURCHASES'}
+                                {isProvider(profile?.role) || profile?.role === 'admin' ? 'DASHBOARD' : 'MY PURCHASES'}
                             </Button>
 
                             {/* Profile Dropdown */}
@@ -103,10 +108,15 @@ const Navbar = () => {
                                         <div className="profile-menu-header">
                                             <span className="profile-menu-name">{profile?.full_name || 'User'}</span>
                                             <span className="profile-menu-email">{user.email}</span>
-                                            <span className="role-badge">{profile?.role || 'Client'}</span>
+                                            <span className="role-badge">
+                                                {profile?.provider_type ?
+                                                    `${profile.role} • ${profile.provider_type}` :
+                                                    profile?.role || 'Client'
+                                                }
+                                            </span>
                                         </div>
 
-                                        {profile?.role === 'photographer' && (
+                                        {isProvider(profile?.role) && (
                                             <button
                                                 className="profile-menu-item"
                                                 onClick={() => {
@@ -119,7 +129,7 @@ const Navbar = () => {
                                         )}
 
                                         <button className="profile-menu-item" onClick={navigateToDashboard}>
-                                            <LayoutDashboard size={18} /> {profile?.role === 'photographer' || profile?.role === 'admin' ? 'My Dashboard' : 'My Purchases'}
+                                            <LayoutDashboard size={18} /> {isProvider(profile?.role) || profile?.role === 'admin' ? 'My Dashboard' : 'My Purchases'}
                                         </button>
 
                                         <button
