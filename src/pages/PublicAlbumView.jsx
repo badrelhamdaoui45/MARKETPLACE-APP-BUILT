@@ -546,20 +546,35 @@ const PublicAlbumView = () => {
 
                 @media (max-width: 640px) {
                     .album-view-container {
-                        padding: 1rem;
+                        padding: 10px; /* Reduced padding */
                         padding-bottom: 140px;
+                        width: 100%;
+                        overflow-x: hidden;
                     }
 
                     .photos-grid {
-                        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-                        gap: 1.5rem;
+                        display: grid;
+                        grid-template-columns: repeat(2, 1fr); /* Force 2 columns */
+                        gap: 8px; /* High density gap */
+                    }
+
+                    .photo-card-wrapper {
+                        gap: 0.5rem;
                     }
 
                     .add-to-cart-btn {
                         font-size: 0.7rem !important;
-                        height: 36px !important;
-                        padding: 0 0.5rem !important;
-                        letter-spacing: 0 !important;
+                        height: 32px !important; /* Smaller button */
+                        padding: 0 4px !important;
+                        letter-spacing: -0.02em !important;
+                        white-space: nowrap;
+                        text-overflow: ellipsis;
+                        overflow: hidden;
+                    }
+                    
+                    .album-title {
+                        font-size: 1.5rem;
+                        word-break: break-word; /* Prevent long title overflow */
                     }
                 }
             `}</style>

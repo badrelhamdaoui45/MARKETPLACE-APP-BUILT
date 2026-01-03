@@ -5,6 +5,16 @@
   text-align: center;
 }
 
+@media (max-width: 768px) {
+  #root {
+    padding: 0;
+    /* Remove padding on mobile to use full width */
+    max-width: 100%;
+    overflow-x: hidden;
+    /* Prevent horizontal scroll causing zoom-out issues */
+  }
+}
+
 .logo {
   height: 6em;
   padding: 1.5em;

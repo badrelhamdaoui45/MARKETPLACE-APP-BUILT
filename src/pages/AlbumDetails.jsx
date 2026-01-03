@@ -205,20 +205,30 @@ const AlbumDetails = () => {
 
                 <div className="header-content">
                     <div className="header-info">
-                        <h1 className="album-title">{album.title}</h1>
-                        <p className="album-description">{album.description || "No description"}</p>
-                        <div className="album-meta-row">
-                            <div className="meta-item">
-                                <span className="meta-label">Price</span>
-                                <span className="meta-value">${album.price}</span>
+                        <div className="album-info-card">
+                            <div className="info-group main-group">
+                                <label className="modern-label">ALBUM NAME</label>
+                                <h1 className="album-title-modern">{album.title}</h1>
                             </div>
-                            <div className="meta-item">
-                                <span className="meta-label">Photos</span>
-                                <span className="meta-value">{photos.length}</span>
+
+                            <div className="info-group">
+                                <label className="modern-label">DESCRIPTION</label>
+                                <p className="album-description-modern">{album.description || "No description provided."}</p>
                             </div>
-                            <div className="meta-item">
-                                <span className="meta-label">Created on</span>
-                                <span className="meta-value">{new Date(album.created_at).toLocaleDateString()}</span>
+
+                            <div className="modern-meta-grid">
+                                <div className="meta-box">
+                                    <label className="modern-label">PRICE</label>
+                                    <span className="meta-value-modern">${album.price}</span>
+                                </div>
+                                <div className="meta-box">
+                                    <label className="modern-label">PHOTOS</label>
+                                    <span className="meta-value-modern">{photos.length}</span>
+                                </div>
+                                <div className="meta-box">
+                                    <label className="modern-label">CREATED ON</label>
+                                    <span className="meta-value-modern">{new Date(album.created_at).toLocaleDateString()}</span>
+                                </div>
                             </div>
                         </div>
 
@@ -399,54 +409,74 @@ const AlbumDetails = () => {
                     border-radius: 50%;
                 }
 
-                .status-dot.published { background: #22c55e; }
-                .status-dot.draft { background: #eab308; }
-
-                .header-content {
+                .album-info-card {
+                    background: #ffffff;
+                    border: 1px solid var(--border-subtle);
+                    border-radius: 16px;
+                    padding: 2rem;
+                    box-shadow: var(--shadow-sm);
                     display: flex;
-                    justify-content: space-between;
-                    align-items: flex-end;
-                    gap: 2rem;
+                    flex-direction: column;
+                    gap: 1.5rem;
                 }
 
-                .album-title {
-                    font-size: 2.5rem;
+                .info-group {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.5rem;
+                }
+
+                .modern-label {
+                    font-size: 0.75rem;
+                    font-weight: 800;
+                    color: var(--text-tertiary);
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                }
+
+                .album-title-modern {
+                    font-size: 2rem;
                     font-weight: 800;
                     color: var(--text-primary);
-                    margin-bottom: 0.5rem;
                     line-height: 1.1;
                 }
 
-                .album-description {
+                .album-description-modern {
+                    font-size: 1rem;
                     color: var(--text-secondary);
-                    font-size: 1.1rem;
-                    margin-bottom: 1.5rem;
-                    max-width: 600px;
+                    line-height: 1.5;
                 }
 
-                .album-meta-row {
-                    display: flex;
-                    gap: 2.5rem;
+                .modern-meta-grid {
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 1.5rem;
+                    margin-top: 0.5rem;
+                    padding-top: 1.5rem;
+                    border-top: 1px dashed var(--border-light);
                 }
 
-                .meta-item {
+                .meta-box {
                     display: flex;
                     flex-direction: column;
                     gap: 0.25rem;
                 }
 
-                .meta-label {
-                    font-size: 0.8rem;
-                    text-transform: uppercase;
-                    color: var(--text-tertiary);
-                    font-weight: 600;
-                    letter-spacing: 0.05em;
-                }
-
-                .meta-value {
-                    font-size: 1.1rem;
+                .meta-value-modern {
+                    font-size: 1.25rem;
                     font-weight: 700;
                     color: var(--text-primary);
+                }
+
+                /* Mobile responsiveness for the card */
+                @media (max-width: 768px) {
+                    .album-info-card {
+                        padding: 1.5rem;
+                    }
+                    .modern-meta-grid {
+                        grid-template-columns: 1fr;
+                        gap: 1.25rem;
+                    }
                 }
 
                 .publish-btn {
