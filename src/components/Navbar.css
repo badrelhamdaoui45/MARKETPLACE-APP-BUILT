@@ -317,6 +317,49 @@
 }
 
 /* Mobile Header Actions */
+.mobile-nav-actions-wrapper {
+    display: none;
+    align-items: center;
+    gap: 0.75rem;
+    margin-left: auto;
+}
+
+.mobile-nav-prominent-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.9rem;
+    background: white;
+    border: 2px solid var(--primary-blue);
+    border-radius: var(--radius-md);
+    color: var(--primary-blue);
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    height: 38px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.mobile-nav-prominent-btn:hover {
+    background: var(--bg-primary);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-color: var(--primary-blue-dark);
+}
+
+.mobile-nav-prominent-btn:active {
+    background: var(--bg-hover);
+    transform: translateY(0) scale(0.95);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.mobile-nav-prominent-btn span {
+    display: block;
+}
+
 .mobile-header-actions {
     display: none;
     align-items: center;
@@ -537,6 +580,24 @@
     /* Show mobile menu always but control visibility via right property */
     .mobile-menu {
         display: block;
+    }
+
+    /* Show mobile header actions wrapper */
+    .mobile-nav-actions-wrapper {
+        display: flex;
+    }
+
+    /* Hide text on very small screens if it overflows */
+    @media (max-width: 400px) {
+        .mobile-nav-prominent-btn span {
+            display: none;
+        }
+
+        .mobile-nav-prominent-btn {
+            padding: 0.5rem;
+            width: 38px;
+            justify-content: center;
+        }
     }
 
     /* Keep overlay hidden unless it's specifically open */

@@ -61,16 +61,30 @@ const Navbar = () => {
                     </div>
                 </Link>
 
-                {/* Hamburger Menu Button - Mobile Only */}
-                {!isMenuOpen && (
-                    <button
-                        className="hamburger-menu"
-                        onClick={() => setIsMenuOpen(true)}
-                        aria-label="Toggle menu"
-                    >
-                        <Menu size={24} />
-                    </button>
-                )}
+                {/* Mobile Right Actions */}
+                <div className="mobile-nav-actions-wrapper">
+                    {!isMenuOpen && user && (
+                        <button
+                            className="mobile-nav-prominent-btn"
+                            onClick={navigateToDashboard}
+                        >
+                            <LayoutDashboard size={20} />
+                            <span>
+                                {isProvider(profile?.role) || profile?.role === 'admin' ? 'DASHBOARD' : 'PURCHASES'}
+                            </span>
+                        </button>
+                    )}
+
+                    {!isMenuOpen && (
+                        <button
+                            className="hamburger-menu"
+                            onClick={() => setIsMenuOpen(true)}
+                            aria-label="Toggle menu"
+                        >
+                            <Menu size={24} />
+                        </button>
+                    )}
+                </div>
 
                 {/* Desktop Navigation */}
                 <div className="navbar-links desktop-nav">
