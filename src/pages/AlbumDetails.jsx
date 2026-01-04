@@ -22,6 +22,18 @@ const AlbumDetails = () => {
     const [availablePackages, setAvailablePackages] = useState([]);
     const [isEditingPackages, setIsEditingPackages] = useState(false);
 
+    // Popup management state
+    const [albumPopup, setAlbumPopup] = useState({
+        title: '',
+        message: '',
+        image_url: '',
+        coupon_code: '',
+        is_active: true
+    });
+    const [isEditingPopup, setIsEditingPopup] = useState(false);
+    const [popupLoading, setPopupLoading] = useState(false);
+    const [isSelectingImage, setIsSelectingImage] = useState(false); // To open/close image selector grid
+
     useEffect(() => {
         if (user && albumTitle) {
             fetchAlbumDetails();
@@ -54,12 +66,32 @@ const AlbumDetails = () => {
             if (photosError) throw photosError;
             setPhotos(photosData);
 
-            // Fetch all available packages for selection
             const { data: pkgData } = await supabase
                 .from('pricing_packages')
                 .select('*')
                 .eq('photographer_id', user.id);
             setAvailablePackages(pkgData || []);
+
+            // Fetch Album Popup
+            const { data: popupData } = await supabase
+                .from('popups')
+                .select('*')
+                .eq('album_id', albumData.id)
+                .limit(1)
+                .maybeSingle();
+
+            if (popupData) {
+                setAlbumPopup(popupData);
+            } else {
+                // Set defaults if none exists
+                setAlbumPopup({
+                    title: `Bienvenue dans ${albumData.title}`,
+                    message: 'Découvrez vos photos et profitez de nos offres.',
+                    image_url: '',
+                    coupon_code: '',
+                    is_active: true
+                });
+            }
         } catch (error) {
             console.error('Error fetching details:', error);
         } finally {
@@ -113,6 +145,54 @@ const AlbumDetails = () => {
         } catch (error) {
             console.error('Error deleting photo:', error);
             alert('Failed to delete photo.');
+        }
+    };
+
+    const handleSavePopup = async () => {
+        setPopupLoading(true);
+        try {
+            const popupData = {
+                ...albumPopup,
+                album_id: album.id,
+                photographer_id: user.id,
+                type: 'album_welcome'
+            };
+
+            const { data, error } = await supabase
+                .from('popups')
+                .upsert(popupData, { onConflict: 'album_id' })
+                .select()
+                .single();
+
+            if (error) throw error;
+            setAlbumPopup(data);
+            setIsEditingPopup(false);
+            setToast({ message: 'Popup de bienvenue mis à jour !', type: 'success' });
+        } catch (error) {
+            console.error('Error saving popup:', error);
+            setToast({ message: 'Erreur lors de la sauvegarde du popup.', type: 'error' });
+        } finally {
+            setPopupLoading(false);
+        }
+    };
+
+    const handleQuickToggleSave = async (isActive) => {
+        try {
+            const { error } = await supabase
+                .from('popups')
+                .upsert({
+                    ...albumPopup,
+                    is_active: isActive,
+                    album_id: album.id,
+                    photographer_id: user.id,
+                    type: 'album_welcome'
+                }, { onConflict: 'album_id' });
+
+            if (error) throw error;
+            setToast({ message: isActive ? 'Popup activé !' : 'Popup désactivé !', type: 'success' });
+        } catch (error) {
+            console.error('Error toggling popup:', error);
+            setToast({ message: 'Erreur lors du changement de statut.', type: 'error' });
         }
     };
 
@@ -321,6 +401,133 @@ const AlbumDetails = () => {
                                     </div>
                                 )}
                             </div>
+
+                            <div className="album-popup-management-section">
+                                <div className="packages-header-row">
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                        <label className="modern-label" style={{ margin: 0 }}>POPUP DE BIENVENUE</label>
+                                        <label className="switch-toggle">
+                                            <input
+                                                type="checkbox"
+                                                checked={albumPopup.is_active}
+                                                onChange={(e) => {
+                                                    const updated = { ...albumPopup, is_active: e.target.checked };
+                                                    setAlbumPopup(updated);
+                                                    // Trigger save immediately for master toggle
+                                                    handleQuickToggleSave(e.target.checked);
+                                                }}
+                                            />
+                                            <span className="switch-slider"></span>
+                                        </label>
+                                    </div>
+                                    <button
+                                        className="edit-packages-toggle"
+                                        onClick={() => setIsEditingPopup(!isEditingPopup)}
+                                    >
+                                        {isEditingPopup ? 'Fermer' : 'Personnaliser'}
+                                    </button>
+                                </div>
+
+                                <div className="active-popup-preview">
+                                    <p className="no-packages-text">
+                                        {albumPopup.is_active ? 'Activé' : 'Désactivé'} — "{albumPopup.title}"
+                                    </p>
+                                </div>
+
+                                {isEditingPopup && (
+                                    <div className="popup-editor-panel">
+                                        <div className="popup-field-group">
+                                            <label>Titre du Popup</label>
+                                            <input
+                                                type="text"
+                                                value={albumPopup.title}
+                                                onChange={(e) => setAlbumPopup({ ...albumPopup, title: e.target.value })}
+                                                placeholder="ex: Bienvenue à l'Événement!"
+                                            />
+                                        </div>
+
+                                        <div className="popup-field-group">
+                                            <label>Message</label>
+                                            <textarea
+                                                value={albumPopup.message}
+                                                onChange={(e) => setAlbumPopup({ ...albumPopup, message: e.target.value })}
+                                                placeholder="ex: Profitez de 10% de réduction..."
+                                            />
+                                        </div>
+
+                                        <div className="popup-field-row">
+                                            <div className="popup-field-group">
+                                                <label>Code Promo (Optionnel)</label>
+                                                <input
+                                                    type="text"
+                                                    value={albumPopup.coupon_code || ''}
+                                                    onChange={(e) => setAlbumPopup({ ...albumPopup, coupon_code: e.target.value })}
+                                                    placeholder="ex: CAPTURE10"
+                                                />
+                                            </div>
+                                            <div className="popup-field-group">
+                                                <label>Image URL (Optionnel)</label>
+                                                <div className="image-url-input-wrapper">
+                                                    <input
+                                                        type="text"
+                                                        value={albumPopup.image_url || ''}
+                                                        onChange={(e) => setAlbumPopup({ ...albumPopup, image_url: e.target.value })}
+                                                        placeholder="https://..."
+                                                    />
+                                                    <button
+                                                        className="select-from-album-btn"
+                                                        onClick={() => setIsSelectingImage(!isSelectingImage)}
+                                                    >
+                                                        {isSelectingImage ? 'Fermer' : 'Sélectionner Photo'}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {isSelectingImage && (
+                                            <div className="album-image-picker">
+                                                <p className="picker-title">Choisir une photo de l'album :</p>
+                                                <div className="picker-grid">
+                                                    {photos.map(photo => (
+                                                        <div
+                                                            key={photo.id}
+                                                            className={`picker-item ${albumPopup.image_url === photo.watermarked_url ? 'selected' : ''}`}
+                                                            onClick={() => {
+                                                                setAlbumPopup({ ...albumPopup, image_url: photo.watermarked_url });
+                                                                setIsSelectingImage(false);
+                                                            }}
+                                                        >
+                                                            <img src={photo.watermarked_url} alt="Album photo" />
+                                                            {albumPopup.image_url === photo.watermarked_url && <div className="selected-check">✓</div>}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="popup-toggle-row">
+                                            <label className="toggle-label">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={albumPopup.is_active}
+                                                    onChange={(e) => setAlbumPopup({ ...albumPopup, is_active: e.target.checked })}
+                                                />
+                                                <span className="toggle-text">Activer ce popup pour cet album</span>
+                                            </label>
+                                        </div>
+
+                                        <div className="popup-editor-actions">
+                                            <Button
+                                                onClick={handleSavePopup}
+                                                disabled={popupLoading}
+                                                className="save-popup-btn"
+                                            >
+                                                {popupLoading ? 'Enregistrement...' : 'Enregistrer le Popup'}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         <div className="share-link-banner">
@@ -373,7 +580,7 @@ const AlbumDetails = () => {
                     </div>
                 </div>
                 <PhotoUpload albumId={album.id} onUploadComplete={fetchAlbumDetails} />
-            </section >
+            </section>
 
             {/* Photos Grid Section */}
             <section className="photos-section">
@@ -896,6 +1103,229 @@ const AlbumDetails = () => {
                     text-align: center;
                 }
 
+                .album-popup-management-section {
+                    margin-top: 1.5rem;
+                    padding-top: 1.5rem;
+                    border-top: 1px dashed var(--border-light);
+                }
+
+                .active-popup-preview {
+                    margin-bottom: 0.5rem;
+                }
+
+                .popup-editor-panel {
+                    margin-top: 1rem;
+                    background: #f8fafc;
+                    padding: 1.25rem;
+                    border-radius: 12px;
+                    border: 1px solid #e2e8f0;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 1.25rem;
+                }
+
+                .popup-field-group {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.5rem;
+                }
+
+                .popup-field-group label {
+                    font-size: 0.8rem;
+                    font-weight: 700;
+                    color: var(--text-secondary);
+                }
+
+                .popup-field-group input, 
+                .popup-field-group textarea {
+                    padding: 0.75rem;
+                    border: 1px solid #cbd5e1;
+                    border-radius: 8px;
+                    font-size: 0.9rem;
+                    transition: border-color 0.2s;
+                }
+
+                .popup-field-group input:focus, 
+                .popup-field-group textarea:focus {
+                    outline: none;
+                    border-color: var(--primary-blue);
+                }
+
+                .popup-field-group textarea {
+                    min-height: 80px;
+                    resize: vertical;
+                }
+
+                .popup-field-row {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 1rem;
+                }
+
+                .popup-editor-actions {
+                    display: flex;
+                    justify-content: flex-end;
+                    padding-top: 0.5rem;
+                }
+
+                .save-popup-btn {
+                    padding: 0.6rem 1.2rem !important;
+                    font-size: 0.85rem !important;
+                    background: #f97316 !important;
+                    border: 2px solid #ea580c !important;
+                    color: white !important;
+                    font-weight: 700 !important;
+                }
+
+                .save-popup-btn:hover {
+                    background: #ea580c !important;
+                }
+
+                .image-url-input-wrapper {
+                    display: flex;
+                    gap: 0.5rem;
+                }
+
+                .select-from-album-btn {
+                    white-space: nowrap;
+                    background: #f1f5f9;
+                    border: 1px solid #cbd5e1;
+                    padding: 0 1rem;
+                    border-radius: 8px;
+                    font-size: 0.75rem;
+                    font-weight: 700;
+                    color: #475569;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }
+
+                .select-from-album-btn:hover {
+                    background: #e2e8f0;
+                }
+
+                .album-image-picker {
+                    background: #ffffff;
+                    padding: 1rem;
+                    border-radius: 12px;
+                    border: 1px solid #e2e8f0;
+                    margin-top: 0.5rem;
+                }
+
+                .picker-title {
+                    font-size: 0.8rem;
+                    font-weight: 700;
+                    margin-bottom: 0.75rem;
+                    color: #64748b;
+                }
+
+                .picker-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+                    gap: 0.5rem;
+                    max-height: 200px;
+                    overflow-y: auto;
+                }
+
+                .picker-item {
+                    aspect-ratio: 1;
+                    border-radius: 8px;
+                    overflow: hidden;
+                    cursor: pointer;
+                    border: 2px solid transparent;
+                    position: relative;
+                    transition: border-color 0.2s;
+                }
+
+                .picker-item:hover {
+                    border-color: #cbd5e1;
+                }
+
+                .picker-item.selected {
+                    border-color: #f97316;
+                }
+
+                .picker-item img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                }
+
+                .selected-check {
+                    position: absolute;
+                    inset: 0;
+                    background: rgba(249, 115, 22, 0.4);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: white;
+                    font-weight: 900;
+                    font-size: 1.25rem;
+                }
+
+                .popup-toggle-row {
+                    margin-top: 1rem;
+                    padding: 0.75rem;
+                    background: #fff7ed;
+                    border-radius: 10px;
+                    border: 1px solid #fed7aa;
+                }
+
+                .toggle-label {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                    cursor: pointer;
+                    font-weight: 700;
+                    font-size: 0.85rem;
+                    color: #9a3412;
+                }
+
+                /* Switch Toggle Styles */
+                .switch-toggle {
+                    position: relative;
+                    display: inline-block;
+                    width: 44px;
+                    height: 22px;
+                }
+
+                .switch-toggle input {
+                    opacity: 0;
+                    width: 0;
+                    height: 0;
+                }
+
+                .switch-slider {
+                    position: absolute;
+                    cursor: pointer;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background-color: #cbd5e1;
+                    transition: .3s;
+                    border-radius: 34px;
+                }
+
+                .switch-slider:before {
+                    position: absolute;
+                    content: "";
+                    height: 16px;
+                    width: 16px;
+                    left: 3px;
+                    bottom: 3px;
+                    background-color: white;
+                    transition: .3s;
+                    border-radius: 50%;
+                }
+
+                .switch-toggle input:checked + .switch-slider {
+                    background-color: #f97316;
+                }
+
+                .switch-toggle input:checked + .switch-slider:before {
+                    transform: translateX(22px);
+                }
+
                 .bib-tags {
                     position: absolute;
                     top: 8px;
@@ -1110,13 +1540,15 @@ const AlbumDetails = () => {
                     }
                 }
             `}</style>
-            {toast && (
-                <Toast
-                    message={toast.message}
-                    type={toast.type}
-                    onClose={() => setToast(null)}
-                />
-            )}
+            {
+                toast && (
+                    <Toast
+                        message={toast.message}
+                        type={toast.type}
+                        onClose={() => setToast(null)}
+                    />
+                )
+            }
 
             <Modal
                 isOpen={modalConfig.isOpen}

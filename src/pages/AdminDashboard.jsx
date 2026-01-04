@@ -19,6 +19,20 @@ const AdminDashboard = () => {
     const [selectedPhotographer, setSelectedPhotographer] = useState(null);
     const [dateFilter, setDateFilter] = useState('7'); // '7', '30', 'all'
 
+    // Popup Management State
+    const [popups, setPopups] = useState([]);
+    const [isEditingPopup, setIsEditingPopup] = useState(false);
+    const [currentPopup, setCurrentPopup] = useState(null);
+    const [popupForm, setPopupForm] = useState({
+        title: '',
+        message: '',
+        type: 'announcement',
+        is_active: true,
+        button_text: 'View Details',
+        button_link: '',
+        image_url: ''
+    });
+
     useEffect(() => {
         fetchAllData();
     }, []);
@@ -65,11 +79,73 @@ const AdminDashboard = () => {
 
             setPhotographers(prosWithStats);
 
+            // Fetch Global Popups (where album_id is null)
+            const { data: globalPopups, error: popupError } = await supabase
+                .from('popups')
+                .select('*')
+                .is('album_id', null)
+                .order('created_at', { ascending: false });
+
+            if (!popupError) setPopups(globalPopups || []);
+
         } catch (error) {
             console.error(error);
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleSavePopup = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('popups')
+                .upsert({
+                    ...popupForm,
+                    id: currentPopup?.id || undefined,
+                    photographer_id: null, // Admin popups are system-level
+                    album_id: null
+                })
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            if (currentPopup) {
+                setPopups(popups.map(p => p.id === data.id ? data : p));
+            } else {
+                setPopups([data, ...popups]);
+            }
+
+            setIsEditingPopup(false);
+            setCurrentPopup(null);
+            resetPopupForm();
+        } catch (error) {
+            console.error('Error saving popup:', error);
+            alert('Failed to save popup');
+        }
+    };
+
+    const handleDeletePopup = async (id) => {
+        if (!window.confirm('Are you sure you want to delete this popup?')) return;
+        try {
+            const { error } = await supabase.from('popups').delete().eq('id', id);
+            if (error) throw error;
+            setPopups(popups.filter(p => p.id !== id));
+        } catch (error) {
+            console.error('Error deleting popup:', error);
+        }
+    };
+
+    const resetPopupForm = () => {
+        setPopupForm({
+            title: '',
+            message: '',
+            type: 'announcement',
+            is_active: true,
+            button_text: 'View Details',
+            button_link: '',
+            image_url: ''
+        });
     };
 
     // Chart Data Processing
@@ -302,6 +378,151 @@ const AdminDashboard = () => {
                         </tbody>
                     </table>
                 </div>
+            </div>
+
+            {/* Site Popups Management */}
+            <div className="table-section" style={{ marginTop: '3rem' }}>
+                <div className="table-header">
+                    <div>
+                        <h2 className="table-title">Site Popups</h2>
+                        <p style={{ fontSize: '0.875rem', color: '#64748b', margin: '0.25rem 0 0' }}>Manage global announcements and platform messages</p>
+                    </div>
+                    <Button
+                        variant="primary"
+                        onClick={() => {
+                            resetPopupForm();
+                            setCurrentPopup(null);
+                            setIsEditingPopup(true);
+                        }}
+                    >
+                        Create Global Popup
+                    </Button>
+                </div>
+
+                <div className="popups-grid">
+                    {popups.length === 0 ? (
+                        <div className="empty-popups">No global popups configured.</div>
+                    ) : (
+                        popups.map(p => (
+                            <div key={p.id} className={`popup-admin-card ${p.is_active ? 'active' : 'inactive'}`}>
+                                <div className="p-card-header">
+                                    <span className={`p-type-badge ${p.type}`}>{p.type}</span>
+                                    <div className="p-status-toggle">
+                                        <span className={`p-status-dot ${p.is_active ? 'on' : 'off'}`}></span>
+                                        {p.is_active ? 'Active' : 'Inactive'}
+                                    </div>
+                                </div>
+                                <div className="p-card-body">
+                                    <h4>{p.title}</h4>
+                                    <p>{p.message.length > 100 ? p.message.substring(0, 100) + '...' : p.message}</p>
+                                </div>
+                                <div className="p-card-footer">
+                                    <button
+                                        className="p-action-btn edit"
+                                        onClick={() => {
+                                            setCurrentPopup(p);
+                                            setPopupForm(p);
+                                            setIsEditingPopup(true);
+                                        }}
+                                    >
+                                        Edit
+                                    </button>
+                                    <button
+                                        className="p-action-btn delete"
+                                        onClick={() => handleDeletePopup(p.id)}
+                                    >
+                                        Delete
+                                    </button>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+
+                {isEditingPopup && (
+                    <div className="popup-overlay-admin">
+                        <div className="popup-modal-admin">
+                            <div className="modal-header-admin">
+                                <h3>{currentPopup ? 'Edit Site Popup' : 'New Site Popup'}</h3>
+                                <button className="close-modal-admin" onClick={() => setIsEditingPopup(false)}>&times;</button>
+                            </div>
+                            <div className="modal-body-admin">
+                                <div className="form-row-admin">
+                                    <div className="form-group-admin">
+                                        <label>Title</label>
+                                        <input
+                                            type="text"
+                                            value={popupForm.title}
+                                            onChange={(e) => setPopupForm({ ...popupForm, title: e.target.value })}
+                                            placeholder="Catchy title..."
+                                        />
+                                    </div>
+                                    <div className="form-group-admin">
+                                        <label>Type</label>
+                                        <select
+                                            value={popupForm.type}
+                                            onChange={(e) => setPopupForm({ ...popupForm, type: e.target.value })}
+                                        >
+                                            <option value="announcement">Announcement</option>
+                                            <option value="album_welcome">Default Welcome</option>
+                                            <option value="discount">Promotion</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="form-group-admin">
+                                    <label>Message</label>
+                                    <textarea
+                                        value={popupForm.message}
+                                        onChange={(e) => setPopupForm({ ...popupForm, message: e.target.value })}
+                                        placeholder="Detailed content..."
+                                    />
+                                </div>
+                                <div className="form-row-admin">
+                                    <div className="form-group-admin">
+                                        <label>Button Text</label>
+                                        <input
+                                            type="text"
+                                            value={popupForm.button_text}
+                                            onChange={(e) => setPopupForm({ ...popupForm, button_text: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="form-group-admin">
+                                        <label>Button Link (URL)</label>
+                                        <input
+                                            type="text"
+                                            value={popupForm.button_link}
+                                            onChange={(e) => setPopupForm({ ...popupForm, button_link: e.target.value })}
+                                            placeholder="https://..."
+                                        />
+                                    </div>
+                                </div>
+                                <div className="form-group-admin">
+                                    <label>Image URL (Optional)</label>
+                                    <input
+                                        type="text"
+                                        value={popupForm.image_url || ''}
+                                        onChange={(e) => setPopupForm({ ...popupForm, image_url: e.target.value })}
+                                        placeholder="https://images.unsplash.com/..."
+                                    />
+                                </div>
+                                <div className="form-group-admin checkbox">
+                                    <label>
+                                        <input
+                                            type="checkbox"
+                                            checked={popupForm.is_active}
+                                            onChange={(e) => setPopupForm({ ...popupForm, is_active: e.target.checked })}
+                                        />
+                                        <span>Show this popup on the site</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div className="modal-footer-admin">
+                                <Button variant="secondary" onClick={() => setIsEditingPopup(false)}>Cancel</Button>
+                                <Button variant="primary" onClick={handleSavePopup}>Save Popup</Button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
 
             <style>{`
@@ -626,6 +847,259 @@ const AdminDashboard = () => {
                     font-size: 1.25rem;
                     font-weight: 600;
                     color: var(--primary-blue);
+                }
+
+                /* Site Popups Specific Styles */
+                .popups-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+                    gap: 1.5rem;
+                    padding: 2rem;
+                    background: #f8fafc;
+                }
+
+                .empty-popups {
+                    grid-column: 1 / -1;
+                    text-align: center;
+                    padding: 3rem;
+                    color: #64748b;
+                    font-style: italic;
+                    background: white;
+                    border-radius: 12px;
+                    border: 1px dashed #cbd5e1;
+                }
+
+                .popup-admin-card {
+                    background: white;
+                    border-radius: 16px;
+                    border: 1px solid #e2e8f0;
+                    padding: 1.5rem;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 1rem;
+                    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+                    transition: transform 0.2s, box-shadow 0.2s;
+                }
+
+                .popup-admin-card:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+                }
+
+                .p-card-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+
+                .p-type-badge {
+                    font-size: 0.7rem;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    padding: 0.25rem 0.75rem;
+                    border-radius: 20px;
+                    letter-spacing: 0.05em;
+                }
+
+                .p-type-badge.announcement { background: #eff6ff; color: var(--primary-blue); }
+                .p-type-badge.album_welcome { background: #fdf2f8; color: #db2777; }
+                .p-type-badge.discount { background: #f0fdf4; color: #16a34a; }
+
+                .p-status-toggle {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                    color: #64748b;
+                }
+
+                .p-status-dot {
+                    width: 8px;
+                    height: 8px;
+                    border-radius: 50%;
+                }
+
+                .p-status-dot.on { background: #10b981; box-shadow: 0 0 8px rgba(16, 185, 129, 0.5); }
+                .p-status-dot.off { background: #94a3b8; }
+
+                .p-card-body h4 {
+                    margin: 0 0 0.5rem;
+                    font-size: 1.125rem;
+                    color: #0f172a;
+                    font-weight: 700;
+                }
+
+                .p-card-body p {
+                    margin: 0;
+                    font-size: 0.875rem;
+                    color: #64748b;
+                    line-height: 1.5;
+                }
+
+                .p-card-footer {
+                    margin-top: auto;
+                    display: flex;
+                    gap: 0.75rem;
+                    padding-top: 1rem;
+                    border-top: 1px solid #f1f5f9;
+                }
+
+                .p-action-btn {
+                    flex: 1;
+                    padding: 0.5rem;
+                    border-radius: 8px;
+                    font-size: 0.8125rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }
+
+                .p-action-btn.edit {
+                    background: #f1f5f9;
+                    color: #475569;
+                    border: 1px solid #e2e8f0;
+                }
+
+                .p-action-btn.edit:hover { background: #e2e8f0; }
+
+                .p-action-btn.delete {
+                    background: #fef2f2;
+                    color: #dc2626;
+                    border: 1px solid #fee2e2;
+                }
+
+                .p-action-btn.delete:hover { background: #fee2e2; }
+
+                /* Admin Modal Styles */
+                .popup-overlay-admin {
+                    position: fixed;
+                    inset: 0;
+                    background: rgba(15, 23, 42, 0.4);
+                    backdrop-filter: blur(4px);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 1000;
+                    padding: 1.5rem;
+                }
+
+                .popup-modal-admin {
+                    background: white;
+                    width: 100%;
+                    max-width: 600px;
+                    border-radius: 24px;
+                    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+                    overflow: hidden;
+                    animation: modalIn 0.3s ease-out;
+                }
+
+                @keyframes modalIn {
+                    from { transform: scale(0.95); opacity: 0; }
+                    to { transform: scale(1); opacity: 1; }
+                }
+
+                .modal-header-admin {
+                    padding: 1.5rem 2rem;
+                    border-bottom: 1px solid #f1f5f9;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+
+                .modal-header-admin h3 {
+                    margin: 0;
+                    font-size: 1.25rem;
+                    font-weight: 700;
+                    color: #0f172a;
+                }
+
+                .close-modal-admin {
+                    background: none;
+                    border: none;
+                    font-size: 1.5rem;
+                    color: #94a3b8;
+                    cursor: pointer;
+                }
+
+                .modal-body-admin {
+                    padding: 2rem;
+                    max-height: 70vh;
+                    overflow-y: auto;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 1.5rem;
+                }
+
+                .form-group-admin {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.5rem;
+                }
+
+                .form-group-admin.checkbox {
+                    flex-direction: row;
+                    align-items: center;
+                    padding: 1rem;
+                    background: #f8fafc;
+                    border-radius: 12px;
+                }
+
+                .form-group-admin.checkbox label {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                    cursor: pointer;
+                    font-weight: 600;
+                    font-size: 0.9375rem;
+                    color: #334155;
+                }
+
+                .form-row-admin {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 1.25rem;
+                }
+
+                .form-group-admin label {
+                    font-size: 0.75rem;
+                    font-weight: 700;
+                    color: #64748b;
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                }
+
+                .form-group-admin input,
+                .form-group-admin select,
+                .form-group-admin textarea {
+                    padding: 0.75rem 1rem;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 10px;
+                    font-size: 0.9375rem;
+                    color: #0f172a;
+                    transition: border-color 0.2s;
+                }
+
+                .form-group-admin input:focus,
+                .form-group-admin select:focus,
+                .form-group-admin textarea:focus {
+                    outline: none;
+                    border-color: var(--primary-blue);
+                    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+                }
+
+                .form-group-admin textarea {
+                    min-height: 100px;
+                    resize: vertical;
+                }
+
+                .modal-footer-admin {
+                    padding: 1.5rem 2rem;
+                    background: #f8fafc;
+                    border-top: 1px solid #f1f5f9;
+                    display: flex;
+                    justify-content: flex-end;
+                    gap: 1rem;
                 }
             `}</style>
         </div>

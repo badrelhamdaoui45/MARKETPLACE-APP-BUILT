@@ -24,6 +24,7 @@ import { CartProvider } from './context/CartContext';
 import DynamicPopup from './components/DynamicPopup';
 import FloatingCart from './components/FloatingCart';
 import Onboarding from './pages/Onboarding';
+import Footer from './components/Footer';
 
 function App() {
   return (
@@ -60,6 +61,7 @@ function App() {
               <Route path="/my-purchases" element={<BuyerProfile />} />
               <Route path="/my-purchases/:albumId" element={<AlbumDownload />} />
             </Routes>
+            <Footer />
           </div>
         </Router>
       </CartProvider>

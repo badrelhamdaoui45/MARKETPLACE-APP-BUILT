@@ -868,6 +868,7 @@ const PublicAlbumView = () => {
             {album && (
                 <DynamicPopup
                     type="album_welcome"
+                    albumId={album.id}
                     placeholders={{ album_title: album.title }}
                 />
             )}

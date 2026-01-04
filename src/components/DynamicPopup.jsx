@@ -9,68 +9,95 @@ import Button from './ui/Button';
  * Fetches popup content from the 'popups' table based on the specified type.
  * Supports placeholder replacement like {{album_title}}.
  */
-const DynamicPopup = ({ type = 'announcement', placeholders = {} }) => {
+const DynamicPopup = ({ type = 'announcement', placeholders = {}, albumId = null }) => {
     const [popupContent, setPopupContent] = useState(null);
     const [isVisible, setIsVisible] = useState(false);
     const [isClosed, setIsClosed] = useState(false);
 
     useEffect(() => {
         const fetchPopup = async () => {
-            // Priority Check: If recently closed in this session (only if show_once is true in DB)
-            const sessionKey = `popup-seen-${type}`;
+            // Highly granular session key: includes type and album ID if available
+            const sessionKey = `popup-seen-${type}${albumId ? `-${albumId}` : ''}`;
             const hasBeenSeen = sessionStorage.getItem(sessionKey);
 
+            // STOP if already seen this session (Enforce "once per visit" globally)
+            if (hasBeenSeen) return;
+
             try {
-                const { data, error } = await supabase
+                let query = supabase
                     .from('popups')
                     .select('*')
                     .eq('is_active', true)
+                    .order('created_at', { ascending: false });
+
+                // Priority: Specific album popup
+                if (albumId) {
+                    const { data: albumPopup, error: albumError } = await query
+                        .eq('album_id', albumId)
+                        .limit(1)
+                        .maybeSingle();
+
+                    if (!albumError && albumPopup) {
+                        setPopupContent(processContent(albumPopup, placeholders));
+                        triggerDisplay(albumPopup.display_delay);
+                    }
+                    // STRICT: If we are in an album context (albumId provided), 
+                    // we NEVER fall back to global popups. If not set, show nothing.
+                    return;
+                }
+
+                // Fallback to global type ONLY if no albumId was provided (e.g. site-wide announcements)
+                const { data, error } = await query
                     .eq('type', type)
-                    .order('created_at', { ascending: false })
+                    .is('album_id', null)
                     .limit(1)
-                    .single();
+                    .maybeSingle();
 
                 if (error || !data) return;
 
-                // Stop if already seen this session and show_once is enabled
-                if (data.show_once && hasBeenSeen) return;
-
-                // Replace placeholders in title and message
-                let processedTitle = data.title;
-                let processedMessage = data.message;
-
-                Object.keys(placeholders).forEach(key => {
-                    const regex = new RegExp(`{{${key}}}`, 'g');
-                    processedTitle = processedTitle.replace(regex, placeholders[key]);
-                    processedMessage = processedMessage.replace(regex, placeholders[key]);
-                });
-
-                setPopupContent({
-                    ...data,
-                    title: processedTitle,
-                    message: processedMessage
-                });
-
-                // Show after the specified delay
-                setTimeout(() => {
-                    setIsVisible(true);
-                }, data.display_delay || 1500);
+                setPopupContent(processContent(data, placeholders));
+                triggerDisplay(data.display_delay);
 
             } catch (err) {
                 console.error('Error fetching dynamic popup:', err);
             }
         };
 
+        const processContent = (data, placeholders) => {
+            let processedTitle = data.title;
+            let processedMessage = data.message;
+
+            Object.keys(placeholders).forEach(key => {
+                const regex = new RegExp(`{{${key}}}`, 'g');
+                processedTitle = processedTitle.replace(regex, placeholders[key]);
+                processedMessage = processedMessage.replace(regex, placeholders[key]);
+            });
+
+            return {
+                ...data,
+                title: processedTitle,
+                message: processedMessage
+            };
+        };
+
+        const triggerDisplay = (delay) => {
+            setTimeout(() => {
+                setIsVisible(true);
+            }, delay || 1500);
+        };
+
         fetchPopup();
-    }, [type, JSON.stringify(placeholders)]);
+    }, [type, albumId, JSON.stringify(placeholders)]);
 
     const handleClose = () => {
         setIsVisible(false);
+        const sessionKey = `popup-seen-${type}${albumId ? `-${albumId}` : ''}`;
+
+        // Mark as seen immediately on close click
+        sessionStorage.setItem(sessionKey, 'true');
+
         setTimeout(() => {
             setIsClosed(true);
-            if (popupContent?.show_once) {
-                sessionStorage.setItem(`popup-seen-${type}`, 'true');
-            }
         }, 500);
     };
 
