@@ -461,7 +461,28 @@ const AlbumDetails = () => {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    margin-bottom: 1.5rem;
+                    margin-bottom: 2rem;
+                    gap: 1.5rem;
+                }
+
+                .header-content {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-start;
+                    gap: 2rem;
+                    width: 100%;
+                }
+
+                .header-info {
+                    flex: 1;
+                    min-width: 0; /* Important for preventing overflow on flex items */
+                    display: flex;
+                    flex-direction: column;
+                    gap: 1.5rem;
+                }
+
+                .header-actions {
+                    flex-shrink: 0;
                 }
 
                 .back-btn {
@@ -636,6 +657,7 @@ const AlbumDetails = () => {
                     overflow: hidden;
                     text-overflow: ellipsis;
                     font-weight: 600;
+                    word-break: break-all; /* Fallback for very long single words */
                 }
 
                 .copy-link-btn {
@@ -927,7 +949,7 @@ const AlbumDetails = () => {
 
                 @media (max-width: 768px) {
                     .album-details-container { 
-                        padding: 1.25rem 1.5rem; 
+                        padding: 1rem; 
                     }
                     
                     .header-top {
@@ -939,48 +961,44 @@ const AlbumDetails = () => {
 
                     .header-content { 
                         flex-direction: column; 
-                        align-items: flex-start; 
                         gap: 1.5rem; 
                     }
                     
+                    .header-info {
+                        width: 100%;
+                    }
+
                     .header-actions { 
                         width: 100%; 
                     }
                     
                     .publish-btn { 
                         width: 100%; 
+                        height: 48px;
                         justify-content: center; 
                     }
                     
-                    .album-title { 
-                        font-size: 1.85rem; 
-                        letter-spacing: -0.02em;
-                    }
-                    
-                    .album-description {
-                        font-size: 1rem;
-                    }
-
-                    .album-meta-row { 
-                        gap: 1.25rem; 
-                        display: grid;
-                        grid-template-columns: repeat(2, 1fr);
-                        width: 100%;
-                        background: #f8fafc;
-                        padding: 1rem;
-                        border-radius: 12px;
-                        margin-bottom: 2rem;
+                    .album-title-modern { 
+                        font-size: 1.75rem; 
+                        word-break: break-word;
                     }
 
                     .share-link-banner {
                         flex-direction: column;
                         align-items: stretch;
                         gap: 1rem;
-                        padding: 1.25rem;
+                        padding: 1rem;
                     }
 
                     .share-link-content {
                         gap: 0.75rem;
+                    }
+
+                    .share-url-text {
+                        white-space: normal;
+                        word-break: break-all;
+                        font-size: 0.8rem;
+                        line-height: 1.4;
                     }
 
                     .copy-link-btn {
@@ -988,8 +1006,8 @@ const AlbumDetails = () => {
                     }
 
                     .album-manage-grid {
-                        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-                        gap: 1rem;
+                        grid-template-columns: repeat(2, 1fr); /* 2 columns on mobile */
+                        gap: 10px;
                     }
 
                     .section-header {
@@ -1003,25 +1021,19 @@ const AlbumDetails = () => {
                         justify-content: center;
                     }
 
-                    /* Make actions more visible on mobile since hover isn't reliable */
                     .manage-overlay {
                         opacity: 1;
                         background: linear-gradient(to bottom, rgba(0,0,0,0) 40%, rgba(0,0,0,0.6) 100%);
-                        padding: 0.75rem;
+                        padding: 0.5rem;
                     }
 
                     .photo-name {
-                        display: none; /* Hide name to save space on small grid */
+                        display: none;
                     }
 
                     .delete-btn {
                         padding: 6px !important;
                         font-size: 0.75rem !important;
-                    }
-
-                    .bib-tag {
-                        font-size: 0.65rem;
-                        padding: 2px 4px;
                     }
                 }
 
