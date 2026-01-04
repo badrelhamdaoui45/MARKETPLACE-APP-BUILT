@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import Button from '../components/ui/Button';
 import { calculateCommission } from '../config/platform';
 import { useCart } from '../context/CartContext';
-import { ShoppingCart, Check, Plus, Lock } from 'lucide-react';
+import { ShoppingCart, Check, Plus, Lock, X, ZoomIn, ChevronLeft, ChevronRight } from 'lucide-react';
 import DynamicPopup from '../components/DynamicPopup';
 
 const PublicAlbumView = () => {
@@ -15,6 +15,7 @@ const PublicAlbumView = () => {
     const [packages, setPackages] = useState([]);
     const [selectedPackage, setSelectedPackage] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [selectedPhotoForView, setSelectedPhotoForView] = useState(null); // Lightbox state
 
     // Cart Interaction
     const { addToCart, removeFromCart, isInCart, cartItems, updateCartPackage } = useCart();
@@ -22,6 +23,15 @@ const PublicAlbumView = () => {
     useEffect(() => {
         fetchAlbumDetails();
     }, [photographerName, albumTitle]);
+
+    // Handle ESC key to close lightbox
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') setSelectedPhotoForView(null);
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
 
     const fetchAlbumDetails = async () => {
         try {
@@ -161,7 +171,7 @@ const PublicAlbumView = () => {
                             return (
                                 <div key={photo.id} className="photo-card-wrapper">
                                     <div
-                                        onClick={() => toggleCartItem(photo)}
+                                        onClick={() => setSelectedPhotoForView(photo)}
                                         className={`photo-item ${selected ? 'selected' : ''}`}
                                     >
                                         <img
@@ -170,13 +180,14 @@ const PublicAlbumView = () => {
                                             loading="lazy"
                                         />
 
-                                        {/* Selection Overlay */}
-                                        <div className="photo-selection-overlay">
-                                            <div className="selection-indicator">
-                                                {selected ? <Check size={24} strokeWidth={3} /> : <Plus size={24} strokeWidth={3} />}
+                                        {/* Zoom Overlay */}
+                                        <div className="photo-view-overlay">
+                                            <div className="zoom-icon-wrapper">
+                                                <ZoomIn size={24} strokeWidth={2.5} />
                                             </div>
                                         </div>
 
+                                        {selected && <div className="selected-status-badge"><Check size={12} /></div>}
                                         {selected && <div className="selected-border" />}
                                     </div>
                                     <div className="photo-actions">
@@ -373,61 +384,215 @@ const PublicAlbumView = () => {
                 }
 
                 .photo-item.selected img {
-                    opacity: 0.8;
+                    opacity: 0.9;
                 }
 
-                .photo-selection-overlay {
+                .photo-view-overlay {
                     position: absolute;
                     inset: 0;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    background: rgba(0, 0, 0, 0.2);
+                    background: rgba(0, 0, 0, 0.4);
                     opacity: 0;
-                    transition: opacity var(--transition-base);
+                    transition: all 0.3s ease;
+                    backdrop-filter: blur(2px);
                 }
 
-                .photo-item:hover .photo-selection-overlay {
+                .photo-item:hover .photo-view-overlay {
                     opacity: 1;
                 }
 
-                .photo-item.selected .photo-selection-overlay {
-                    opacity: 1;
-                    background: rgba(59, 130, 246, 0.1);
-                }
-
-                .selection-indicator {
-                    width: 40px;
-                    height: 40px;
-                    background: var(--bg-primary);
-                    color: var(--primary-blue);
+                .zoom-icon-wrapper {
+                    width: 48px;
+                    height: 48px;
+                    background: rgba(255, 255, 255, 0.2);
+                    border: 1px solid rgba(255, 255, 255, 0.3);
+                    color: white;
                     border-radius: 50%;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    font-size: 1.5rem;
-                    font-weight: bold;
-                    box-shadow: var(--shadow-md);
                     transform: scale(0.8);
-                    transition: transform var(--transition-base);
+                    transition: transform 0.3s ease;
                 }
 
-                .photo-item:hover .selection-indicator {
+                .photo-item:hover .zoom-icon-wrapper {
                     transform: scale(1);
                 }
 
-                .photo-item.selected .selection-indicator {
+                .selected-status-badge {
+                    position: absolute;
+                    top: 12px;
+                    right: 12px;
+                    width: 24px;
+                    height: 24px;
                     background: var(--primary-blue);
                     color: white;
-                    transform: scale(1);
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                    z-index: 5;
                 }
 
                 .selected-border {
                     position: absolute;
                     inset: 0;
-                    border: 2px solid var(--primary-blue);
+                    border: 3px solid var(--primary-blue);
                     border-radius: var(--radius-lg);
                     pointer-events: none;
+                    z-index: 4;
+                }
+
+                .custom-lightbox-overlay {
+                    position: fixed;
+                    inset: 0;
+                    background: rgba(0, 0, 0, 0.95);
+                    backdrop-filter: blur(20px);
+                    z-index: 10000;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 2rem;
+                    animation: lightboxIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+                }
+
+                @keyframes lightboxIn {
+                    from { opacity: 0; backdrop-filter: blur(0px); }
+                    to { opacity: 1; backdrop-filter: blur(20px); }
+                }
+
+                .lightbox-container {
+                    position: relative;
+                    width: 100%;
+                    height: 100%;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+                .lightbox-close-icon {
+                    position: fixed;
+                    top: 2rem;
+                    right: 2rem;
+                    background: rgba(255, 255, 255, 0.15);
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                    color: white;
+                    width: 56px;
+                    height: 56px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    z-index: 10001;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                }
+
+                .lightbox-close-icon:hover {
+                    background: rgba(255, 255, 255, 0.25);
+                    transform: scale(1.05);
+                }
+
+                .lightbox-main-view {
+                    flex: 1;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 100%;
+                    padding-bottom: 80px; /* Space for action bar */
+                }
+
+                .lightbox-image-main {
+                    max-width: 100%;
+                    max-height: 100%;
+                    object-fit: contain;
+                    border-radius: 8px;
+                    box-shadow: 0 30px 100px rgba(0,0,0,0.7);
+                    animation: imageZoom 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+                }
+
+                @keyframes imageZoom {
+                    from { opacity: 0; transform: scale(0.92); }
+                    to { opacity: 1; transform: scale(1); }
+                }
+
+                .lightbox-action-bar {
+                    position: fixed;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    padding: 2rem;
+                    display: flex;
+                    justify-content: center;
+                    background: linear-gradient(to top, rgba(0,0,0,0.5), transparent);
+                    z-index: 10001;
+                    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+                }
+
+                @keyframes slideUp {
+                    from { transform: translateY(100%); opacity: 0; }
+                    to { transform: translateY(0); opacity: 1; }
+                }
+
+                .lightbox-cart-action-btn {
+                    min-width: 320px;
+                    height: 64px;
+                    font-size: 1.2rem !important;
+                    font-weight: 700 !important;
+                    background: #F5A623 !important;
+                    border-color: #F5A623 !important;
+                    color: white !important;
+                    border-radius: 99px !important;
+                    box-shadow: 0 8px 24px rgba(245, 166, 35, 0.4) !important;
+                    transition: all 0.2s !important;
+                }
+
+                .lightbox-cart-action-btn:hover {
+                    background: #e59512 !important;
+                    transform: translateY(-2px);
+                    box-shadow: 0 12px 32px rgba(245, 166, 35, 0.5) !important;
+                }
+
+                .lightbox-cart-action-btn.active {
+                    background: #10b981 !important;
+                    border-color: #10b981 !important;
+                    box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3) !important;
+                }
+
+                @media (max-width: 640px) {
+                    .custom-lightbox-overlay {
+                        padding: 10px; /* Match album-view-container padding */
+                    }
+                    .lightbox-container {
+                        max-width: 100%; /* Fill available space minus container padding */
+                    }
+                    .lightbox-close-icon {
+                        top: 1.5rem;
+                        right: 1.5rem;
+                        width: 44px;
+                        height: 44px;
+                    }
+                    .lightbox-main-view {
+                        padding-bottom: 90px;
+                    }
+                    .lightbox-image-main {
+                        border-radius: 12px; /* Match card radius instead of being edge-to-edge */
+                        width: 100%; /* Ensure it takes full width of the constrained container */
+                        box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+                    }
+                    .lightbox-action-bar {
+                        padding: 1.25rem;
+                    }
+                    .lightbox-cart-action-btn {
+                        min-width: 100%; /* Match the card look */
+                        height: 54px;
+                        font-size: 1rem !important;
+                    }
                 }
 
                 .photo-actions {
@@ -705,6 +870,42 @@ const PublicAlbumView = () => {
                     type="album_welcome"
                     placeholders={{ album_title: album.title }}
                 />
+            )}
+
+            {/* Photo Lightbox - Custom Implementation */}
+            {selectedPhotoForView && (
+                <div className="custom-lightbox-overlay" onClick={() => setSelectedPhotoForView(null)}>
+                    <div className="lightbox-container" onClick={e => e.stopPropagation()}>
+                        <button
+                            className="lightbox-close-icon"
+                            onClick={() => setSelectedPhotoForView(null)}
+                            title="Close"
+                        >
+                            <X size={32} />
+                        </button>
+
+                        <div className="lightbox-main-view">
+                            <img
+                                src={selectedPhotoForView.watermarked_url}
+                                alt={selectedPhotoForView.title}
+                                className="lightbox-image-main"
+                            />
+                        </div>
+
+                        <div className="lightbox-action-bar">
+                            <Button
+                                className={`lightbox-cart-action-btn ${isInCart(selectedPhotoForView.id) ? 'active' : ''}`}
+                                onClick={() => toggleCartItem(selectedPhotoForView)}
+                            >
+                                {isInCart(selectedPhotoForView.id) ? (
+                                    <><Check size={20} style={{ marginRight: '8px' }} /> In Cart</>
+                                ) : (
+                                    <><ShoppingCart size={20} style={{ marginRight: '8px' }} /> Add to Cart</>
+                                )}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
