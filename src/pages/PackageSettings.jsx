@@ -21,6 +21,7 @@ const PackageSettings = () => {
     // Form State
     const [formData, setFormData] = useState({
         name: 'New Package',
+        description: '',
         type: 'digital',
         tiers: [{ quantity: 1, price: '' }]
     });
@@ -78,6 +79,7 @@ const PackageSettings = () => {
                 .insert({
                     photographer_id: user.id,
                     name: formData.name,
+                    description: formData.description,
                     package_type: formData.type,
                     tiers: sanitizedTiers
                 });
@@ -148,6 +150,7 @@ const PackageSettings = () => {
                                     <div className="package-card-header">
                                         <div className="package-identity">
                                             <h3>{pkg.name}</h3>
+                                            {pkg.description && <p className="pkg-card-description">{pkg.description}</p>}
                                             <span className={`type-tag ${pkg.package_type}`}>{pkg.package_type}</span>
                                         </div>
                                         <button className="delete-icon-btn" onClick={() => handleDelete(pkg.id, pkg.name)}>
@@ -201,6 +204,16 @@ const PackageSettings = () => {
                             placeholder="e.g. Standard Digital Set"
                             value={formData.name}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        />
+                    </div>
+
+                    <div className="form-section">
+                        <label className="section-label">PACKAGE DESCRIPTION</label>
+                        <textarea
+                            className="modern-textarea"
+                            placeholder="Briefly describe what's included in this package..."
+                            value={formData.description}
+                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                         />
                     </div>
 
@@ -366,7 +379,18 @@ const PackageSettings = () => {
                 .package-identity h3 {
                     font-size: 1.1rem;
                     font-weight: 700;
-                    margin-bottom: 0.5rem;
+                    margin-bottom: 0.25rem;
+                }
+
+                .pkg-card-description {
+                    font-size: 0.85rem;
+                    color: var(--text-secondary);
+                    margin-bottom: 0.75rem;
+                    line-height: 1.4;
+                    display: -webkit-box;
+                    -webkit-line-clamp: 2;
+                    -webkit-box-orient: vertical;
+                    overflow: hidden;
                 }
 
                 .type-tag {
@@ -571,6 +595,23 @@ const PackageSettings = () => {
                     border-radius: 8px;
                     font-size: 0.95rem;
                     width: 100%;
+                }
+
+                .modern-textarea {
+                    padding: 0.75rem;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 8px;
+                    font-size: 0.95rem;
+                    width: 100%;
+                    min-height: 100px;
+                    font-family: inherit;
+                    resize: vertical;
+                }
+
+                .modern-textarea:focus {
+                    outline: none;
+                    border-color: var(--primary-blue);
+                    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
                 }
 
                 .qty-input { width: 80px; text-align: center; }

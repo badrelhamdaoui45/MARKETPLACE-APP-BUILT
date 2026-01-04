@@ -284,6 +284,49 @@ const Cart = () => {
                 border: 1px solid var(--border-light);
             }
 
+            .album-package-info {
+                padding: 1rem 1.5rem;
+                background: #f8fafc;
+                border-bottom: 1px solid var(--border-light);
+            }
+
+            .pkg-detail-header {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                margin-bottom: 0.25rem;
+            }
+
+            .pkg-detail-name {
+                font-size: 0.9rem;
+                font-weight: 700;
+                color: var(--text-primary);
+            }
+
+            .pkg-detail-type {
+                font-size: 0.65rem;
+                font-weight: 800;
+                text-transform: uppercase;
+                padding: 0.15rem 0.4rem;
+                border-radius: 4px;
+            }
+
+            .pkg-detail-type.digital {
+                color: #0369a1;
+                background: #e0f2fe;
+            }
+
+            .pkg-detail-type.physical {
+                color: #92400e;
+                background: #fef3c7;
+            }
+
+            .pkg-detail-desc {
+                font-size: 0.8rem;
+                color: var(--text-secondary);
+                line-height: 1.4;
+            }
+
             .cart-items-list {
                 padding: 1rem;
                 display: flex;
@@ -546,6 +589,20 @@ const Cart = () => {
                                 </div>
                             </div>
 
+                            {group.pricing_package && (
+                                <div className="album-package-info">
+                                    <div className="pkg-detail-header">
+                                        <span className="pkg-detail-name">{group.pricing_package.name}</span>
+                                        <span className={`pkg-detail-type ${group.pricing_package.package_type}`}>
+                                            {group.pricing_package.package_type}
+                                        </span>
+                                    </div>
+                                    {group.pricing_package.description && (
+                                        <p className="pkg-detail-desc">{group.pricing_package.description}</p>
+                                    )}
+                                </div>
+                            )}
+
                             <div className="cart-items-list">
                                 {group.items.map(item => (
                                     <div key={item.id} className="cart-item-card">
@@ -602,11 +659,11 @@ const Cart = () => {
                         </Button>
                     </div>
                 </div>
-            </div>
+            </div >
 
             {styles}
 
-            <Modal
+            < Modal
                 isOpen={isDeleteModalOpen}
                 onClose={() => setIsDeleteModalOpen(false)}
                 onConfirm={() => {
@@ -664,7 +721,7 @@ const Cart = () => {
                 }}
                 showCancel={false}
             />
-        </div>
+        </div >
     );
 };
 

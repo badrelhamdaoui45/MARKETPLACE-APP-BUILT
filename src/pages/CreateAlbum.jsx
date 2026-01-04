@@ -22,7 +22,7 @@ const CreateAlbum = () => {
         title: '',
         description: '',
         price: '',
-        pricing_package_id: ''
+        pricing_package_ids: []
     });
 
     // File state for cover image
@@ -40,7 +40,10 @@ const CreateAlbum = () => {
 
     const handlePackageCreated = (newPackage) => {
         setPackages(prev => [newPackage, ...prev]);
-        setFormData(prev => ({ ...prev, pricing_package_id: newPackage.id }));
+        setFormData(prev => ({
+            ...prev,
+            pricing_package_ids: [...prev.pricing_package_ids, newPackage.id]
+        }));
         setToast({ message: 'Modèle de prix créé avec succès !', type: 'success' });
     };
 
@@ -91,7 +94,7 @@ const CreateAlbum = () => {
                         title: formData.title,
                         description: formData.description,
                         price: formData.price === '' ? null : formData.price,
-                        pricing_package_id: formData.pricing_package_id || null,
+                        pricing_package_ids: formData.pricing_package_ids.length > 0 ? formData.pricing_package_ids : [],
                         cover_image_url: coverImageUrl,
                         is_published: false
                     }
@@ -171,7 +174,7 @@ const CreateAlbum = () => {
 
                 <div className="input-group">
                     <div className="package-select-header">
-                        <label className="input-label">Modèle de prix</label>
+                        <label className="input-label">Modèles de prix</label>
                         <button
                             type="button"
                             onClick={() => setIsPackageModalOpen(true)}
@@ -180,22 +183,58 @@ const CreateAlbum = () => {
                             + Nouveau modèle
                         </button>
                     </div>
-                    <select
-                        className="input-field"
-                        name="pricing_package_id"
-                        value={formData.pricing_package_id}
-                        onChange={handleChange}
-                    >
-                        <option value="">-- Prix fixe simple --</option>
-                        {packages.map(pkg => (
-                            <option key={pkg.id} value={pkg.id}>
-                                {pkg.name} ({pkg.package_type === 'digital' ? 'Numérique' : 'Physique'})
-                            </option>
+
+                    <div className="multi-package-list">
+                        {formData.pricing_package_ids.map((selectedId, idx) => (
+                            <div key={idx} className="package-select-row">
+                                <select
+                                    className="input-field"
+                                    value={selectedId}
+                                    onChange={(e) => {
+                                        const newIds = [...formData.pricing_package_ids];
+                                        newIds[idx] = e.target.value;
+                                        setFormData({ ...formData, pricing_package_ids: newIds });
+                                    }}
+                                >
+                                    <option value="">-- Sélectionner un modèle --</option>
+                                    {packages.map(pkg => (
+                                        <option key={pkg.id} value={pkg.id} disabled={formData.pricing_package_ids.includes(pkg.id) && selectedId !== pkg.id}>
+                                            {pkg.name} ({pkg.package_type === 'digital' ? 'Numérique' : 'Physique'})
+                                        </option>
+                                    ))}
+                                </select>
+                                <button
+                                    type="button"
+                                    className="remove-pkg-btn"
+                                    onClick={() => {
+                                        const newIds = formData.pricing_package_ids.filter((_, i) => i !== idx);
+                                        setFormData({ ...formData, pricing_package_ids: newIds });
+                                    }}
+                                >
+                                    &times;
+                                </button>
+                            </div>
                         ))}
-                    </select>
+
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="add-package-dropdown-btn"
+                            onClick={() => setFormData({
+                                ...formData,
+                                pricing_package_ids: [...formData.pricing_package_ids, '']
+                            })}
+                        >
+                            + Ajouter un autre modèle
+                        </Button>
+                    </div>
+
+                    {formData.pricing_package_ids.length === 0 && (
+                        <p className="no-packages-hint">Aucun modèle sélectionné. L'album utilisera un prix fixe simple.</p>
+                    )}
                 </div>
 
-                {!formData.pricing_package_id && (
+                {formData.pricing_package_ids.length === 0 && (
                     <Input
                         label="Prix fixe (€)"
                         name="price"
@@ -204,7 +243,7 @@ const CreateAlbum = () => {
                         step="0.01"
                         value={formData.price}
                         onChange={handleChange}
-                        required={!formData.pricing_package_id}
+                        required={formData.pricing_package_ids.length === 0}
                     />
                 )}
 
@@ -290,6 +329,55 @@ const CreateAlbum = () => {
                     cursor: pointer;
                     font-weight: 700;
                     text-decoration: underline;
+                }
+
+                .multi-package-list {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.75rem;
+                    margin-top: 0.5rem;
+                }
+
+                .package-select-row {
+                    display: flex;
+                    gap: 0.75rem;
+                    align-items: center;
+                }
+
+                .package-select-row select {
+                    flex: 1;
+                }
+
+                .remove-pkg-btn {
+                    background: #fee2e2;
+                    color: #ef4444;
+                    border: none;
+                    width: 38px;
+                    height: 38px;
+                    border-radius: 8px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 1.5rem;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }
+
+                .remove-pkg-btn:hover {
+                    background: #fecaca;
+                }
+
+                .add-package-dropdown-btn {
+                    border-style: dashed !important;
+                    font-size: 0.85rem !important;
+                    height: 42px !important;
+                }
+
+                .no-packages-hint {
+                    font-size: 0.8rem;
+                    color: var(--text-tertiary);
+                    margin-top: 0.5rem;
+                    font-style: italic;
                 }
 
                 .form-actions {

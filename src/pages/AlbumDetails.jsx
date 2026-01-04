@@ -19,6 +19,8 @@ const AlbumDetails = () => {
     const [copied, setCopied] = useState(false);
     const [toast, setToast] = useState(null);
     const [isDetecting, setIsDetecting] = useState(false);
+    const [availablePackages, setAvailablePackages] = useState([]);
+    const [isEditingPackages, setIsEditingPackages] = useState(false);
 
     useEffect(() => {
         if (user && albumTitle) {
@@ -51,6 +53,13 @@ const AlbumDetails = () => {
 
             if (photosError) throw photosError;
             setPhotos(photosData);
+
+            // Fetch all available packages for selection
+            const { data: pkgData } = await supabase
+                .from('pricing_packages')
+                .select('*')
+                .eq('photographer_id', user.id);
+            setAvailablePackages(pkgData || []);
         } catch (error) {
             console.error('Error fetching details:', error);
         } finally {
@@ -69,6 +78,22 @@ const AlbumDetails = () => {
             setAlbum({ ...album, is_published: !album.is_published });
         } catch (error) {
             console.error('Error updating album:', error);
+        }
+    };
+
+    const handleUpdatePackages = async (newPackageIds) => {
+        try {
+            const { error } = await supabase
+                .from('albums')
+                .update({ pricing_package_ids: newPackageIds })
+                .eq('id', album.id);
+
+            if (error) throw error;
+            setAlbum({ ...album, pricing_package_ids: newPackageIds });
+            setToast({ message: 'Modèles de prix mis à jour !', type: 'success' });
+        } catch (error) {
+            console.error('Error updating packages:', error);
+            setToast({ message: 'Erreur lors de la mise à jour.', type: 'error' });
         }
     };
 
@@ -234,6 +259,67 @@ const AlbumDetails = () => {
                                     <label className="modern-label">CREATED ON</label>
                                     <span className="meta-value-modern">{new Date(album.created_at).toLocaleDateString()}</span>
                                 </div>
+                            </div>
+
+                            <div className="album-packages-section">
+                                <div className="packages-header-row">
+                                    <label className="modern-label">MODÈLES DE PRIX ACTIFS</label>
+                                    <button
+                                        className="edit-packages-toggle"
+                                        onClick={() => setIsEditingPackages(!isEditingPackages)}
+                                    >
+                                        {isEditingPackages ? 'Terminer' : 'Gérer'}
+                                    </button>
+                                </div>
+
+                                <div className="active-packages-list">
+                                    {(album.pricing_package_ids || []).length === 0 ? (
+                                        <p className="no-packages-text">Aucun modèle lié. Prix fixe: ${album.price}</p>
+                                    ) : (
+                                        <div className="package-tags-flow">
+                                            {album.pricing_package_ids.map(id => {
+                                                const pkg = availablePackages.find(p => p.id === id);
+                                                return pkg ? (
+                                                    <span key={id} className={`package-tag-pill ${pkg.package_type}`}>
+                                                        {pkg.name}
+                                                    </span>
+                                                ) : null;
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {isEditingPackages && (
+                                    <div className="package-selection-editor">
+                                        <div className="available-packages-grid">
+                                            {availablePackages.map(pkg => {
+                                                const isActive = (album.pricing_package_ids || []).includes(pkg.id);
+                                                return (
+                                                    <label key={pkg.id} className={`package-select-item ${isActive ? 'active' : ''}`}>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={isActive}
+                                                            onChange={() => {
+                                                                const currentIds = album.pricing_package_ids || [];
+                                                                const newIds = isActive
+                                                                    ? currentIds.filter(id => id !== pkg.id)
+                                                                    : [...currentIds, pkg.id];
+                                                                handleUpdatePackages(newIds);
+                                                            }}
+                                                        />
+                                                        <div className="pkg-sel-info">
+                                                            <strong>{pkg.name}</strong>
+                                                            <span>{pkg.package_type}</span>
+                                                        </div>
+                                                    </label>
+                                                );
+                                            })}
+                                        </div>
+                                        <div className="editor-footer">
+                                            <p>Sélectionnez les modèles à proposer aux acheteurs.</p>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -480,6 +566,20 @@ const AlbumDetails = () => {
                     font-weight: 700 !important;
                     justify-content: center;
                     gap: 0.5rem;
+                    background-color: #F5A623 !important;
+                    border-color: #F5A623 !important;
+                    color: white !important;
+                    transition: all 0.2s;
+                }
+
+                .publish-btn:hover {
+                    background-color: #e59512 !important;
+                    transform: translateY(-1px);
+                    box-shadow: 0 4px 12px rgba(245, 166, 35, 0.3);
+                }
+
+                .publish-btn:active {
+                    transform: translateY(0);
                 }
 
                 .share-link-banner {
@@ -657,6 +757,121 @@ const AlbumDetails = () => {
                     aspect-ratio: 4/5;
                     overflow: hidden;
                     background: #f8fafc;
+                }
+
+                .album-packages-section {
+                    margin-top: 0.5rem;
+                    padding-top: 1.5rem;
+                    border-top: 1px dashed var(--border-light);
+                }
+
+                .packages-header-row {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 0.75rem;
+                }
+
+                .edit-packages-toggle {
+                    background: transparent;
+                    border: none;
+                    color: var(--primary-blue);
+                    font-size: 0.8rem;
+                    font-weight: 700;
+                    cursor: pointer;
+                    text-decoration: underline;
+                }
+
+                .package-tags-flow {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 0.5rem;
+                }
+
+                .package-tag-pill {
+                    font-size: 0.75rem;
+                    font-weight: 700;
+                    padding: 0.4rem 0.8rem;
+                    border-radius: 8px;
+                    background: var(--bg-tertiary);
+                    border: 1px solid var(--border-subtle);
+                }
+
+                .package-tag-pill.digital {
+                    color: #0369a1;
+                    background: #f0f9ff;
+                    border-color: #bae6fd;
+                }
+
+                .package-tag-pill.physical {
+                    color: #92400e;
+                    background: #fffbeb;
+                    border-color: #fef3c7;
+                }
+
+                .no-packages-text {
+                    font-size: 0.9rem;
+                    color: var(--text-tertiary);
+                    font-style: italic;
+                }
+
+                .package-selection-editor {
+                    margin-top: 1.5rem;
+                    background: #f8fafc;
+                    padding: 1rem;
+                    border-radius: 12px;
+                    border: 1px solid #e2e8f0;
+                }
+
+                .available-packages-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+                    gap: 0.75rem;
+                }
+
+                .package-select-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                    padding: 0.75rem;
+                    background: white;
+                    border: 2px solid transparent;
+                    border-radius: 10px;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }
+
+                .package-select-item:hover {
+                    border-color: #cbd5e1;
+                }
+
+                .package-select-item.active {
+                    border-color: var(--primary-blue);
+                    background: #eff6ff;
+                }
+
+                .pkg-sel-info {
+                    display: flex;
+                    flex-direction: column;
+                }
+
+                .pkg-sel-info strong {
+                    font-size: 0.85rem;
+                    color: var(--text-primary);
+                }
+
+                .pkg-sel-info span {
+                    font-size: 0.7rem;
+                    color: var(--text-tertiary);
+                    text-transform: uppercase;
+                    font-weight: 700;
+                }
+
+                .editor-footer {
+                    margin-top: 1rem;
+                    font-size: 0.75rem;
+                    color: #64748b;
+                    text-align: center;
                 }
 
                 .bib-tags {

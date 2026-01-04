@@ -12,10 +12,12 @@ const PublicAlbumView = () => {
     const navigate = useNavigate();
     const [album, setAlbum] = useState(null);
     const [photos, setPhotos] = useState([]);
+    const [packages, setPackages] = useState([]);
+    const [selectedPackage, setSelectedPackage] = useState(null);
     const [loading, setLoading] = useState(true);
 
     // Cart Interaction
-    const { addToCart, removeFromCart, isInCart, cartItems } = useCart();
+    const { addToCart, removeFromCart, isInCart, cartItems, updateCartPackage } = useCart();
 
     useEffect(() => {
         fetchAlbumDetails();
@@ -23,13 +25,11 @@ const PublicAlbumView = () => {
 
     const fetchAlbumDetails = async () => {
         try {
-            // Find album by photographer name and album title
             const { data: albumData, error: albumError } = await supabase
                 .from('albums')
                 .select(`
                     *, 
-                    profiles:photographer_id!inner(full_name),
-                    pricing_packages:pricing_package_id(*)
+                    profiles:photographer_id!inner(full_name)
                 `)
                 .ilike('profiles.full_name', decodeURIComponent(photographerName))
                 .ilike('title', decodeURIComponent(albumTitle))
@@ -38,6 +38,37 @@ const PublicAlbumView = () => {
 
             if (albumError) throw albumError;
             setAlbum(albumData);
+
+            // Fetch linked packages
+            if (albumData.pricing_package_ids && albumData.pricing_package_ids.length > 0) {
+                const { data: pkgData, error: pkgError } = await supabase
+                    .from('pricing_packages')
+                    .select('*')
+                    .in('id', albumData.pricing_package_ids);
+
+                if (!pkgError && pkgData) {
+                    setPackages(pkgData);
+
+                    // Set initial selected package from cart or first available
+                    const cartItemForAlbum = cartItems.find(item => item.album_id === albumData.id);
+                    if (cartItemForAlbum && cartItemForAlbum.pricing_package) {
+                        setSelectedPackage(cartItemForAlbum.pricing_package);
+                    } else {
+                        setSelectedPackage(pkgData[0]);
+                    }
+                }
+            } else if (albumData.pricing_package_id) {
+                // Fallback for legacy data
+                const { data: pkgData } = await supabase
+                    .from('pricing_packages')
+                    .select('*')
+                    .eq('id', albumData.pricing_package_id)
+                    .single();
+                if (pkgData) {
+                    setPackages([pkgData]);
+                    setSelectedPackage(pkgData);
+                }
+            }
 
             const { data: photosData, error: photosError } = await supabase
                 .from('photos')
@@ -57,7 +88,7 @@ const PublicAlbumView = () => {
         if (isInCart(photo.id)) {
             removeFromCart(photo.id);
         } else {
-            addToCart(photo, album);
+            addToCart(photo, { ...album, selected_package: selectedPackage });
         }
     };
 
@@ -73,8 +104,8 @@ const PublicAlbumView = () => {
         const quantity = selection.length;
         if (quantity === 0) return 0;
 
-        if (album.pricing_packages && album.pricing_packages.tiers) {
-            const tiers = [...album.pricing_packages.tiers].sort((a, b) => b.quantity - a.quantity);
+        if (selectedPackage && selectedPackage.tiers) {
+            const tiers = [...selectedPackage.tiers].sort((a, b) => b.quantity - a.quantity);
             const activeTier = tiers.find(tier => quantity >= tier.quantity);
             const unitPrice = activeTier ? activeTier.price : (tiers[tiers.length - 1]?.price || 0);
             return parseFloat((quantity * unitPrice).toFixed(2));
@@ -85,10 +116,15 @@ const PublicAlbumView = () => {
 
 
     const getPackageName = () => {
-        if (album && album.pricing_packages) {
-            return album.pricing_packages.name;
+        if (selectedPackage) {
+            return selectedPackage.name;
         }
         return "Standard Access";
+    };
+
+    const handlePackageChange = (pkg) => {
+        setSelectedPackage(pkg);
+        updateCartPackage(album.id, pkg);
     };
 
     if (loading) return <div style={{ padding: '2rem' }}>Loading...</div>;
@@ -98,7 +134,7 @@ const PublicAlbumView = () => {
     const selectionCount = currentAlbumSelection.length;
     const finalPrice = calculateCurrentAlbumPrice();
     const pkgName = getPackageName();
-    const hasPackage = !!album.pricing_packages;
+    const hasPackages = packages.length > 0;
 
     return (
         <div className="album-view-container">
@@ -170,11 +206,27 @@ const PublicAlbumView = () => {
                         <div className="purchase-header">
                             <h2 className="package-name">{pkgName}</h2>
                             <p className="package-description">
-                                {hasPackage
-                                    ? "Volume discounts apply automatically in your cart."
-                                    : `Full album access for ${album.price}`}
+                                {selectedPackage && selectedPackage.description}
                             </p>
                         </div>
+
+                        {packages.length > 1 && (
+                            <div className="package-selector-section">
+                                <p className="selector-label">SÉLECTIONNEZ UN MODÈLE</p>
+                                <div className="package-options-grid">
+                                    {packages.map(pkg => (
+                                        <button
+                                            key={pkg.id}
+                                            className={`pkg-option-btn ${selectedPackage?.id === pkg.id ? 'active' : ''}`}
+                                            onClick={() => handlePackageChange(pkg)}
+                                        >
+                                            <span className="pkg-opt-name">{pkg.name}</span>
+                                            <span className={`pkg-opt-type ${pkg.package_type}`}>{pkg.package_type}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
 
                         <div className="purchase-details">
                             <div className="detail-row">
@@ -183,11 +235,11 @@ const PublicAlbumView = () => {
                             </div>
 
                             {/* Show Tiers Info */}
-                            {hasPackage && album.pricing_packages.tiers && (
+                            {selectedPackage && selectedPackage.tiers && (
                                 <div className="pricing-tiers">
                                     <p className="tiers-title">Volume Discounts:</p>
                                     <div className="tiers-list">
-                                        {album.pricing_packages.tiers.sort((a, b) => a.quantity - b.quantity).map((tier, i) => (
+                                        {selectedPackage.tiers.sort((a, b) => a.quantity - b.quantity).map((tier, i) => (
                                             <div key={i} className="tier-item">
                                                 <span>{tier.quantity}+ Photos</span>
                                                 <span className="tier-price">{tier.price} <small>/ea</small></span>
@@ -197,6 +249,11 @@ const PublicAlbumView = () => {
                                 </div>
                             )}
 
+                            {!selectedPackage && (
+                                <p className="package-description">
+                                    Full album access for {album.price}€
+                                </p>
+                            )}
                             <div className="price-divider"></div>
 
                             <div className="total-price-row">
@@ -445,6 +502,71 @@ const PublicAlbumView = () => {
                 .tier-price {
                     font-weight: 600;
                     color: var(--text-primary);
+                }
+
+                .package-selector-section {
+                    margin-bottom: var(--spacing-lg);
+                }
+
+                .selector-label {
+                    font-size: 0.65rem;
+                    font-weight: 800;
+                    color: var(--text-tertiary);
+                    margin-bottom: 0.5rem;
+                    letter-spacing: 0.05em;
+                }
+
+                .package-options-grid {
+                    display: grid;
+                    grid-template-columns: 1fr;
+                    gap: 0.5rem;
+                }
+
+                .pkg-option-btn {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 0.75rem 1rem;
+                    background: var(--bg-tertiary);
+                    border: 1px solid var(--border-light);
+                    border-radius: 10px;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }
+
+                .pkg-option-btn:hover {
+                    border-color: #cbd5e1;
+                    background: #f1f5f9;
+                }
+
+                .pkg-option-btn.active {
+                    background: #eff6ff;
+                    border-color: var(--primary-blue);
+                    box-shadow: 0 0 0 1px var(--primary-blue);
+                }
+
+                .pkg-opt-name {
+                    font-size: 0.85rem;
+                    font-weight: 700;
+                    color: var(--text-primary);
+                }
+
+                .pkg-opt-type {
+                    font-size: 0.65rem;
+                    font-weight: 800;
+                    text-transform: uppercase;
+                    padding: 0.2rem 0.5rem;
+                    border-radius: 4px;
+                }
+
+                .pkg-opt-type.digital {
+                    color: #0369a1;
+                    background: #e0f2fe;
+                }
+
+                .pkg-opt-type.physical {
+                    color: #92400e;
+                    background: #fef3c7;
                 }
 
                 .price-divider {

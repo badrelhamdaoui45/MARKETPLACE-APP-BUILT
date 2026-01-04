@@ -41,7 +41,7 @@ export const CartProvider = ({ children }) => {
                 album_title: album.title,
                 photographer_id: album.photographer_id,
                 photographer_name: album.profiles?.full_name || 'Photographer',
-                pricing_package: album.pricing_packages,
+                pricing_package: album.selected_package || album.pricing_packages,
                 album_price: album.price
             };
 
@@ -55,6 +55,14 @@ export const CartProvider = ({ children }) => {
 
     const clearCart = () => {
         setCartItems([]);
+    };
+
+    const updateCartPackage = (albumId, newPackage) => {
+        setCartItems(prev => prev.map(item =>
+            item.album_id === albumId
+                ? { ...item, pricing_package: newPackage }
+                : item
+        ));
     };
 
     const isInCart = (photoId) => {
@@ -106,6 +114,7 @@ export const CartProvider = ({ children }) => {
         clearCart,
         isInCart,
         getItemCount: () => cartItems.length,
+        updateCartPackage,
         calculateTotal
     };
 
