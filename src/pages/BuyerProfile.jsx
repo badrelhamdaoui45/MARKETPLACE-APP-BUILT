@@ -148,7 +148,7 @@ const BuyerProfile = () => {
                                         }}
                                     >
                                         <Download size={16} />
-                                        DOWNLOAD FILES
+                                        download MY PHOTO
                                     </Button>
                                 </div>
                             </div>

@@ -237,36 +237,14 @@ const AlbumDetails = () => {
                             </div>
                         </div>
 
-                        <div className="share-link-banner" style={{
-                            marginTop: '1.5rem',
-                            padding: '1rem',
-                            background: 'white',
-                            borderRadius: '12px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            gap: '1rem',
-                            border: '1px solid var(--border-light)',
-                            boxShadow: 'var(--shadow-sm)',
-                            overflow: 'hidden'
-                        }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: 0 }}>
-                                <div className="share-icon-wrapper" style={{
-                                    background: '#eff6ff',
-                                    width: '36px',
-                                    height: '36px',
-                                    borderRadius: '8px',
-                                    color: '#1d4ed8',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    flexShrink: 0
-                                }}>
+                        <div className="share-link-banner">
+                            <div className="share-link-content">
+                                <div className="share-icon-wrapper">
                                     <Share2 size={18} />
                                 </div>
-                                <div style={{ overflow: 'hidden', flex: 1 }}>
-                                    <p className="share-label" style={{ fontSize: '0.7rem', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '2px', letterSpacing: '0.05em' }}>SHAREABLE LINK</p>
-                                    <p className="share-url-text" style={{ fontSize: '0.85rem', color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: '500' }}>
+                                <div className="share-text-wrapper">
+                                    <p className="share-label">SHAREABLE LINK</p>
+                                    <p className="share-url-text">
                                         {album?.profiles?.full_name ? `${window.location.origin}/albums/${encodeURIComponent(album.profiles.full_name)}/${encodeURIComponent(album.title)}` : 'Generating link...'}
                                     </p>
                                 </div>
@@ -275,7 +253,6 @@ const AlbumDetails = () => {
                                 variant={copied ? "secondary" : "outline"}
                                 onClick={handleShare}
                                 className="copy-link-btn"
-                                style={{ minWidth: '110px', height: '40px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
                             >
                                 {copied ? <Check size={16} /> : <Copy size={16} />}
                                 {copied ? 'Copied!' : 'Link'}
@@ -500,6 +477,75 @@ const AlbumDetails = () => {
                     min-width: 160px;
                     display: flex;
                     align-items: center;
+                    font-weight: 700 !important;
+                    justify-content: center;
+                    gap: 0.5rem;
+                }
+
+                .share-link-banner {
+                    margin-top: 1.5rem;
+                    padding: 1rem;
+                    background: white;
+                    border-radius: 16px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 1rem;
+                    border: 1px solid var(--border-subtle);
+                    box-shadow: var(--shadow-sm);
+                }
+
+                .share-link-content {
+                    display: flex;
+                    align-items: center;
+                    gap: 1rem;
+                    flex: 1;
+                    min-width: 0;
+                }
+
+                .share-icon-wrapper {
+                    background: #f0f9ff;
+                    width: 40px;
+                    height: 40px;
+                    border-radius: 10px;
+                    color: #0369a1;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex-shrink: 0;
+                }
+
+                .share-text-wrapper {
+                    overflow: hidden;
+                    flex: 1;
+                }
+
+                .share-label {
+                    font-size: 0.65rem;
+                    font-weight: 800;
+                    color: var(--text-tertiary);
+                    text-transform: uppercase;
+                    margin-bottom: 2px;
+                    letter-spacing: 0.05em;
+                }
+
+                .share-url-text {
+                    font-size: 0.85rem;
+                    color: var(--text-primary);
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    font-weight: 600;
+                }
+
+                .copy-link-btn {
+                    min-width: 110px;
+                    height: 42px;
+                    font-size: 0.85rem !important;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 0.5rem;
                 }
 
                 .upload-section-card {
@@ -712,19 +758,17 @@ const AlbumDetails = () => {
                     }
 
                     .share-link-banner {
-                        padding: 0.75rem !important;
                         flex-direction: column;
-                        align-items: stretch !important;
-                        gap: 0.75rem !important;
-                        margin-top: 0 !important;
-                        margin-bottom: 1.5rem !important;
+                        align-items: stretch;
+                        gap: 1rem;
+                        padding: 1.25rem;
                     }
 
-                    .share-link-banner .header-info {
-                        padding-right: 0;
+                    .share-link-content {
+                        gap: 0.75rem;
                     }
 
-                    .share-link-banner button {
+                    .copy-link-btn {
                         width: 100%;
                     }
 
@@ -781,11 +825,11 @@ const AlbumDetails = () => {
                     
                     .share-link-banner {
                         padding: 1rem;
-                        gap: 0.5rem;
-                        margin-bottom: 2rem !important;
+                        gap: 0.75rem;
+                        margin-bottom: 1.5rem !important;
                     }
                     .share-icon-wrapper { display: none; }
-                    .copy-link-btn { min-width: 80px !important; }
+                    .copy-link-btn { min-width: 80px !important; height: 38px !important; }
 
                     .upload-section-card {
                         padding: 1.25rem;

@@ -138,7 +138,7 @@ const AlbumDownload = () => {
                                     <div className="resolution-label">Original HD</div>
                                 </div>
                                 <div className="card-info">
-                                    <h3 className="photo-title">{photo.title || "Image File"}</h3>
+                                    {/* photo title hidden as requested */}
                                     {photo.downloadUrl ? (
                                         <a
                                             href={photo.downloadUrl}

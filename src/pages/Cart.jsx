@@ -120,6 +120,18 @@ const Cart = () => {
         return () => { isMounted = false; };
     }, [successParam, sessionIdParam, authLoading, clearCart, setSearchParams]);
 
+    // Auto-redirect after success
+    useEffect(() => {
+        if (showSuccess) {
+            const timer = setTimeout(() => {
+                const url = processedSessionId ? `/my-purchases?session_id=${processedSessionId}` : '/my-purchases';
+                navigate(url);
+            }, 3000); // 3 seconds delay
+            return () => clearTimeout(timer);
+        }
+    }, [showSuccess, processedSessionId, navigate]);
+
+
     // Group items by album for better UI and pricing logic
     const groupedItems = cartItems.reduce((acc, item) => {
         if (!acc[item.album_id]) {
@@ -640,6 +652,9 @@ const Cart = () => {
                             <CheckCircle size={48} />
                         </div>
                         <p>Thank you for your purchase. Your photos have been unlocked and are ready for download.</p>
+                        <p style={{ marginTop: '1rem', fontSize: '0.85rem', color: '#6b7280' }}>
+                            Redirecting to My Purchases in a few seconds...
+                        </p>
                     </div>
                 }
                 confirmText="View My Photos"
