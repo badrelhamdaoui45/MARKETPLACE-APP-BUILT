@@ -103,6 +103,12 @@ const Albums = () => {
                                             <span style={{ fontSize: '0.8rem', marginTop: '0.5rem' }}>No Cover</span>
                                         </div>
                                     )}
+
+                                    {album.pre_inscription_enabled && (
+                                        <div className="pre-inscription-badge">
+                                            PRE INSCRIPTION
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="album-card-content">
                                     <h3 className="album-card-title">{album.title}</h3>
@@ -110,20 +116,12 @@ const Albums = () => {
                                         <div className="photographer-logo-mini">
                                             <User size={14} />
                                         </div>
-                                        <Link
-                                            to={`/photographer/${encodeURIComponent(album.profiles?.full_name)}`}
-                                            className="photographer-name-text"
-                                            onClick={(e) => e.stopPropagation()}
-                                            style={{ textDecoration: 'none' }}
-                                        >
+                                        <div className="photographer-name-text">
                                             {album.profiles?.full_name || 'Photographer'}
-                                        </Link>
+                                        </div>
                                     </div>
                                 </div>
                             </Link>
-
-                            {/* Status label if needed - e.g. Pre-inscription or similar */}
-                            {false && <div className="album-status-label">Pre-registration</div>}
                         </div>
                     ))}
                 </div>
@@ -360,13 +358,26 @@ const Albums = () => {
                 }
 
                 .album-card-image {
-                    /* min-height removed */
                     background: #f3f4f6;
                     position: relative;
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     min-height: 200px;
+                }
+
+                .pre-inscription-badge {
+                    position: absolute;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    background: #f97316;
+                    color: white;
+                    padding: 0.5rem;
+                    font-size: 0.75rem;
+                    font-weight: 800;
+                    text-align: center;
+                    letter-spacing: 0.05em;
                 }
 
                 .album-card-image img {
@@ -479,7 +490,7 @@ const Albums = () => {
                     }
                 }
             `}</style>
-        </div>
+        </div >
     );
 };
 

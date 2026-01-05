@@ -22,7 +22,8 @@ const CreateAlbum = () => {
         title: '',
         description: '',
         price: '',
-        pricing_package_ids: []
+        pricing_package_ids: [],
+        pre_inscription_enabled: false
     });
 
     // File state for cover image
@@ -48,7 +49,8 @@ const CreateAlbum = () => {
     };
 
     const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+        const { name, value, type, checked } = e.target;
+        setFormData({ ...formData, [name]: type === 'checkbox' ? checked : value });
     };
 
     const handleFileChange = (e) => {
@@ -96,7 +98,8 @@ const CreateAlbum = () => {
                         price: formData.price === '' ? null : formData.price,
                         pricing_package_ids: formData.pricing_package_ids.length > 0 ? formData.pricing_package_ids : [],
                         cover_image_url: coverImageUrl,
-                        is_published: false
+                        is_published: false,
+                        pre_inscription_enabled: formData.pre_inscription_enabled
                     }
                 ])
                 .select()
@@ -170,6 +173,21 @@ const CreateAlbum = () => {
                         rows="4"
                         placeholder="Dites-nous en plus sur cette collection..."
                     />
+                </div>
+
+                <div className="input-group checkbox-group">
+                    <label className="checkbox-label">
+                        <input
+                            type="checkbox"
+                            name="pre_inscription_enabled"
+                            checked={formData.pre_inscription_enabled}
+                            onChange={handleChange}
+                        />
+                        <div className="checkbox-text">
+                            <span className="checkbox-title">Activer la pré-inscription</span>
+                            <span className="checkbox-hint">Permet aux clients de s'inscrire pour être notifiés quand les photos seront prêtes.</span>
+                        </div>
+                    </label>
                 </div>
 
                 <div className="input-group">
@@ -300,6 +318,46 @@ const CreateAlbum = () => {
 
                 .input-field, .input-group select, .input-group textarea {
                     border: 2px solid var(--primary-blue) !important;
+                }
+
+                .checkbox-group {
+                    background: #fff7ed;
+                    padding: 1.25rem;
+                    border-radius: var(--radius-md);
+                    border: 1px solid #ffedd5;
+                    margin-bottom: 2rem;
+                }
+
+                .checkbox-label {
+                    display: flex;
+                    gap: 1rem;
+                    cursor: pointer;
+                    align-items: flex-start;
+                }
+
+                .checkbox-label input[type="checkbox"] {
+                    width: 20px;
+                    height: 20px;
+                    margin-top: 3px;
+                    accent-color: var(--primary-orange);
+                    cursor: pointer;
+                }
+
+                .checkbox-text {
+                    display: flex;
+                    flex-direction: column;
+                }
+
+                .checkbox-title {
+                    font-weight: 700;
+                    color: #9a3412;
+                    font-size: 1rem;
+                }
+
+                .checkbox-hint {
+                    font-size: 0.85rem;
+                    color: #c2410c;
+                    margin-top: 0.25rem;
                 }
 
                 .cover-preview-box img {

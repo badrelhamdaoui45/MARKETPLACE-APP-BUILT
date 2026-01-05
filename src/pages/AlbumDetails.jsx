@@ -16,6 +16,9 @@ const AlbumDetails = () => {
     const [album, setAlbum] = useState(null);
     const [photos, setPhotos] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [subscriberCount, setSubscriberCount] = useState(0);
+    const [isEditingPreInscription, setIsEditingPreInscription] = useState(false);
+    const [savingPreInscription, setSavingPreInscription] = useState(false);
     const [copied, setCopied] = useState(false);
     const [toast, setToast] = useState(null);
     const [isDetecting, setIsDetecting] = useState(false);
@@ -92,6 +95,15 @@ const AlbumDetails = () => {
                     is_active: true
                 });
             }
+
+            // Fetch subscriber count
+            const { count, error: countError } = await supabase
+                .from('pre_inscriptions')
+                .select('*', { count: 'exact', head: true })
+                .eq('album_id', albumData.id);
+
+            if (!countError) setSubscriberCount(count || 0);
+
         } catch (error) {
             console.error('Error fetching details:', error);
         } finally {
@@ -110,6 +122,45 @@ const AlbumDetails = () => {
             setAlbum({ ...album, is_published: !album.is_published });
         } catch (error) {
             console.error('Error updating album:', error);
+        }
+    };
+
+    const handlePreInscriptionToggle = async (enabled) => {
+        try {
+            const { error } = await supabase
+                .from('albums')
+                .update({ pre_inscription_enabled: enabled })
+                .eq('id', album.id);
+
+            if (error) throw error;
+            setAlbum({ ...album, pre_inscription_enabled: enabled });
+            setToast({ message: enabled ? 'Pré-inscription activée !' : 'Pré-inscription désactivée !', type: 'success' });
+        } catch (error) {
+            console.error('Error updating pre-inscription:', error);
+            setToast({ message: 'Erreur lors de la mise à jour.', type: 'error' });
+        }
+    };
+
+    const handleSavePreInscriptionContent = async () => {
+        setSavingPreInscription(true);
+        try {
+            const { error } = await supabase
+                .from('albums')
+                .update({
+                    pre_inscription_title: album.pre_inscription_title,
+                    pre_inscription_description: album.pre_inscription_description,
+                    // pre_inscription_cover_url can be handled later via upload if needed
+                })
+                .eq('id', album.id);
+
+            if (error) throw error;
+            setToast({ message: 'Contenu pré-inscription enregistré !', type: 'success' });
+            setIsEditingPreInscription(false);
+        } catch (error) {
+            console.error('Error saving pre-inscription content:', error);
+            setToast({ message: 'Erreur lors de l\'enregistrement.', type: 'error' });
+        } finally {
+            setSavingPreInscription(false);
         }
     };
 
@@ -397,6 +448,72 @@ const AlbumDetails = () => {
                                         </div>
                                         <div className="editor-footer">
                                             <p>Sélectionnez les modèles à proposer aux acheteurs.</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="album-pre-inscription-section">
+                                <div className="packages-header-row">
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                        <label className="modern-label" style={{ margin: 0 }}>PRÉ-INSCRIPTION</label>
+                                        <label className="switch-toggle">
+                                            <input
+                                                type="checkbox"
+                                                checked={album.pre_inscription_enabled}
+                                                onChange={(e) => handlePreInscriptionToggle(e.target.checked)}
+                                            />
+                                            <span className="switch-slider"></span>
+                                        </label>
+                                    </div>
+                                    <button
+                                        className="edit-packages-toggle"
+                                        onClick={() => setIsEditingPreInscription(!isEditingPreInscription)}
+                                    >
+                                        {isEditingPreInscription ? 'Fermer' : 'Personnaliser'}
+                                    </button>
+                                </div>
+                                <div className="active-popup-preview">
+                                    <p className="no-packages-text">
+                                        {album.pre_inscription_enabled ? (
+                                            <span style={{ color: '#ea580c', fontWeight: 700 }}>
+                                                {subscriberCount > 0
+                                                    ? `Actif — ${subscriberCount} personnes inscrites.`
+                                                    : "Actif — Un formulaire s'affichera pour les clients."}
+                                            </span>
+                                        ) : 'Désactivé'}
+                                    </p>
+                                </div>
+
+                                {isEditingPreInscription && (
+                                    <div className="popup-editor-panel">
+                                        <div className="popup-field-group">
+                                            <label>Titre de la page (Optionnel)</label>
+                                            <input
+                                                type="text"
+                                                value={album.pre_inscription_title || ''}
+                                                onChange={(e) => setAlbum({ ...album, pre_inscription_title: e.target.value })}
+                                                placeholder="ex: Les photos arrivent bientôt ! 📸"
+                                            />
+                                        </div>
+
+                                        <div className="popup-field-group">
+                                            <label>Description (Optionnel)</label>
+                                            <textarea
+                                                value={album.pre_inscription_description || ''}
+                                                onChange={(e) => setAlbum({ ...album, pre_inscription_description: e.target.value })}
+                                                placeholder="ex: Inscrivez-vous pour être notifié..."
+                                            />
+                                        </div>
+
+                                        <div className="popup-editor-actions">
+                                            <Button
+                                                onClick={handleSavePreInscriptionContent}
+                                                disabled={savingPreInscription}
+                                                className="save-popup-btn"
+                                            >
+                                                {savingPreInscription ? 'Enregistrement...' : 'Enregistrer le contenu'}
+                                            </Button>
                                         </div>
                                     </div>
                                 )}
@@ -1309,23 +1426,37 @@ const AlbumDetails = () => {
                 .switch-slider:before {
                     position: absolute;
                     content: "";
-                    height: 16px;
-                    width: 16px;
+                    height: 14px;
+                    width: 14px;
                     left: 3px;
                     bottom: 3px;
                     background-color: white;
-                    transition: .3s;
+                    transition: .4s;
                     border-radius: 50%;
                 }
 
-                .switch-toggle input:checked + .switch-slider {
+                input:checked + .switch-slider {
+                    background-color: var(--primary-blue);
+                }
+
+                .orange-toggle input:checked + .switch-slider {
                     background-color: #f97316;
                 }
 
-                .switch-toggle input:checked + .switch-slider:before {
-                    transform: translateX(22px);
+                input:focus + .switch-slider {
+                    box-shadow: 0 0 1px var(--primary-blue);
                 }
 
+                input:checked + .switch-slider:before {
+                    transform: translateX(16px);
+                }
+
+                .album-pre-inscription-section {
+                    background: #fff7ed;
+                    padding: 1.5rem;
+                    border-radius: 12px;
+                    border: 1px solid #ffedd5;
+                }
                 .bib-tags {
                     position: absolute;
                     top: 8px;
@@ -1378,10 +1509,10 @@ const AlbumDetails = () => {
                 }
 
                 @media (max-width: 768px) {
-                    .album-details-container { 
-                        padding: 1rem; 
+                    .album-details-container {
+                        padding: 1rem;
                     }
-                    
+
                     .header-top {
                         flex-direction: column;
                         align-items: flex-start;
@@ -1389,27 +1520,27 @@ const AlbumDetails = () => {
                         margin-bottom: 1.5rem;
                     }
 
-                    .header-content { 
-                        flex-direction: column; 
-                        gap: 1.5rem; 
+                    .header-content {
+                        flex-direction: column;
+                        gap: 1.5rem;
                     }
-                    
+
                     .header-info {
                         width: 100%;
                     }
 
-                    .header-actions { 
-                        width: 100%; 
+                    .header-actions {
+                        width: 100%;
                     }
-                    
-                    .publish-btn { 
-                        width: 100%; 
+
+                    .publish-btn {
+                        width: 100%;
                         height: 48px;
-                        justify-content: center; 
+                        justify-content: center;
                     }
-                    
-                    .album-title-modern { 
-                        font-size: 1.75rem; 
+
+                    .album-title-modern {
+                        font-size: 1.75rem;
                         word-break: break-word;
                     }
 
@@ -1436,7 +1567,7 @@ const AlbumDetails = () => {
                     }
 
                     .album-manage-grid {
-                        grid-template-columns: repeat(2, 1fr); /* 2 columns on mobile */
+                        grid-template-columns: repeat(2, 1fr);
                         gap: 10px;
                     }
 
@@ -1468,18 +1599,18 @@ const AlbumDetails = () => {
                 }
 
                 @media (max-width: 480px) {
-                    .album-details-container { 
-                        padding: 1rem 1.25rem; 
+                    .album-details-container {
+                        padding: 1rem 1.25rem;
                     }
-                    .album-info-card { 
-                        padding: 1.25rem; 
+                    .album-info-card {
+                        padding: 1.25rem;
                         gap: 1rem;
                         margin-bottom: 1rem;
                     }
                     .album-title-modern { font-size: 1.5rem; }
                     .album-description-modern { font-size: 0.9rem; }
                     .meta-value-modern { font-size: 1.1rem; }
-                    
+
                     .share-link-banner {
                         padding: 1rem;
                         gap: 0.75rem;
@@ -1494,28 +1625,28 @@ const AlbumDetails = () => {
                     }
 
                     .album-manage-grid {
-                        grid-template-columns: repeat(2, 1fr); /* Force 2 columns on very small screens */
+                        grid-template-columns: repeat(2, 1fr);
                         gap: 0.75rem;
                     }
                 }
 
                 @media (max-width: 430px) {
-                    .album-details-container { 
-                        padding: 0.75rem 1rem; 
+                    .album-details-container {
+                        padding: 0.75rem 1rem;
                     }
-                    .album-info-card { 
-                        padding: 1rem; 
+                    .album-info-card {
+                        padding: 1rem;
                         border-radius: 12px;
                     }
-                    .album-title-modern { 
-                        font-size: 1.35rem; 
+                    .album-title-modern {
+                        font-size: 1.35rem;
                     }
-                    .modern-meta-grid { 
-                        gap: 1rem; 
+                    .modern-meta-grid {
+                        gap: 1rem;
                         padding-top: 1rem;
                     }
-                    .meta-value-modern { 
-                        font-size: 1rem; 
+                    .meta-value-modern {
+                        font-size: 1rem;
                     }
                     .share-link-banner {
                         padding: 0.75rem;
@@ -1524,8 +1655,8 @@ const AlbumDetails = () => {
                     .share-url-text {
                         font-size: 0.75rem !important;
                     }
-                    .copy-link-btn { 
-                        min-width: 70px !important; 
+                    .copy-link-btn {
+                        min-width: 70px !important;
                         height: 36px !important;
                         font-size: 0.75rem !important;
                     }
@@ -1540,15 +1671,14 @@ const AlbumDetails = () => {
                     }
                 }
             `}</style>
-            {
-                toast && (
-                    <Toast
-                        message={toast.message}
-                        type={toast.type}
-                        onClose={() => setToast(null)}
-                    />
-                )
-            }
+
+            {toast && (
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast(null)}
+                />
+            )}
 
             <Modal
                 isOpen={modalConfig.isOpen}
@@ -1561,7 +1691,7 @@ const AlbumDetails = () => {
                 cancelText={modalConfig.cancelText}
                 showCancel={modalConfig.showCancel}
             />
-        </div >
+        </div>
     );
 };
 

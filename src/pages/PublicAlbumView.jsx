@@ -94,6 +94,25 @@ const PublicAlbumView = () => {
         }
     };
 
+    const handlePreInscriptionSubmit = async (e) => {
+        e.preventDefault();
+        const email = e.target.email.value;
+        const phone = e.target.phone?.value || '';
+
+        try {
+            const { error } = await supabase
+                .from('pre_inscriptions')
+                .insert([{ album_id: album.id, email, phone }]);
+
+            if (error) throw error;
+            alert('Parfait ! Vous serez notifié dès que les photos seront prêtes.');
+            e.target.reset();
+        } catch (err) {
+            console.error('Error subscribing:', err);
+            alert('Une erreur est survenue. Veuillez réessayer.');
+        }
+    };
+
     const toggleCartItem = (photo) => {
         if (isInCart(photo.id)) {
             removeFromCart(photo.id);
@@ -148,147 +167,348 @@ const PublicAlbumView = () => {
 
     return (
         <div className="album-view-container">
-            <div className="album-content-layout">
-
-                {/* Left/Top: Photos Grid */}
-                <div className="photos-section">
-                    <div className="album-header">
-                        <h1 className="album-title">{album.title}</h1>
-                        <p className="album-author">
-                            by <Link to={`/photographer/${encodeURIComponent(album.profiles?.full_name)}`} className="photographer-link">
-                                {album.profiles?.full_name}
-                            </Link>
-                        </p>
-                        <div className="selection-hint">
-                            <span className="hint-icon"><ShoppingCart size={16} /></span>
-                            Click the button below photos to add to cart
-                        </div>
-                    </div>
-
-                    <div className="photos-grid">
-                        {photos.map(photo => {
-                            const selected = isInCart(photo.id);
-                            return (
-                                <div key={photo.id} className="photo-card-wrapper">
-                                    <div
-                                        onClick={() => setSelectedPhotoForView(photo)}
-                                        className={`photo-item ${selected ? 'selected' : ''}`}
-                                    >
-                                        <img
-                                            src={photo.watermarked_url}
-                                            alt={photo.title}
-                                            loading="lazy"
-                                        />
-
-                                        {/* Zoom Overlay */}
-                                        <div className="photo-view-overlay">
-                                            <div className="zoom-icon-wrapper">
-                                                <ZoomIn size={24} strokeWidth={2.5} />
-                                            </div>
-                                        </div>
-
-                                        {selected && <div className="selected-status-badge"><Check size={12} /></div>}
-                                        {selected && <div className="selected-border" />}
-                                    </div>
-                                    <div className="photo-actions">
-                                        <Button
-                                            variant="outline"
-                                            className={`add-to-cart-btn action-btn cart-btn-grid ${selected ? 'in-cart' : ''}`}
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                const btn = e.currentTarget;
-                                                btn.classList.add('animate-orange');
-                                                setTimeout(() => btn.classList.remove('animate-orange'), 600);
-                                                toggleCartItem(photo);
-                                            }}
-                                        >
-                                            {selected ? 'Remove from Cart' : 'Add to Cart'}
-                                        </Button>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                {/* Right/Bottom: Purchase Card */}
-                <div className="purchase-card-container">
-                    <div className="purchase-card">
-                        <div className="purchase-header">
-                            <h2 className="package-name">{pkgName}</h2>
-                            <p className="package-description">
-                                {selectedPackage && selectedPackage.description}
+            {album.pre_inscription_enabled ? (
+                <div className="pre-inscription-view">
+                    <div className="pre-inscription-content">
+                        <div className="album-header central">
+                            <h1 className="album-title">{album.title}</h1>
+                            <p className="album-author">
+                                by <Link to={`/photographer/${encodeURIComponent(album.profiles?.full_name)}`} className="photographer-link">
+                                    {album.profiles?.full_name}
+                                </Link>
                             </p>
                         </div>
 
-                        {packages.length > 1 && (
-                            <div className="package-selector-section">
-                                <p className="selector-label">SÉLECTIONNEZ UN MODÈLE</p>
-                                <div className="package-options-grid">
-                                    {packages.map(pkg => (
-                                        <button
-                                            key={pkg.id}
-                                            className={`pkg-option-btn ${selectedPackage?.id === pkg.id ? 'active' : ''}`}
-                                            onClick={() => handlePackageChange(pkg)}
-                                        >
-                                            <span className="pkg-opt-name">{pkg.name}</span>
-                                            <span className={`pkg-opt-type ${pkg.package_type}`}>{pkg.package_type}</span>
-                                        </button>
-                                    ))}
+                        <div className="pre-inscription-card">
+                            <div className="pre-inscription-image">
+                                {album.cover_image_url ? (
+                                    <img src={album.cover_image_url} alt={album.title} />
+                                ) : (
+                                    <div className="no-cover-placeholder">
+                                        <Image size={64} strokeWidth={1} />
+                                    </div>
+                                )}
+                                <div className="pre-inscription-badge-overlay">
+                                    PRÉ-INSCRIPTION
                                 </div>
                             </div>
-                        )}
 
-                        <div className="purchase-details">
-                            <div className="detail-row">
-                                <span>Selected (this album)</span>
-                                <span className="detail-value">{selectionCount} photos</span>
+                            <div className="pre-inscription-form-section">
+                                <h2>{album.pre_inscription_title || "Les photos arrivent bientôt ! 📸"}</h2>
+                                <p>{album.pre_inscription_description || "Inscrivez-vous pour recevoir une notification dès que l'album sera en ligne et prêt à l'achat."}</p>
+
+                                <form onSubmit={handlePreInscriptionSubmit} className="notify-form">
+                                    <div className="form-group-modern">
+                                        <label>Votre Email *</label>
+                                        <input type="email" name="email" required placeholder="nom@exemple.com" />
+                                    </div>
+                                    <div className="form-group-modern">
+                                        <label>Votre Téléphone (Optionnel)</label>
+                                        <input type="tel" name="phone" placeholder="06 12 34 56 78" />
+                                    </div>
+                                    <Button type="submit" className="notify-submit-btn">
+                                        M'avertir de la sortie !
+                                    </Button>
+                                    <p className="privacy-note">
+                                        <Lock size={12} /> Vos données resterront confidentielles avec {album.profiles?.full_name}.
+                                    </p>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ) : (
+                <div className="album-content-layout">
+
+                    {/* Left/Top: Photos Grid */}
+                    <div className="photos-section">
+                        <div className="album-header">
+                            <h1 className="album-title">{album.title}</h1>
+                            <p className="album-author">
+                                by <Link to={`/photographer/${encodeURIComponent(album.profiles?.full_name)}`} className="photographer-link">
+                                    {album.profiles?.full_name}
+                                </Link>
+                            </p>
+                            <div className="selection-hint">
+                                <span className="hint-icon"><ShoppingCart size={16} /></span>
+                                Click the button below photos to add to cart
+                            </div>
+                        </div>
+
+                        <div className="photos-grid">
+                            {photos.map(photo => {
+                                const selected = isInCart(photo.id);
+                                return (
+                                    <div key={photo.id} className="photo-card-wrapper">
+                                        <div
+                                            onClick={() => setSelectedPhotoForView(photo)}
+                                            className={`photo-item ${selected ? 'selected' : ''}`}
+                                        >
+                                            <img
+                                                src={photo.watermarked_url}
+                                                alt={photo.title}
+                                                loading="lazy"
+                                            />
+
+                                            {/* Zoom Overlay */}
+                                            <div className="photo-view-overlay">
+                                                <div className="zoom-icon-wrapper">
+                                                    <ZoomIn size={24} strokeWidth={2.5} />
+                                                </div>
+                                            </div>
+
+                                            {selected && <div className="selected-status-badge"><Check size={12} /></div>}
+                                            {selected && <div className="selected-border" />}
+                                        </div>
+                                        <div className="photo-actions">
+                                            <Button
+                                                variant="outline"
+                                                className={`add-to-cart-btn action-btn cart-btn-grid ${selected ? 'in-cart' : ''}`}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    const btn = e.currentTarget;
+                                                    btn.classList.add('animate-orange');
+                                                    setTimeout(() => btn.classList.remove('animate-orange'), 600);
+                                                    toggleCartItem(photo);
+                                                }}
+                                            >
+                                                {selected ? 'Remove from Cart' : 'Add to Cart'}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Right/Bottom: Purchase Card */}
+                    <div className="purchase-card-container">
+                        <div className="purchase-card">
+                            <div className="purchase-header">
+                                <h2 className="package-name">{pkgName}</h2>
+                                <p className="package-description">
+                                    {selectedPackage && selectedPackage.description}
+                                </p>
                             </div>
 
-                            {/* Show Tiers Info */}
-                            {selectedPackage && selectedPackage.tiers && (
-                                <div className="pricing-tiers">
-                                    <p className="tiers-title">Volume Discounts:</p>
-                                    <div className="tiers-list">
-                                        {selectedPackage.tiers.sort((a, b) => a.quantity - b.quantity).map((tier, i) => (
-                                            <div key={i} className="tier-item">
-                                                <span>{tier.quantity}+ Photos</span>
-                                                <span className="tier-price">{tier.price} <small>/ea</small></span>
-                                            </div>
+                            {packages.length > 1 && (
+                                <div className="package-selector-section">
+                                    <p className="selector-label">SÉLECTIONNEZ UN MODÈLE</p>
+                                    <div className="package-options-grid">
+                                        {packages.map(pkg => (
+                                            <button
+                                                key={pkg.id}
+                                                className={`pkg-option-btn ${selectedPackage?.id === pkg.id ? 'active' : ''}`}
+                                                onClick={() => handlePackageChange(pkg)}
+                                            >
+                                                <span className="pkg-opt-name">{pkg.name}</span>
+                                                <span className={`pkg-opt-type ${pkg.package_type}`}>{pkg.package_type}</span>
+                                            </button>
                                         ))}
                                     </div>
                                 </div>
                             )}
 
-                            {!selectedPackage && (
-                                <p className="package-description">
-                                    Full album access for {album.price}€
-                                </p>
-                            )}
-                            <div className="price-divider"></div>
+                            <div className="purchase-details">
+                                <div className="detail-row">
+                                    <span>Selected (this album)</span>
+                                    <span className="detail-value">{selectionCount} photos</span>
+                                </div>
 
-                            <div className="total-price-row">
-                                <span>Subtotal</span>
-                                <span className="total-amount">{finalPrice}</span>
+                                {/* Show Tiers Info */}
+                                {selectedPackage && selectedPackage.tiers && (
+                                    <div className="pricing-tiers">
+                                        <p className="tiers-title">Volume Discounts:</p>
+                                        <div className="tiers-list">
+                                            {selectedPackage.tiers.sort((a, b) => a.quantity - b.quantity).map((tier, i) => (
+                                                <div key={i} className="tier-item">
+                                                    <span>{tier.quantity}+ Photos</span>
+                                                    <span className="tier-price">{tier.price} <small>/ea</small></span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {!selectedPackage && (
+                                    <p className="package-description">
+                                        Full album access for {album.price}€
+                                    </p>
+                                )}
+                                <div className="price-divider"></div>
+
+                                <div className="total-price-row">
+                                    <span>Subtotal</span>
+                                    <span className="total-amount">{finalPrice}</span>
+                                </div>
                             </div>
+
+                            <Button
+                                className="buy-button action-btn"
+                                onClick={() => navigate('/cart')}
+                            >
+                                <ShoppingCart size={20} style={{ marginRight: '8px' }} />
+                                View Cart ({cartItems.length})
+                            </Button>
+
+                            <p className="payment-note">
+                                <Lock size={12} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> Secure payment via Stripe
+                            </p>
                         </div>
-
-                        <Button
-                            className="buy-button action-btn"
-                            onClick={() => navigate('/cart')}
-                        >
-                            <ShoppingCart size={20} style={{ marginRight: '8px' }} />
-                            View Cart ({cartItems.length})
-                        </Button>
-
-                        <p className="payment-note">
-                            <Lock size={12} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> Secure payment via Stripe
-                        </p>
                     </div>
                 </div>
-            </div>
+            )}
 
             <style>{`
+                .pre-inscription-view {
+                    max-width: 1000px;
+                    margin: 2rem auto;
+                    padding: 0 1rem;
+                }
+
+                .album-header.central {
+                    text-align: center;
+                    margin-bottom: 3rem;
+                }
+
+                .pre-inscription-card {
+                    display: grid;
+                    grid-template-columns: 1fr 1.2fr;
+                    background: white;
+                    border-radius: 20px;
+                    overflow: hidden;
+                    box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+                    border: 1px solid #e2e8f0;
+                }
+
+                .pre-inscription-image {
+                    position: relative;
+                    height: 100%;
+                    min-height: 400px;
+                    background: #f1f5f9;
+                }
+
+                .pre-inscription-image img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                }
+
+                .no-cover-placeholder {
+                    width: 100%;
+                    height: 100%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: #94a3b8;
+                }
+
+                .pre-inscription-badge-overlay {
+                    position: absolute;
+                    top: 2rem;
+                    left: 2rem;
+                    background: #f97316;
+                    color: white;
+                    padding: 0.5rem 1.25rem;
+                    border-radius: 50px;
+                    font-weight: 800;
+                    font-size: 0.85rem;
+                    box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+                }
+
+                .pre-inscription-form-section {
+                    padding: 3.5rem;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                }
+
+                .pre-inscription-form-section h2 {
+                    font-size: 1.75rem;
+                    font-weight: 800;
+                    margin-bottom: 1rem;
+                    color: #1e293b;
+                }
+
+                .pre-inscription-form-section p {
+                    color: #64748b;
+                    margin-bottom: 2rem;
+                    line-height: 1.6;
+                }
+
+                .notify-form {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 1.25rem;
+                }
+
+                .form-group-modern {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.5rem;
+                }
+
+                .form-group-modern label {
+                    font-size: 0.8rem;
+                    font-weight: 700;
+                    color: #94a3b8;
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                }
+
+                .form-group-modern input {
+                    padding: 0.85rem 1rem;
+                    border-radius: 12px;
+                    border: 2px solid #e2e8f0;
+                    font-size: 1rem;
+                    transition: all 0.2s;
+                    outline: none;
+                }
+
+                .form-group-modern input:focus {
+                    border-color: #f97316;
+                    box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.1);
+                }
+
+                .notify-submit-btn {
+                    margin-top: 1rem;
+                    height: 56px;
+                    background: #f97316 !important;
+                    border-color: #f97316 !important;
+                    color: white !important;
+                    font-weight: 800 !important;
+                    font-size: 1.1rem !important;
+                    border-radius: 12px !important;
+                }
+
+                .notify-submit-btn:hover {
+                    background: #ea580c !important;
+                    transform: translateY(-2px);
+                    box-shadow: 0 8px 24px rgba(234, 88, 12, 0.3) !important;
+                }
+
+                .privacy-note {
+                    margin-top: 1.5rem;
+                    font-size: 0.75rem !important;
+                    color: #94a3b8;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.35rem;
+                    justify-content: center;
+                }
+
+                @media (max-width: 768px) {
+                    .pre-inscription-card {
+                        grid-template-columns: 1fr;
+                    }
+                    .pre-inscription-image {
+                        min-height: 250px;
+                    }
+                    .pre-inscription-form-section {
+                        padding: 2rem;
+                    }
+                }
+
                 .album-view-container {
                     padding: var(--spacing-xl);
                     max-width: 1400px;

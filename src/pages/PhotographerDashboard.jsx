@@ -146,10 +146,13 @@ const PhotographerDashboard = () => {
                                         {album.cover_image_url ? (
                                             <img src={album.cover_image_url} alt={album.title} />
                                         ) : (
-                                            <div className="album-placeholder">
+                                            <div className="no-cover-placeholder">
                                                 <div className="placeholder-logo">RUN CAPTURE</div>
                                                 <span className="no-cover-badge">No Cover Image</span>
                                             </div>
+                                        )}
+                                        {album.pre_inscription_enabled && (
+                                            <div className="pre-inscription-label">PRÉ-INSCRIPTION</div>
                                         )}
                                     </div>
                                     <div className="album-card-mini-body">
@@ -649,6 +652,19 @@ const PhotographerDashboard = () => {
                     .stat-label {
                         font-size: 0.85rem;
                     }
+                }
+                .pre-inscription-label {
+                    position: absolute;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    background: #f97316;
+                    color: white;
+                    font-size: 0.65rem;
+                    font-weight: 800;
+                    text-align: center;
+                    padding: 4px;
+                    letter-spacing: 0.05em;
                 }
             `}</style>
             {toast && (
