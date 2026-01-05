@@ -152,6 +152,18 @@ const Albums = () => {
                     overflow: visible; /* Allow search bar to float out */
                     border-radius: 0 0 40px 40px;
                 }
+                
+                .albums-header::after {
+                    content: '';
+                    position: absolute;
+                    bottom: 0;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    width: 120px;
+                    height: 4px;
+                    background: #F5A623;
+                    border-radius: 2px;
+                }
 
                 .header-overlay {
                     position: absolute;
@@ -186,10 +198,10 @@ const Albums = () => {
                 }
 
                 .search-bar-container {
-                    max-width: 800px;
+                    max-width: 900px;
                     width: 90%;
                     position: absolute;
-                    bottom: -32px;
+                    bottom: -28px;
                     left: 50%;
                     transform: translateX(-50%);
                     z-index: 10;
@@ -198,41 +210,43 @@ const Albums = () => {
                 .search-input-wrapper {
                     display: flex;
                     align-items: center;
-                    background: #ffffff;
-                    border-radius: 14px;
-                    padding: 0 1.5rem;
-                    border: 1px solid #e5e7eb;
-                    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08); /* Bigger shadow */
-                    height: 64px; /* Slightly taller for prominence */
-                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    background: #f3f4f6;
+                    border-radius: 8px;
+                    padding: 0 1.25rem;
+                    border: 1px solid transparent;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+                    height: 52px;
+                    transition: all 0.2s ease;
                 }
 
                 .search-input-wrapper:focus-within {
+                    background: #ffffff;
                     border-color: #d1d5db;
-                    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
-                    transform: scale(1.01); /* Stable scale, lift handled by parent */
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
                 }
 
                 /* Specific override for focus-within lift since parent is absolute */
                 .search-bar-container:focus-within {
-                    transform: translateX(-50%) translateY(-2px);
+                    transform: translateX(-50%);
                 }
 
                 .search-icon {
                     display: flex;
                     align-items: center;
-                    margin-right: 1.25rem;
-                    color: #6b7280;
+                    margin-right: 0.75rem;
+                    color: #9ca3af;
+                    flex-shrink: 0;
                 }
 
                 .search-input {
                     width: 100%;
                     border: none;
                     background: transparent;
-                    padding: 1rem 0;
-                    font-size: 1.15rem; /* Larger font */
+                    padding: 0;
+                    font-size: 0.95rem;
                     color: #1f2937;
-                    outline: none !important; /* Remove black outline */
+                    outline: none !important;
+                    font-weight: 400;
                 }
 
                 .search-input::placeholder {
@@ -241,24 +255,24 @@ const Albums = () => {
                 }
 
                 .clear-search {
-                    background: var(--bg-tertiary);
+                    background: transparent;
                     border: none;
-                    width: 28px;
-                    height: 28px;
-                    border-radius: 50%;
+                    width: 24px;
+                    height: 24px;
+                    border-radius: 4px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     cursor: pointer;
-                    color: var(--text-secondary);
-                    margin-left: var(--spacing-sm);
+                    color: #9ca3af;
+                    margin-left: 0.5rem;
                     transition: all 0.2s ease;
+                    flex-shrink: 0;
                 }
 
                 .clear-search:hover {
-                    background: var(--border-light);
-                    color: var(--text-primary);
-                    transform: scale(1.1);
+                    background: #e5e7eb;
+                    color: #6b7280;
                 }
 
                 @media (max-width: 768px) {
