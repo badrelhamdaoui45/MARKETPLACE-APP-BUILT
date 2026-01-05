@@ -3,6 +3,8 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import Select from '../components/ui/Select';
+import { countries } from '../utils/countries';
 import { User, Mail, Phone, Globe, Save, ArrowLeft, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Image as ImageIcon } from 'lucide-react';
@@ -20,7 +22,8 @@ const PhotographerSettings = () => {
         whatsapp: '',
         website: '',
         bio: '',
-        watermark_text: ''
+        watermark_text: '',
+        country: ''
     });
 
     useEffect(() => {
@@ -31,7 +34,8 @@ const PhotographerSettings = () => {
                 whatsapp: profile.whatsapp || '',
                 website: profile.website || '',
                 bio: profile.bio || '',
-                watermark_text: profile.watermark_text || '© RUN CAPTURE'
+                watermark_text: profile.watermark_text || '© RUN CAPTURE',
+                country: profile.country || ''
             });
             setLoading(false);
         }
@@ -55,7 +59,8 @@ const PhotographerSettings = () => {
                     whatsapp: formData.whatsapp,
                     website: formData.website,
                     bio: formData.bio,
-                    watermark_text: formData.watermark_text
+                    watermark_text: formData.watermark_text,
+                    country: formData.country
                 })
                 .eq('id', user.id);
 
@@ -139,6 +144,16 @@ const PhotographerSettings = () => {
                                     value={formData.website}
                                     onChange={handleInputChange}
                                     placeholder="https://yourwebsite.com"
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label><Globe size={16} /> Country</label>
+                                <Select
+                                    name="country"
+                                    value={formData.country}
+                                    onChange={handleInputChange}
+                                    options={countries}
                                 />
                             </div>
 

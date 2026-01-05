@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import Select from '../components/ui/Select';
+import { countries } from '../utils/countries';
 import '../components/ui/ui.css';
 
 const Register = () => {
@@ -11,6 +13,7 @@ const Register = () => {
     const [password, setPassword] = useState('');
     const [fullName, setFullName] = useState('');
     const [role, setRole] = useState('buyer');
+    const [country, setCountry] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const { signUp } = useAuth();
@@ -19,8 +22,14 @@ const Register = () => {
     const handleRegister = async (e) => {
         e.preventDefault();
         setError('');
+
+        if (role === 'photographer' && !country) {
+            setError('Please select your country.');
+            return;
+        }
+
         setLoading(true);
-        const { error } = await signUp(email, password, fullName, role);
+        const { error } = await signUp(email, password, fullName, role, { country });
         if (error) {
             setError(error.message);
             setLoading(false);
@@ -59,6 +68,16 @@ const Register = () => {
                         placeholder="••••••••"
                         required
                     />
+
+                    {role === 'photographer' && (
+                        <Select
+                            label="Country"
+                            value={country}
+                            onChange={(e) => setCountry(e.target.value)}
+                            options={countries}
+                            required
+                        />
+                    )}
 
                     <div className="role-selection">
                         <label className="input-label">I am a...</label>

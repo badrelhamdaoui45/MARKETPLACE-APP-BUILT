@@ -149,6 +149,11 @@ const PhotographerProfile = () => {
                         )}
 
                         <div className="photographer-social-links">
+                            {photographer.country && (
+                                <span className="social-link country-badge">
+                                    <Globe size={16} /> {photographer.country}
+                                </span>
+                            )}
                             {photographer.whatsapp && (
                                 <a href={`https://wa.me/${photographer.whatsapp.replace(/\s+/g, '')}`} target="_blank" rel="noopener noreferrer" className="social-link whatsapp">
                                     <Phone size={16} /> WhatsApp
@@ -316,6 +321,20 @@ const PhotographerProfile = () => {
                     gap: var(--spacing-md);
                     justify-content: center;
                     margin-bottom: var(--spacing-xl);
+                    flex-wrap: wrap;
+                }
+
+                .country-badge {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    padding: 0.5rem 1rem;
+                    border-radius: var(--radius-full);
+                    font-size: var(--font-size-sm);
+                    font-weight: 600;
+                    background: #f1f5f9;
+                    color: #64748b;
+                    border: 1px solid #e2e8f0;
                 }
 
                 .social-link {

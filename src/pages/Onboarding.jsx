@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import Select from '../components/ui/Select';
+import { countries } from '../utils/countries';
 import { createConnectedAccount, createAccountLink } from '../lib/stripe/service';
 import '../components/ui/ui.css';
 import { Check, ChevronRight, User, Globe, CreditCard } from 'lucide-react';
@@ -22,6 +24,7 @@ const Onboarding = () => {
         fullName: '',
         email: '',
         password: '',
+        country: '',
     });
 
     // Loading states
@@ -80,6 +83,13 @@ const Onboarding = () => {
     const handleStep2Submit = async (e) => {
         e.preventDefault();
         setError('');
+
+        if (!formData.country) {
+            setError('Please select your country.');
+            window.scrollTo(0, 0);
+            return;
+        }
+
         setLoading(true);
 
         try {
@@ -92,6 +102,7 @@ const Onboarding = () => {
                 { // Additional metadata
                     provider_type: formData.userType,
                     preferred_language: formData.language,
+                    country: formData.country,
                 }
             );
 
@@ -218,6 +229,15 @@ const Onboarding = () => {
                 value={formData.password}
                 onChange={handleInputChange}
                 placeholder="Create a strong password"
+                required
+            />
+
+            <Select
+                label="Country"
+                name="country"
+                value={formData.country}
+                onChange={handleInputChange}
+                options={countries}
                 required
             />
 
