@@ -209,7 +209,7 @@ const PhotographerDashboard = () => {
                                 <tr>
                                     <th>Date</th>
                                     <th>Album</th>
-                                    <th>Acheteur</th>
+                                    <th>Runner</th>
                                     <th>Brut</th>
                                     <th>Commission</th>
                                     <th>Net</th>

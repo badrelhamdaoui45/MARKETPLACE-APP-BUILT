@@ -6,7 +6,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { calculateCommission } from '../config/platform';
 import { ShoppingBag, Camera, Download, Check } from 'lucide-react';
 
-const BuyerProfile = () => {
+const RunnerProfile = () => {
     const { user } = useAuth();
     const [purchases, setPurchases] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -377,4 +377,4 @@ const BuyerProfile = () => {
     );
 };
 
-export default BuyerProfile;
+export default RunnerProfile;

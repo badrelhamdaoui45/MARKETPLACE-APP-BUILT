@@ -175,7 +175,11 @@ const CreatePackageModal = ({ isOpen, onClose, onSuccess }) => {
 
                     <div style={{ display: 'flex', gap: '1rem', marginTop: '2.5rem', justifyContent: 'flex-end' }}>
                         <Button type="button" variant="outline" onClick={onClose}>Annuler</Button>
-                        <Button type="submit" disabled={loading}>
+                        <Button
+                            type="submit"
+                            disabled={loading}
+                            style={{ backgroundColor: '#f97316', borderColor: '#f97316' }}
+                        >
                             {loading ? 'Création...' : 'Enregistrer le modèle'}
                         </Button>
                     </div>

@@ -18,6 +18,7 @@ const PhotographerSettings = () => {
 
     const [formData, setFormData] = useState({
         full_name: '',
+        logo_url: '',
         email: '',
         whatsapp: '',
         website: '',
@@ -30,6 +31,7 @@ const PhotographerSettings = () => {
         if (profile) {
             setFormData({
                 full_name: profile.full_name || '',
+                logo_url: profile.logo_url || '',
                 email: profile.email || '',
                 whatsapp: profile.whatsapp || '',
                 website: profile.website || '',
@@ -46,6 +48,39 @@ const PhotographerSettings = () => {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
+    const handleLogoUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        try {
+            setSaving(true);
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${user.id}/logo_${Math.random()}.${fileExt}`;
+            const filePath = `logos/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('public-photos')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            const { data } = supabase.storage
+                .from('public-photos')
+                .getPublicUrl(filePath);
+
+            setFormData(prev => ({ ...prev, logo_url: data.publicUrl }));
+
+            // Auto-save the logo URL immediately or just let the user save the form?
+            // Let's just update state for now and let the save button handle the DB update.
+
+        } catch (error) {
+            console.error('Error uploading logo:', error);
+            setMessage({ type: 'error', text: 'Error uploading logo.' });
+        } finally {
+            setSaving(false);
+        }
+    };
+
     const handleSave = async (e) => {
         e.preventDefault();
         setSaving(true);
@@ -56,6 +91,7 @@ const PhotographerSettings = () => {
                 .from('profiles')
                 .update({
                     full_name: formData.full_name,
+                    logo_url: formData.logo_url,
                     whatsapp: formData.whatsapp,
                     website: formData.website,
                     bio: formData.bio,
@@ -104,6 +140,37 @@ const PhotographerSettings = () => {
                     <div className="form-section">
                         <h3 className="section-title">Public Details</h3>
                         <div className="form-grid">
+                            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                                <label><ImageIcon size={16} /> Brand Logo</label>
+                                <div className="logo-upload-container">
+                                    <div className="logo-preview-wrapper">
+                                        {formData.logo_url ? (
+                                            <img src={formData.logo_url} alt="Logo" className="logo-preview" />
+                                        ) : (
+                                            <div className="logo-placeholder">NO LOGO</div>
+                                        )}
+                                    </div>
+                                    <div className="logo-actions">
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            id="logo-upload"
+                                            onChange={handleLogoUpload}
+                                            style={{ display: 'none' }}
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() => document.getElementById('logo-upload').click()}
+                                            disabled={saving}
+                                        >
+                                            {formData.logo_url ? 'Change Logo' : 'Upload Logo'}
+                                        </Button>
+                                        <p className="input-hint">Recommended: Square PNG or JPG, at least 200x200px.</p>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div className="form-group">
                                 <label><User size={16} /> Full Name</label>
                                 <Input
@@ -348,6 +415,48 @@ const PhotographerSettings = () => {
                     background: #fef2f2;
                     color: #991b1b;
                     border: 1px solid #fecaca;
+                }
+
+                /* Logo Upload Styles */
+                .logo-upload-container {
+                    display: flex;
+                    align-items: center;
+                    gap: 2rem;
+                    padding: 1.5rem;
+                    background: #f8fafc;
+                    border-radius: 12px;
+                    border: 1px dashed #cbd5e1;
+                }
+
+                .logo-preview-wrapper {
+                    width: 80px;
+                    height: 80px;
+                    border-radius: 50%;
+                    overflow: hidden;
+                    background: white;
+                    border: 1px solid #e2e8f0;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+                }
+
+                .logo-preview {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                }
+
+                .logo-placeholder {
+                    font-size: 0.7rem;
+                    font-weight: 700;
+                    color: #94a3b8;
+                }
+
+                .logo-actions {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.5rem;
                 }
 
                 @media (max-width: 768px) {

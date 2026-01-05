@@ -12,7 +12,7 @@ const Register = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [fullName, setFullName] = useState('');
-    const [role, setRole] = useState('buyer');
+    const [role, setRole] = useState('runner');
     const [country, setCountry] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -86,11 +86,11 @@ const Register = () => {
                                 <input
                                     type="radio"
                                     name="role"
-                                    value="buyer"
-                                    checked={role === 'buyer'}
+                                    value="runner"
+                                    checked={role === 'runner'}
                                     onChange={(e) => setRole(e.target.value)}
                                 />
-                                Buyer
+                                Runner
                             </label>
                             <label className="radio-label">
                                 <input

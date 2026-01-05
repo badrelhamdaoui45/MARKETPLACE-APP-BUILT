@@ -413,7 +413,7 @@ const Home = () => {
                                                     {album.profiles?.full_name || 'Unknown'}
                                                 </Link>
                                             </p>
-                                            <p className="album-price">${album.price}</p>
+                                            <p className="album-price">{album.price}</p>
                                         </div>
                                     </div>
                                 ))}

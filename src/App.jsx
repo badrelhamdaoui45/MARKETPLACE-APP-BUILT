@@ -12,7 +12,7 @@ import UploadPage from './pages/UploadPage';
 import PackageSettings from './pages/PackageSettings';
 import AlbumDownload from './pages/AlbumDownload';
 import PublicAlbumView from './pages/PublicAlbumView';
-import BuyerProfile from './pages/BuyerProfile';
+import RunnerProfile from './pages/RunnerProfile';
 import AdminDashboard from './pages/AdminDashboard';
 import PhotographerProfile from './pages/PhotographerProfile';
 import PhotographerSettings from './pages/PhotographerSettings';
@@ -58,7 +58,7 @@ function App() {
 
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/contact" element={<Contact />} />
-              <Route path="/my-purchases" element={<BuyerProfile />} />
+              <Route path="/my-purchases" element={<RunnerProfile />} />
               <Route path="/my-purchases/:albumId" element={<AlbumDownload />} />
             </Routes>
             <Footer />

@@ -7,7 +7,7 @@ import CheckoutModal from '../components/CheckoutModal';
 import Modal from '../components/ui/Modal';
 import { supabase } from '../lib/supabase';
 import { calculateCommission } from '../config/platform';
-import { ShoppingCart, Trash2, CreditCard, CheckCircle } from 'lucide-react';
+import { ShoppingCart, Trash2, CreditCard, CheckCircle, X } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 
 const Cart = () => {
@@ -20,6 +20,9 @@ const Cart = () => {
     const [itemToDelete, setItemToDelete] = useState(null);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [processedSessionId, setProcessedSessionId] = useState(null);
+
+    // Lightbox State
+    const [selectedPhotoForView, setSelectedPhotoForView] = useState(null);
 
     // Checkout Modal State
     const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -353,6 +356,12 @@ const Cart = () => {
                 border-radius: 6px;
                 overflow: hidden;
                 flex-shrink: 0;
+                cursor: pointer; /* Added cursor pointer */
+                transition: transform 0.2s ease;
+            }
+            
+            .item-preview:hover {
+                transform: scale(1.05); /* Added slight zoom hint */
             }
 
             .item-preview img {
@@ -484,6 +493,84 @@ const Cart = () => {
                 padding: 2rem;
             }
 
+            /* --- LIGHTBOX CSS --- */
+            .custom-lightbox-overlay {
+                position: fixed;
+                inset: 0;
+                background: rgba(0, 0, 0, 0.95);
+                backdrop-filter: blur(20px);
+                z-index: 10000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 2rem;
+                animation: lightboxIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+
+            @keyframes lightboxIn {
+                from { opacity: 0; backdrop-filter: blur(0px); }
+                to { opacity: 1; backdrop-filter: blur(20px); }
+            }
+
+            .lightbox-container {
+                position: relative;
+                width: 100%;
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .lightbox-close-icon {
+                position: fixed;
+                top: 2rem;
+                right: 2rem;
+                background: rgba(255, 255, 255, 0.15);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                color: white;
+                width: 56px;
+                height: 56px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                transition: all 0.2s;
+                z-index: 10001;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            }
+
+            .lightbox-close-icon:hover {
+                background: rgba(255, 255, 255, 0.25);
+                transform: scale(1.05);
+            }
+
+            .lightbox-main-view {
+                flex: 1;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 100%;
+                padding-bottom: 20px;
+            }
+
+            .lightbox-image-main {
+                max-width: 100%;
+                max-height: 100%;
+                object-fit: contain;
+                border-radius: 8px;
+                box-shadow: 0 30px 100px rgba(0,0,0,0.7);
+                animation: imageZoom 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+
+            @keyframes imageZoom {
+                from { opacity: 0; transform: scale(0.92); }
+                to { opacity: 1; transform: scale(1); }
+            }
+            /* ------------------- */
+
+
             @media (max-width: 900px) {
                 .cart-container {
                     padding: 2rem 1rem; /* Reduced horizontal padding */
@@ -551,6 +638,13 @@ const Cart = () => {
                 .cart-items-list {
                     padding: 0.75rem;
                 }
+
+                .lightbox-close-icon {
+                    top: 1.5rem;
+                    right: 1.5rem;
+                    width: 44px;
+                    height: 44px;
+                }
             }
         `}</style>
     );
@@ -606,7 +700,7 @@ const Cart = () => {
                             <div className="cart-items-list">
                                 {group.items.map(item => (
                                     <div key={item.id} className="cart-item-card">
-                                        <div className="item-preview">
+                                        <div className="item-preview" onClick={() => setSelectedPhotoForView(item)}>
                                             <img src={item.watermarked_url} alt={item.title} />
                                         </div>
                                         <button
@@ -721,6 +815,29 @@ const Cart = () => {
                 }}
                 showCancel={false}
             />
+
+            {/* Photo View Modal in Cart */}
+            {selectedPhotoForView && (
+                <div className="custom-lightbox-overlay" onClick={() => setSelectedPhotoForView(null)}>
+                    <div className="lightbox-container" onClick={e => e.stopPropagation()}>
+                        <button
+                            className="lightbox-close-icon"
+                            onClick={() => setSelectedPhotoForView(null)}
+                            title="Close"
+                        >
+                            <X size={32} />
+                        </button>
+
+                        <div className="lightbox-main-view">
+                            <img
+                                src={selectedPhotoForView.watermarked_url}
+                                alt={selectedPhotoForView.title}
+                                className="lightbox-image-main"
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
         </div >
     );
 };

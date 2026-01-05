@@ -125,7 +125,7 @@ const Navbar = () => {
                                             <span className="role-badge">
                                                 {profile?.provider_type ?
                                                     `${profile.role} • ${profile.provider_type}` :
-                                                    profile?.role || 'Client'
+                                                    (profile?.role || 'Client')
                                                 }
                                             </span>
                                         </div>

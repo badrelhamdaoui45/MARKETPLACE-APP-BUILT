@@ -275,8 +275,8 @@
     font-size: 0.7rem;
     font-weight: 700;
     text-transform: uppercase;
-    background: rgba(10, 22, 43, 0.1);
-    color: var(--primary-blue);
+    background: rgba(245, 166, 35, 0.1);
+    color: #F5A623;
     padding: 2px 8px;
     border-radius: var(--radius-full);
 }

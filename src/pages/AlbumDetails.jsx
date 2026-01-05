@@ -50,7 +50,7 @@ const AlbumDetails = () => {
                 .from('albums')
                 .select(`
                     *,
-                    profiles:photographer_id (full_name)
+                    profiles:photographer_id (full_name, logo_url)
                 `)
                 .eq('photographer_id', user.id)
                 .ilike('title', decodeURIComponent(albumTitle))
@@ -447,7 +447,7 @@ const AlbumDetails = () => {
                                             })}
                                         </div>
                                         <div className="editor-footer">
-                                            <p>Sélectionnez les modèles à proposer aux acheteurs.</p>
+                                            <p>Sélectionnez les modèles à proposer aux Runners.</p>
                                         </div>
                                     </div>
                                 )}

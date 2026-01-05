@@ -19,7 +19,7 @@ const Albums = () => {
                 .from('albums')
                 .select(`
           *,
-          profiles:photographer_id (full_name)
+          profiles:photographer_id (full_name, logo_url)
         `)
                 .eq('is_published', true)
                 .order('created_at', { ascending: false });
@@ -114,7 +114,15 @@ const Albums = () => {
                                     <h3 className="album-card-title">{album.title}</h3>
                                     <div className="album-card-photographer">
                                         <div className="photographer-logo-mini">
-                                            <User size={14} />
+                                            {album.profiles?.logo_url ? (
+                                                <img
+                                                    src={album.profiles.logo_url}
+                                                    alt="Photographer Logo"
+                                                    style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '4px' }}
+                                                />
+                                            ) : (
+                                                <User size={14} />
+                                            )}
                                         </div>
                                         <div className="photographer-name-text">
                                             {album.profiles?.full_name || 'Photographer'}

@@ -39,7 +39,7 @@ const PublicAlbumView = () => {
                 .from('albums')
                 .select(`
                     *, 
-                    profiles:photographer_id!inner(full_name)
+                    profiles:photographer_id!inner(full_name, logo_url)
                 `)
                 .ilike('profiles.full_name', decodeURIComponent(photographerName))
                 .ilike('title', decodeURIComponent(albumTitle))
@@ -172,11 +172,20 @@ const PublicAlbumView = () => {
                     <div className="pre-inscription-content">
                         <div className="album-header central">
                             <h1 className="album-title">{album.title}</h1>
-                            <p className="album-author">
-                                by <Link to={`/photographer/${encodeURIComponent(album.profiles?.full_name)}`} className="photographer-link">
-                                    {album.profiles?.full_name}
-                                </Link>
-                            </p>
+                            <div className="photographer-info-row">
+                                {album.profiles?.logo_url && (
+                                    <img
+                                        src={album.profiles.logo_url}
+                                        alt={album.profiles.full_name}
+                                        className="photographer-logo-small"
+                                    />
+                                )}
+                                <p className="album-author">
+                                    by <Link to={`/photographer/${encodeURIComponent(album.profiles?.full_name)}`} className="photographer-link">
+                                        {album.profiles?.full_name}
+                                    </Link>
+                                </p>
+                            </div>
                         </div>
 
                         <div className="pre-inscription-card">
@@ -224,11 +233,20 @@ const PublicAlbumView = () => {
                     <div className="photos-section">
                         <div className="album-header">
                             <h1 className="album-title">{album.title}</h1>
-                            <p className="album-author">
-                                by <Link to={`/photographer/${encodeURIComponent(album.profiles?.full_name)}`} className="photographer-link">
-                                    {album.profiles?.full_name}
-                                </Link>
-                            </p>
+                            <div className="photographer-info-row">
+                                {album.profiles?.logo_url && (
+                                    <img
+                                        src={album.profiles.logo_url}
+                                        alt={album.profiles.full_name}
+                                        className="photographer-logo-small"
+                                    />
+                                )}
+                                <p className="album-author">
+                                    by <Link to={`/photographer/${encodeURIComponent(album.profiles?.full_name)}`} className="photographer-link">
+                                        {album.profiles?.full_name}
+                                    </Link>
+                                </p>
+                            </div>
                             <div className="selection-hint">
                                 <span className="hint-icon"><ShoppingCart size={16} /></span>
                                 Click the button below photos to add to cart
@@ -536,7 +554,27 @@ const PublicAlbumView = () => {
                 .album-author {
                     font-size: var(--font-size-lg);
                     color: var(--text-secondary);
+                    margin-bottom: 0; /* Remove bottom margin as it's now in a flex container */
+                }
+
+                .photographer-info-row {
+                    display: flex;
+                    align-items: center;
+                    justify-content: flex-start; /* Changed from center to allow custom alignment */
+                    gap: 0.75rem;
                     margin-bottom: var(--spacing-md);
+                }
+
+                .album-header.central .photographer-info-row {
+                    justify-content: center;
+                }
+
+                .photographer-logo-small {
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 50%;
+                    object-fit: cover;
+                    border: 1px solid #e2e8f0;
                 }
 
                 .photographer-link {

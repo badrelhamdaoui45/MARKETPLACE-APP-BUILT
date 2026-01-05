@@ -52,7 +52,7 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading }) =
                     if (error) throw error;
                 } else {
                     if (!formData.email || !formData.password || !formData.fullName) throw new Error("Please fill in all fields.");
-                    const { error } = await signUp(formData.email, formData.password, formData.fullName, 'buyer');
+                    const { error } = await signUp(formData.email, formData.password, formData.fullName, 'runner');
                     if (error) throw error;
                 }
             }
