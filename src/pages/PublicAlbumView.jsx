@@ -523,7 +523,28 @@ const PublicAlbumView = () => {
                         min-height: 250px;
                     }
                     .pre-inscription-form-section {
-                        padding: 2rem;
+                        padding: 1.5rem;
+                        width: 100%;
+                        box-sizing: border-box;
+                    }
+                    .pre-inscription-form-section h2 {
+                        font-size: 1.5rem;
+                    }
+                    .notify-form {
+                        width: 100%;
+                    }
+                    .form-group-modern {
+                        width: 100%;
+                    }
+                    .form-group-modern input {
+                        width: 100%;
+                        box-sizing: border-box;
+                        font-size: 16px; /* Prevents zoom on iOS */
+                    }
+                    .notify-submit-btn {
+                        width: 100%;
+                        box-sizing: border-box;
+                        font-size: 1rem !important;
                     }
                 }
 
