@@ -1221,6 +1221,33 @@ const PublicAlbumView = () => {
                         font-size: 1.5rem;
                         word-break: break-word; /* Prevent long title overflow */
                     }
+
+                    .free-album-banner {
+                        padding: 0.6rem 1rem !important;
+                        margin-bottom: 1.5rem !important;
+                        border-radius: 8px !important;
+                    }
+
+                    .banner-content {
+                        font-size: 0.75rem !important;
+                        gap: 0.5rem !important;
+                    }
+
+                    .free-claim-btn {
+                        height: 48px !important;
+                        font-size: 0.85rem !important;
+                        border-radius: 10px !important;
+                        padding: 0 1rem !important;
+                    }
+
+                    .free-claim-btn svg {
+                        width: 18px !important;
+                        height: 18px !important;
+                    }
+
+                    .free-disclaimer {
+                        font-size: 0.65rem !important;
+                    }
                 }
                 .free-album-banner {
                     background: linear-gradient(135deg, #10b981 0%, #059669 100%);
@@ -1282,18 +1309,21 @@ const PublicAlbumView = () => {
 
                 .free-claim-btn {
                     width: 100%;
-                    height: 56px;
+                    min-height: 56px;
+                    height: auto !important; /* Allow height to grow if needed */
+                    padding: 0.75rem 1rem !important;
                     background: #10b981 !important;
                     border-color: #10b981 !important;
                     color: white !important;
                     font-weight: 800 !important;
-                    font-size: 1rem !important;
+                    font-size: 0.9rem !important; /* Slightly smaller to fit better */
                     border-radius: 12px !important;
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     gap: 0.75rem;
                     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+                    line-height: 1.2;
                 }
 
                 .free-claim-btn:hover {
