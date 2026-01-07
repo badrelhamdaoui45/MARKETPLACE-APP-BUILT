@@ -1180,34 +1180,59 @@ const PublicAlbumView = () => {
 
                 @media (max-width: 1024px) {
                     .album-content-layout {
-                        grid-template-columns: 1fr;
+                        display: flex;
+                        flex-direction: column;
+                        width: 100%;
+                        max-width: 100%;
                         gap: var(--spacing-xl);
+                        margin: 0 auto;
+                    }
+
+                    .purchase-card-container {
+                        width: 100%;
+                        margin: 0 auto;
                     }
 
                     .purchase-card {
                         position: static;
+                        width: 100%;
+                        margin: 0 auto;
                     }
                 }
 
                 @media (max-width: 640px) {
                     .album-view-container {
-                        padding: 10px 16px; /* Consistent 16px side padding */
+                        padding: 10px 12px; /* Balanced side padding */
                         padding-bottom: 140px;
                         width: 100%;
+                        max-width: 100vw;
                         overflow-x: hidden;
-                        box-sizing: border-box; /* Force border-box and width consistency */
+                        box-sizing: border-box;
                     }
 
                     .album-content-layout {
                         width: 100%;
+                        max-width: 100%;
                         gap: 1.5rem;
+                        display: flex;
+                        flex-direction: column;
+                        margin: 0 auto;
+                    }
+
+                    .purchase-card-container {
+                        width: 100%;
+                        padding: 0;
+                        margin: 0 auto;
                     }
 
                     .purchase-card {
-                        padding: 1.25rem !important; /* Reduced internal padding on mobile */
+                        padding: 1.25rem !important;
                         width: 100% !important;
+                        max-width: 100%;
                         position: static !important;
                         box-sizing: border-box;
+                        margin: 0 auto;
+                        border-radius: 12px;
                     }
 
                     .photos-grid {
@@ -1233,17 +1258,33 @@ const PublicAlbumView = () => {
                     .album-title {
                         font-size: 1.5rem;
                         word-break: break-word; /* Prevent long title overflow */
+                        text-align: center;
+                    }
+
+                    .photographer-info-row {
+                        justify-content: center !important;
+                    }
+
+                    .selection-hint {
+                        display: flex !important;
+                        justify-content: center !important;
+                        margin: 0 auto 1.5rem;
+                        width: fit-content;
                     }
 
                     .free-album-banner {
                         padding: 0.6rem 1rem !important;
                         margin-bottom: 1.5rem !important;
                         border-radius: 8px !important;
+                        width: 100%;
                     }
 
                     .banner-content {
                         font-size: 0.75rem !important;
                         gap: 0.5rem !important;
+                        text-align: center;
+                        justify-content: center;
+                        width: 100%;
                     }
 
                     .free-claim-btn {
@@ -1260,6 +1301,7 @@ const PublicAlbumView = () => {
 
                     .free-disclaimer {
                         font-size: 0.65rem !important;
+                        text-align: center;
                     }
                 }
                 .free-album-banner {
