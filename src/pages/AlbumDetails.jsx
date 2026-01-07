@@ -8,6 +8,7 @@ import Modal from '../components/ui/Modal';
 import { ArrowLeft, Trash2, Upload, Eye, EyeOff, Share2, Copy, Check, Hash, Edit2, Save, X } from 'lucide-react';
 import Toast from '../components/ui/Toast';
 import { detectBibs } from '../lib/gemini';
+import { slugify } from '../utils/slugify';
 
 const AlbumDetails = () => {
     const { albumTitle } = useParams();
@@ -29,7 +30,8 @@ const AlbumDetails = () => {
     const [mainDetailsForm, setMainDetailsForm] = useState({
         title: '',
         description: '',
-        price: 0
+        price: 0,
+        is_free: false
     });
 
     // Popup management state
@@ -52,7 +54,7 @@ const AlbumDetails = () => {
 
     const fetchAlbumDetails = async () => {
         try {
-            // Fetch Album by title and photographer_id
+            // Fetch Album by slug or title and photographer_id
             const { data: albumData, error: albumError } = await supabase
                 .from('albums')
                 .select(`
@@ -60,7 +62,7 @@ const AlbumDetails = () => {
                     profiles:photographer_id (full_name, logo_url)
                 `)
                 .eq('photographer_id', user.id)
-                .ilike('title', decodeURIComponent(albumTitle))
+                .or(`slug.eq."${decodeURIComponent(albumTitle)}",title.eq."${decodeURIComponent(albumTitle)}"`)
                 .single();
 
             if (albumError) throw albumError;
@@ -95,7 +97,7 @@ const AlbumDetails = () => {
             } else {
                 // Set defaults if none exists
                 setAlbumPopup({
-                    title: `Bienvenue dans ${albumData.title}`,
+                    title: `Bienvenue dans ${albumData.title} `,
                     message: 'Découvrez vos photos et profitez de nos offres.',
                     image_url: '',
                     coupon_code: '',
@@ -107,7 +109,8 @@ const AlbumDetails = () => {
             setMainDetailsForm({
                 title: albumData.title,
                 description: albumData.description || '',
-                price: albumData.price
+                price: albumData.price,
+                is_free: albumData.is_free || false
             });
 
             // Fetch subscriber count
@@ -207,7 +210,9 @@ const AlbumDetails = () => {
                 .update({
                     title: mainDetailsForm.title,
                     description: mainDetailsForm.description,
-                    price: parseFloat(mainDetailsForm.price)
+                    price: mainDetailsForm.is_free ? 0 : parseFloat(mainDetailsForm.price),
+                    is_free: mainDetailsForm.is_free,
+                    slug: slugify(mainDetailsForm.title)
                 })
                 .eq('id', album.id);
 
@@ -218,10 +223,18 @@ const AlbumDetails = () => {
 
             setAlbum({
                 ...album,
-                title: newTitle,
+                title: mainDetailsForm.title,
                 description: mainDetailsForm.description,
-                price: parseFloat(mainDetailsForm.price)
+                price: mainDetailsForm.is_free ? 0 : parseFloat(mainDetailsForm.price),
+                is_free: mainDetailsForm.is_free,
+                slug: slugify(mainDetailsForm.title)
             });
+
+            // If slug changed, update URL
+            const newSlug = slugify(mainDetailsForm.title);
+            if (newSlug !== album.slug) {
+                navigate(`/photographer/albums/${encodeURIComponent(newSlug)}/edit`, { replace: true });
+            }
 
             setToast({ message: 'Album mis à jour !', type: 'success' });
             setIsEditingMainDetails(false);
@@ -460,8 +473,10 @@ const AlbumDetails = () => {
 
                                     <div className="modern-meta-grid">
                                         <div className="meta-box">
-                                            <label className="modern-label">PRICE</label>
-                                            <span className="meta-value-modern">${album.price}</span>
+                                            <label className="modern-label">PRICING</label>
+                                            <span className={`meta-value-modern ${album.is_free ? 'free-badge' : ''}`}>
+                                                {album.is_free ? 'FREE' : `$${album.price}`}
+                                            </span>
                                         </div>
                                         <div className="meta-box">
                                             <label className="modern-label">PHOTOS</label>
@@ -500,7 +515,18 @@ const AlbumDetails = () => {
                                             value={mainDetailsForm.price}
                                             onChange={(e) => setMainDetailsForm({ ...mainDetailsForm, price: e.target.value })}
                                             placeholder="0.00"
+                                            disabled={mainDetailsForm.is_free}
                                         />
+                                    </div>
+                                    <div className="popup-field-group checkbox-group">
+                                        <label className="checkbox-label">
+                                            <input
+                                                type="checkbox"
+                                                checked={mainDetailsForm.is_free}
+                                                onChange={(e) => setMainDetailsForm({ ...mainDetailsForm, is_free: e.target.checked })}
+                                            />
+                                            <span>Album Gratuit (Free Album)</span>
+                                        </label>
                                     </div>
                                     <div className="editor-actions">
                                         <Button
@@ -1849,6 +1875,36 @@ const AlbumDetails = () => {
                     .album-manage-grid {
                         gap: 0.5rem;
                     }
+                }
+                .free-badge {
+                    background: #10b981 !important;
+                    color: white !important;
+                    padding: 0.2rem 0.6rem;
+                    border-radius: 6px;
+                    font-weight: 800;
+                    letter-spacing: 0.05em;
+                }
+
+                .checkbox-group {
+                    margin-top: 0.5rem;
+                }
+
+                .checkbox-label {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                    cursor: pointer;
+                    font-weight: 700;
+                    font-size: 0.9rem;
+                    color: #475569;
+                    user-select: none;
+                }
+
+                .checkbox-label input[type="checkbox"] {
+                    width: 20px;
+                    height: 20px;
+                    cursor: pointer;
+                    accent-color: #10b981;
                 }
             `}</style>
 

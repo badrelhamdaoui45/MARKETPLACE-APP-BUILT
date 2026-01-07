@@ -23,8 +23,16 @@ const Login = () => {
             setError(error.message);
             setLoading(false);
         } else {
-            // Navigation will be handled by the route protection logic or we navigate to dashboard
-            navigate('/');
+            const params = new URLSearchParams(window.location.search);
+            const redirect = params.get('redirect');
+            const action = params.get('action');
+
+            if (redirect) {
+                const target = action ? `${redirect}?action=${action}` : redirect;
+                navigate(target);
+            } else {
+                navigate('/');
+            }
         }
     };
 
@@ -55,7 +63,7 @@ const Login = () => {
                     </Button>
                 </form>
                 <p className="auth-footer">
-                    Don't have an account? <Link to="/register">Sign Up</Link>
+                    Don't have an account? <Link to={`/register${window.location.search}`}>Sign Up</Link>
                 </p>
             </div>
 

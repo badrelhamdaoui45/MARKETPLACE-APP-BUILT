@@ -91,7 +91,8 @@ const PhotographerDashboard = () => {
 
     const handleShare = (album) => {
         const photogName = profile?.full_name || 'photographer';
-        const shareUrl = `${window.location.origin}/albums/${encodeURIComponent(photogName)}/${encodeURIComponent(album.title)}`;
+        const albumIdentifier = album.slug || album.title;
+        const shareUrl = `${window.location.origin}/albums/${encodeURIComponent(photogName)}/${encodeURIComponent(albumIdentifier)}`;
         navigator.clipboard.writeText(shareUrl).then(() => {
             setCopiedAlbumId(album.id);
             setToast({ message: 'Lien de l\'album copié !', type: 'success' });
@@ -208,14 +209,17 @@ const PhotographerDashboard = () => {
                                             {album.pre_inscription_enabled && (
                                                 <div className="pre-inscription-label">PRÉ-INSCRIPTION</div>
                                             )}
+                                            {album.is_free && (
+                                                <div className="free-album-label">ALBUM GRATUIT</div>
+                                            )}
                                         </div>
                                         <div className="album-card-mini-body">
                                             <h3>{album.title}</h3>
                                             <p className="album-meta">
-                                                {album.is_published ? 'Publié' : 'Brouillon'} • ${album.price}
+                                                {album.is_published ? 'Publié' : 'Brouillon'} • {album.is_free ? <span style={{ color: '#10b981', fontWeight: 800 }}>GRATUIT</span> : `$${album.price}`}
                                             </p>
                                             <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                <Link to={`/photographer/albums/${encodeURIComponent(album.title)}/edit`} style={{ flex: 1 }}>
+                                                <Link to={`/photographer/albums/${encodeURIComponent(album.slug || album.title)}/edit`} style={{ flex: 1 }}>
                                                     <Button className="w-full action-btn">Edit</Button>
                                                 </Link>
                                                 <Button
@@ -594,6 +598,31 @@ const PhotographerDashboard = () => {
 
                 .no-cover-badge {
                     font-size: 0.7rem;
+                    color: #94a3b8;
+                    font-weight: 500;
+                }
+
+                .pre-inscription-label, .free-album-label {
+                    position: absolute;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    padding: 6px;
+                    font-size: 0.7rem;
+                    font-weight: 800;
+                    text-align: center;
+                    letter-spacing: 0.05em;
+                    color: white;
+                    z-index: 5;
+                }
+
+                .pre-inscription-label {
+                    background: #f97316;
+                }
+
+                .free-album-label {
+                    background: #10b981;
+                }
                     color: #94a3b8;
                     font-weight: 600;
                     text-transform: uppercase;

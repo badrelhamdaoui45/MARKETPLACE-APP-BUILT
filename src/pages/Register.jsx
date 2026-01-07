@@ -34,7 +34,16 @@ const Register = () => {
             setError(error.message);
             setLoading(false);
         } else {
-            navigate('/');
+            const params = new URLSearchParams(window.location.search);
+            const redirect = params.get('redirect');
+            const action = params.get('action');
+
+            if (redirect) {
+                const target = action ? `${redirect}?action=${action}` : redirect;
+                navigate(target);
+            } else {
+                navigate('/');
+            }
         }
     };
 
@@ -110,7 +119,7 @@ const Register = () => {
                     </Button>
                 </form>
                 <p className="auth-footer">
-                    Already have an account? <Link to="/login">Log In</Link>
+                    Already have an account? <Link to={`/login${window.location.search}`}>Log In</Link>
                 </p>
             </div>
 

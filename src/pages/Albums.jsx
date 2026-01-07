@@ -91,7 +91,7 @@ const Albums = () => {
                     {filteredAlbums.map((album) => (
                         <div key={album.id} className="album-card">
                             <Link
-                                to={`/albums/${encodeURIComponent(album.profiles?.full_name || 'unknown')}/${encodeURIComponent(album.title)}`}
+                                to={`/albums/${encodeURIComponent(album.profiles?.full_name || 'unknown')}/${encodeURIComponent(album.slug || album.title)}`}
                                 className="album-card-main-link"
                             >
                                 <div className="album-card-image">
@@ -107,6 +107,12 @@ const Albums = () => {
                                     {album.pre_inscription_enabled && (
                                         <div className="pre-inscription-badge">
                                             PRE INSCRIPTION
+                                        </div>
+                                    )}
+
+                                    {album.is_free && (
+                                        <div className="free-album-badge">
+                                            ALBUM GRATUIT
                                         </div>
                                     )}
                                 </div>
@@ -388,18 +394,26 @@ const Albums = () => {
                     min-height: 200px;
                 }
 
-                .pre-inscription-badge {
+                .pre-inscription-badge, .free-album-badge {
                     position: absolute;
                     bottom: 0;
                     left: 0;
                     right: 0;
-                    background: #f97316;
-                    color: white;
                     padding: 0.5rem;
                     font-size: 0.75rem;
                     font-weight: 800;
                     text-align: center;
                     letter-spacing: 0.05em;
+                }
+
+                .pre-inscription-badge {
+                    background: #f97316;
+                    color: white;
+                }
+
+                .free-album-badge {
+                    background: #10b981;
+                    color: white;
                 }
 
                 .album-card-image img {

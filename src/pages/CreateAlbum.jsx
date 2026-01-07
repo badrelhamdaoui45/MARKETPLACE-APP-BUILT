@@ -8,6 +8,7 @@ import Input from '../components/ui/Input';
 import Toast from '../components/ui/Toast';
 import { sanitizeFileName } from '../utils/sanitize';
 import CreatePackageModal from '../components/pricing/CreatePackageModal';
+import { slugify } from '../utils/slugify';
 import '../components/ui/ui.css';
 
 const CreateAlbum = () => {
@@ -23,7 +24,8 @@ const CreateAlbum = () => {
         description: '',
         price: '',
         pricing_package_ids: [],
-        pre_inscription_enabled: false
+        pre_inscription_enabled: false,
+        is_free: false
     });
 
     // File state for cover image
@@ -95,7 +97,9 @@ const CreateAlbum = () => {
                         photographer_id: user.id,
                         title: formData.title,
                         description: formData.description,
-                        price: formData.price === '' ? null : formData.price,
+                        price: formData.is_free ? 0 : (formData.price === '' ? null : formData.price),
+                        is_free: formData.is_free,
+                        slug: slugify(formData.title),
                         pricing_package_ids: formData.pricing_package_ids.length > 0 ? formData.pricing_package_ids : [],
                         cover_image_url: coverImageUrl,
                         is_published: false,
@@ -252,7 +256,22 @@ const CreateAlbum = () => {
                     )}
                 </div>
 
-                {formData.pricing_package_ids.length === 0 && (
+                <div className="input-group checkbox-group" style={{ background: '#f0fdf4', borderColor: '#bbf7d0', marginBottom: '1.5rem' }}>
+                    <label className="checkbox-label" style={{ color: '#166534' }}>
+                        <input
+                            type="checkbox"
+                            name="is_free"
+                            checked={formData.is_free}
+                            onChange={handleChange}
+                        />
+                        <div className="checkbox-text">
+                            <span className="checkbox-title" style={{ color: '#166534' }}>🎁 Album Gratuit (Free Album)</span>
+                            <span className="checkbox-hint" style={{ color: '#15803d' }}>Rend toutes les photos de cet album gratuites pour les Runners.</span>
+                        </div>
+                    </label>
+                </div>
+
+                {formData.pricing_package_ids.length === 0 && !formData.is_free && (
                     <Input
                         label="Prix fixe (€)"
                         name="price"
@@ -261,7 +280,7 @@ const CreateAlbum = () => {
                         step="0.01"
                         value={formData.price}
                         onChange={handleChange}
-                        required={formData.pricing_package_ids.length === 0}
+                        required={formData.pricing_package_ids.length === 0 && !formData.is_free}
                     />
                 )}
 

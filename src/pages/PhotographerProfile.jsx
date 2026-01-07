@@ -203,7 +203,7 @@ const PhotographerProfile = () => {
                         {albums.map(album => (
                             <Link
                                 key={album.id}
-                                to={`/albums/${encodeURIComponent(photographer.full_name)}/${encodeURIComponent(album.title)}`}
+                                to={`/albums/${encodeURIComponent(photographer.full_name)}/${encodeURIComponent(album.slug || album.title)}`}
                                 className="album-card-link"
                             >
                                 <div className="profile-album-card">
@@ -214,10 +214,42 @@ const PhotographerProfile = () => {
                                             <div className="no-cover"><Camera size={48} strokeWidth={1} /></div>
                                         )}
                                         <div className="album-price-overlay">
-                                            {!album.pricing_package_id && (
-                                                <span className="price-badge">${album.price}</span>
+                                            {album.is_free ? (
+                                                <span className="price-badge" style={{ background: '#10b981', color: 'white' }}>GRATUIT</span>
+                                            ) : (
+                                                !album.pricing_package_id && (
+                                                    <span className="price-badge">${album.price}</span>
+                                                )
                                             )}
                                         </div>
+                                        {album.pre_inscription_enabled && (
+                                            <div style={{
+                                                position: 'absolute',
+                                                top: '1rem',
+                                                left: '1rem',
+                                                background: '#f97316',
+                                                color: 'white',
+                                                padding: '0.4rem 0.8rem',
+                                                borderRadius: '6px',
+                                                fontSize: '0.7rem',
+                                                fontWeight: 800,
+                                                zIndex: 5
+                                            }}>PRÉ-INSCRIPTION</div>
+                                        )}
+                                        {album.is_free && (
+                                            <div style={{
+                                                position: 'absolute',
+                                                top: '1rem',
+                                                right: '1rem',
+                                                background: '#10b981',
+                                                color: 'white',
+                                                padding: '0.4rem 0.8rem',
+                                                borderRadius: '6px',
+                                                fontSize: '0.7rem',
+                                                fontWeight: 800,
+                                                zIndex: 5
+                                            }}>GRATUIT</div>
+                                        )}
                                     </div>
 
                                     <div className="album-card-info">

@@ -4,17 +4,20 @@ import { supabase } from '../lib/supabase';
 import Button from '../components/ui/Button';
 import { calculateCommission } from '../config/platform';
 import { useCart } from '../context/CartContext';
-import { ShoppingCart, Check, Plus, Lock, X, ZoomIn, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { ShoppingCart, Check, Plus, Lock, X, ZoomIn, ChevronLeft, ChevronRight, Gift } from 'lucide-react';
 import DynamicPopup from '../components/DynamicPopup';
 
 const PublicAlbumView = () => {
     const { photographerName, albumTitle } = useParams();
     const navigate = useNavigate();
+    const { user } = useAuth();
     const [album, setAlbum] = useState(null);
     const [photos, setPhotos] = useState([]);
     const [packages, setPackages] = useState([]);
     const [selectedPackage, setSelectedPackage] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [isClaiming, setIsClaiming] = useState(false);
     const [selectedPhotoForView, setSelectedPhotoForView] = useState(null); // Lightbox state
 
     // Cart Interaction
@@ -23,6 +26,15 @@ const PublicAlbumView = () => {
     useEffect(() => {
         fetchAlbumDetails();
     }, [photographerName, albumTitle]);
+
+    // Handle Auto-claim if redirected from login
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const action = params.get('action');
+        if (action === 'claim_free' && user && album && !loading) {
+            handleClaimFree();
+        }
+    }, [user, album, loading]);
 
     // Handle ESC key to close lightbox
     useEffect(() => {
@@ -35,18 +47,20 @@ const PublicAlbumView = () => {
 
     const fetchAlbumDetails = async () => {
         try {
-            const { data: albumData, error: albumError } = await supabase
+            // 1. Fetch Album by Slug or Title
+            // We search by slug first (preferred), then fallback to title for old links
+            let { data: albumData, error: albumError } = await supabase
                 .from('albums')
                 .select(`
-                    *, 
-                    profiles:photographer_id!inner(full_name, logo_url)
+                    *,
+                    profiles:photographer_id (full_name, logo_url)
                 `)
                 .ilike('profiles.full_name', decodeURIComponent(photographerName))
-                .ilike('title', decodeURIComponent(albumTitle))
+                .or(`slug.eq."${decodeURIComponent(albumTitle)}",title.eq."${decodeURIComponent(albumTitle)}"`)
                 .eq('is_published', true)
                 .single();
 
-            if (albumError) throw albumError;
+            if (albumError || !albumData) throw albumError || new Error('Album not found');
             setAlbum(albumData);
 
             // Fetch linked packages
@@ -141,6 +155,44 @@ const PublicAlbumView = () => {
         }
 
         return album.price;
+    };
+
+    const handleClaimFree = async () => {
+        if (!user) {
+            navigate(`/login?redirect=${encodeURIComponent(window.location.pathname)}&action=claim_free`);
+            return;
+        }
+
+        setIsClaiming(true);
+        try {
+            // Create a completed transaction for 0 cost
+            const { data, error } = await supabase
+                .from('transactions')
+                .insert([{
+                    buyer_id: user.id,
+                    photographer_id: album.photographer_id,
+                    album_id: album.id,
+                    amount: 0,
+                    status: 'paid', // Use 'paid' to match AlbumDownload logic
+                    payment_method: 'free',
+                    is_full_album: true,
+                    original_amount: 0,
+                    commission_amount: 0,
+                    net_amount: 0
+                }])
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            // Redirect to My Purchases
+            navigate(`/my-purchases/${album.id}`);
+        } catch (err) {
+            console.error('Error claiming free album:', err);
+            alert('Une erreur est survenue lors de la récupération de l\'album.');
+        } finally {
+            setIsClaiming(false);
+        }
     };
 
 
@@ -247,6 +299,16 @@ const PublicAlbumView = () => {
                                     </Link>
                                 </p>
                             </div>
+
+                            {album.is_free && (
+                                <div className="free-album-banner">
+                                    <div className="banner-content">
+                                        <Gift size={18} />
+                                        <span>CET ALBUM EST ENTIÈREMENT <strong>GRATUIT</strong></span>
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="selection-hint">
                                 <span className="hint-icon"><ShoppingCart size={16} /></span>
                                 Click the button below photos to add to cart
@@ -368,6 +430,23 @@ const PublicAlbumView = () => {
                                 <ShoppingCart size={20} style={{ marginRight: '8px' }} />
                                 View Cart ({cartItems.length})
                             </Button>
+
+                            {album.is_free && (
+                                <div className="free-claim-wrapper">
+                                    <div className="claim-divider">
+                                        <span>OU</span>
+                                    </div>
+                                    <Button
+                                        className="free-claim-btn"
+                                        onClick={handleClaimFree}
+                                        disabled={isClaiming}
+                                    >
+                                        <Gift size={20} />
+                                        {isClaiming ? 'Chargement...' : 'TOUT RÉCUPÉRER GRATUITEMENT'}
+                                    </Button>
+                                    <p className="free-disclaimer">Accédez à toutes les photos sans payer.</p>
+                                </div>
+                            )}
 
                             <p className="payment-note">
                                 <Lock size={12} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> Secure payment via Stripe
@@ -1142,6 +1221,92 @@ const PublicAlbumView = () => {
                         font-size: 1.5rem;
                         word-break: break-word; /* Prevent long title overflow */
                     }
+                }
+                .free-album-banner {
+                    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                    color: white;
+                    padding: 0.75rem 1.25rem;
+                    border-radius: 12px;
+                    margin-bottom: 2rem;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    animation: slideDownIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+                    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+                }
+
+                @keyframes slideDownIn {
+                    from { transform: translateY(-20px); opacity: 0; }
+                    to { transform: translateY(0); opacity: 1; }
+                }
+
+                .banner-content {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                    font-size: 0.9rem;
+                    letter-spacing: 0.02em;
+                }
+
+                .banner-content strong {
+                    font-weight: 800;
+                    background: rgba(255, 255, 255, 0.2);
+                    padding: 0.1rem 0.4rem;
+                    border-radius: 4px;
+                }
+
+                .free-claim-wrapper {
+                    margin-top: 1.5rem;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 1rem;
+                    animation: fadeIn 0.5s ease;
+                }
+
+                .claim-divider {
+                    display: flex;
+                    align-items: center;
+                    gap: 1rem;
+                    color: var(--text-tertiary);
+                    font-size: 0.7rem;
+                    font-weight: 700;
+                }
+
+                .claim-divider::before,
+                .claim-divider::after {
+                    content: "";
+                    flex: 1;
+                    height: 1px;
+                    background: var(--border-light);
+                }
+
+                .free-claim-btn {
+                    width: 100%;
+                    height: 56px;
+                    background: #10b981 !important;
+                    border-color: #10b981 !important;
+                    color: white !important;
+                    font-weight: 800 !important;
+                    font-size: 1rem !important;
+                    border-radius: 12px !important;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 0.75rem;
+                    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+                }
+
+                .free-claim-btn:hover {
+                    background: #059669 !important;
+                    transform: translateY(-2px);
+                    box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3) !important;
+                }
+
+                .free-disclaimer {
+                    text-align: center;
+                    font-size: 0.75rem;
+                    color: var(--text-secondary);
+                    margin: 0;
                 }
             `}</style>
             {album && (

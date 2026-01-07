@@ -388,9 +388,33 @@ const Home = () => {
                                         className="album-card"
                                         onClick={() => {
                                             const photogName = album.profiles?.full_name || 'unknown';
-                                            navigate(`/albums/${encodeURIComponent(photogName)}/${encodeURIComponent(album.title)}`);
+                                            const albumIdentifier = album.slug || album.title;
+                                            navigate(`/albums/${encodeURIComponent(photogName)}/${encodeURIComponent(albumIdentifier)}`);
                                         }}
                                     >
+                                        <div className="album-price-overlay">
+                                            {album.is_free ? (
+                                                <span className="price-badge" style={{ background: '#10b981', color: 'white' }}>FREE</span>
+                                            ) : (
+                                                !album.pricing_package_id && (
+                                                    <span className="price-badge">${album.price}</span>
+                                                )
+                                            )}
+                                        </div>
+                                        {album.pre_inscription_enabled && (
+                                            <div style={{
+                                                position: 'absolute',
+                                                top: '1rem',
+                                                left: '1rem',
+                                                background: '#f97316',
+                                                color: 'white',
+                                                padding: '0.4rem 0.8rem',
+                                                borderRadius: '6px',
+                                                fontSize: '0.7rem',
+                                                fontWeight: 800,
+                                                zIndex: 5
+                                            }}>PRE-INSCRIPTION</div>
+                                        )}
                                         <div className="album-cover">
                                             {album.cover_image_url ? (
                                                 <img src={album.cover_image_url} alt={album.title} />
@@ -398,6 +422,9 @@ const Home = () => {
                                                 <div className="album-placeholder">
                                                     <ImageIcon size={40} />
                                                 </div>
+                                            )}
+                                            {album.pre_inscription_enabled && (
+                                                <div className="pre-badge">PRE-INSCRIPTION</div>
                                             )}
                                         </div>
                                         <div className="album-info">
@@ -413,7 +440,7 @@ const Home = () => {
                                                     {album.profiles?.full_name || 'Unknown'}
                                                 </Link>
                                             </p>
-                                            <p className="album-price">{album.price}</p>
+                                            <p className="album-price">{album.is_free ? 'FREE' : album.price}</p>
                                         </div>
                                     </div>
                                 ))}
@@ -798,6 +825,30 @@ const Home = () => {
                 .carousel-nav:hover {
                     background: var(--primary-blue);
                     border-color: var(--primary-blue);
+                    color: white;
+                }
+
+                .free-badge, .pre-badge {
+                    position: absolute;
+                    top: 1rem;
+                    right: 1rem;
+                    padding: 0.4rem 0.8rem;
+                    border-radius: 6px;
+                    font-size: 0.7rem;
+                    font-weight: 800;
+                    letter-spacing: 0.05em;
+                    color: white;
+                    z-index: 5;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                }
+
+                .free-badge {
+                    background: #10b981;
+                }
+
+                .pre-badge {
+                    background: #f97316;
+                }
                     color: white;
                 }
 
