@@ -1191,10 +1191,23 @@ const PublicAlbumView = () => {
 
                 @media (max-width: 640px) {
                     .album-view-container {
-                        padding: 10px; /* Reduced padding */
+                        padding: 10px 16px; /* Consistent 16px side padding */
                         padding-bottom: 140px;
                         width: 100%;
                         overflow-x: hidden;
+                        box-sizing: border-box; /* Force border-box and width consistency */
+                    }
+
+                    .album-content-layout {
+                        width: 100%;
+                        gap: 1.5rem;
+                    }
+
+                    .purchase-card {
+                        padding: 1.25rem !important; /* Reduced internal padding on mobile */
+                        width: 100% !important;
+                        position: static !important;
+                        box-sizing: border-box;
                     }
 
                     .photos-grid {
