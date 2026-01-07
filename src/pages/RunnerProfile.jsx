@@ -146,6 +146,16 @@ const RunnerProfile = () => {
     };
 
 
+    const copyToClipboard = (text, label) => {
+        if (!text) return;
+        navigator.clipboard.writeText(text).then(() => {
+            setToast({ message: `${label} copié !`, type: 'success' });
+        }).catch(err => {
+            console.error('Failed to copy: ', err);
+            setToast({ message: 'Erreur lors de la copie.', type: 'error' });
+        });
+    };
+
     const [uploading, setUploading] = useState(null);
 
     const handleUploadProof = async (transactionId, file) => {
@@ -259,25 +269,57 @@ const RunnerProfile = () => {
                                                 {tx.albums.profiles.bank_name && (
                                                     <div className="mini-detail">
                                                         <label>Banque</label>
-                                                        <span>{tx.albums.profiles.bank_name}</span>
+                                                        <div className="copyable-row">
+                                                            <span>{tx.albums.profiles.bank_name}</span>
+                                                            <button
+                                                                className="mini-copy-icon"
+                                                                onClick={() => copyToClipboard(tx.albums.profiles.bank_name, 'Nom de la banque')}
+                                                            >
+                                                                <Copy size={12} />
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 )}
                                                 {tx.albums.profiles.account_holder && (
                                                     <div className="mini-detail">
                                                         <label>Titulaire</label>
-                                                        <span>{tx.albums.profiles.account_holder}</span>
+                                                        <div className="copyable-row">
+                                                            <span>{tx.albums.profiles.account_holder}</span>
+                                                            <button
+                                                                className="mini-copy-icon"
+                                                                onClick={() => copyToClipboard(tx.albums.profiles.account_holder, 'Titulaire')}
+                                                            >
+                                                                <Copy size={12} />
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 )}
                                                 {tx.albums.profiles.bank_code && (
                                                     <div className="mini-detail">
                                                         <label>Code Banque</label>
-                                                        <span>{tx.albums.profiles.bank_code}</span>
+                                                        <div className="copyable-row">
+                                                            <span>{tx.albums.profiles.bank_code}</span>
+                                                            <button
+                                                                className="mini-copy-icon"
+                                                                onClick={() => copyToClipboard(tx.albums.profiles.bank_code, 'Code banque')}
+                                                            >
+                                                                <Copy size={12} />
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 )}
                                                 {tx.albums.profiles.account_number && (
                                                     <div className="mini-detail">
                                                         <label>N° Compte</label>
-                                                        <span>{tx.albums.profiles.account_number}</span>
+                                                        <div className="copyable-row">
+                                                            <span>{tx.albums.profiles.account_number}</span>
+                                                            <button
+                                                                className="mini-copy-icon"
+                                                                onClick={() => copyToClipboard(tx.albums.profiles.account_number, 'Numéro de compte')}
+                                                            >
+                                                                <Copy size={12} />
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 )}
                                                 {tx.albums.profiles.rib && (
@@ -287,10 +329,7 @@ const RunnerProfile = () => {
                                                             <span>{tx.albums.profiles.rib}</span>
                                                             <button
                                                                 className="mini-copy-icon"
-                                                                onClick={() => {
-                                                                    navigator.clipboard.writeText(tx.albums.profiles.rib);
-                                                                    alert('Copié !');
-                                                                }}
+                                                                onClick={() => copyToClipboard(tx.albums.profiles.rib, 'IBAN / RIB')}
                                                             >
                                                                 <Copy size={12} />
                                                             </button>
