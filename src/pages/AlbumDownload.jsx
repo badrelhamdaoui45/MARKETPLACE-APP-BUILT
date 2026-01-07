@@ -27,8 +27,9 @@ const AlbumDownload = () => {
             // Note: User might have purchased same album multiple times, get the most recent
             let txQuery = supabase
                 .from('transactions')
-                .select('unlocked_photo_ids')
-                .eq('album_id', albumId);
+                .select('unlocked_photo_ids, status')
+                .eq('album_id', albumId)
+                .eq('status', 'paid');
 
             if (user) {
                 txQuery = txQuery.eq('buyer_id', user.id);

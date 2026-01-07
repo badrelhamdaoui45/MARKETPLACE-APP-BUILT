@@ -4,15 +4,20 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/ui/Button';
-import { Copy, Check } from 'lucide-react';
+import { Copy, Check, MessageSquare, Eye, FileCheck, Image as ImageIcon } from 'lucide-react';
 import ConnectStripe from '../components/stripe/ConnectStripe';
 import Toast from '../components/ui/Toast';
+import PaymentSettingsModal from '../components/PaymentSettingsModal';
 import '../components/ui/ui.css';
 
 const PhotographerDashboard = () => {
     const { user, profile } = useAuth();
     const [activeTab, setActiveTab] = useState('albums'); // 'albums' or 'sales'
     const [toast, setToast] = useState(null);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [inspectingTx, setInspectingTx] = useState(null);
+    const [photogMsg, setPhotogMsg] = useState('');
+    const [savingMsg, setSavingMsg] = useState(false);
 
     // Albums State
     const [albums, setAlbums] = useState([]);
@@ -94,11 +99,49 @@ const PhotographerDashboard = () => {
         });
     };
 
+    const handleApprovePayment = async (txId) => {
+        try {
+            const { error } = await supabase
+                .from('transactions')
+                .update({ status: 'paid' })
+                .eq('id', txId);
+
+            if (error) throw error;
+            setToast({ message: 'Paiement approuvé ! Les photos sont débloquées.', type: 'success' });
+            fetchSales(); // Refresh the list
+        } catch (error) {
+            console.error('Error approving payment:', error);
+            setToast({ message: 'Erreur lors de l\'approbation.', type: 'error' });
+        }
+    };
+
+    const handleSaveMessage = async () => {
+        if (!inspectingTx) return;
+        setSavingMsg(true);
+        try {
+            const { error } = await supabase
+                .from('transactions')
+                .update({ photographer_message: photogMsg })
+                .eq('id', inspectingTx.id);
+
+            if (error) throw error;
+
+            setToast({ message: 'Message enregistré !', type: 'success' });
+            fetchSales(); // Refresh list
+        } catch (error) {
+            console.error("Error saving message:", error);
+            setToast({ message: 'Erreur lors de l\'enregistrement', type: 'error' });
+        } finally {
+            setSavingMsg(false);
+        }
+    };
+
     return (
         <div className="dashboard-container">
             <header className="dashboard-header">
-                <h1>Tableau de bord Photographe</h1>
+                <h1>{profile?.role === 'admin' ? 'Admin Console' : 'Tableau de bord Photographe'}</h1>
                 <div className="dashboard-actions">
+                    <Button className="action-btn" onClick={() => setIsSettingsOpen(true)}>Options</Button>
                     <Link to="/photographer/packages">
                         <Button className="action-btn">Réglages Prix</Button>
                     </Link>
@@ -107,6 +150,16 @@ const PhotographerDashboard = () => {
                     </Link>
                 </div>
             </header>
+
+            <PaymentSettingsModal
+                isOpen={isSettingsOpen}
+                onClose={() => setIsSettingsOpen(false)}
+                profile={profile}
+                onSave={() => {
+                    setToast({ message: 'Paramètres de paiement enregistrés !', type: 'success' });
+                    // Refresh profile if needed, or just let context handle it on next fetch
+                }}
+            />
 
             <ConnectStripe />
 
@@ -127,156 +180,298 @@ const PhotographerDashboard = () => {
             </div>
 
             {/* TAB CONTENT: ALBUMS */}
-            {activeTab === 'albums' && (
-                <div className="tab-content">
-                    {loadingAlbums ? (
-                        <p className="loading-text">Chargement des albums...</p>
-                    ) : albums.length === 0 ? (
-                        <div className="empty-dashboard-state">
-                            <p>Vous n'avez pas encore créé d'albums.</p>
-                            <Link to="/photographer/albums/new">
-                                <Button variant="outline">Créer votre premier album</Button>
-                            </Link>
-                        </div>
-                    ) : (
-                        <div className="dashboard-albums-grid">
-                            {albums.map((album) => (
-                                <div key={album.id} className="album-card-mini">
-                                    <div className="album-card-mini-image">
-                                        {album.cover_image_url ? (
-                                            <img src={album.cover_image_url} alt={album.title} />
-                                        ) : (
-                                            <div className="no-cover-placeholder">
-                                                <div className="placeholder-logo">RUN CAPTURE</div>
-                                                <span className="no-cover-badge">No Cover Image</span>
+            {
+                activeTab === 'albums' && (
+                    <div className="tab-content">
+                        {loadingAlbums ? (
+                            <p className="loading-text">Chargement des albums...</p>
+                        ) : albums.length === 0 ? (
+                            <div className="empty-dashboard-state">
+                                <p>Vous n'avez pas encore créé d'albums.</p>
+                                <Link to="/photographer/albums/new">
+                                    <Button variant="outline">Créer votre premier album</Button>
+                                </Link>
+                            </div>
+                        ) : (
+                            <div className="dashboard-albums-grid">
+                                {albums.map((album) => (
+                                    <div key={album.id} className="album-card-mini">
+                                        <div className="album-card-mini-image">
+                                            {album.cover_image_url ? (
+                                                <img src={album.cover_image_url} alt={album.title} />
+                                            ) : (
+                                                <div className="no-cover-placeholder">
+                                                    <div className="placeholder-logo">RUN CAPTURE</div>
+                                                    <span className="no-cover-badge">No Cover Image</span>
+                                                </div>
+                                            )}
+                                            {album.pre_inscription_enabled && (
+                                                <div className="pre-inscription-label">PRÉ-INSCRIPTION</div>
+                                            )}
+                                        </div>
+                                        <div className="album-card-mini-body">
+                                            <h3>{album.title}</h3>
+                                            <p className="album-meta">
+                                                {album.is_published ? 'Publié' : 'Brouillon'} • ${album.price}
+                                            </p>
+                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                <Link to={`/photographer/albums/${encodeURIComponent(album.title)}/edit`} style={{ flex: 1 }}>
+                                                    <Button className="w-full action-btn">Edit</Button>
+                                                </Link>
+                                                <Button
+                                                    variant={copiedAlbumId === album.id ? "secondary" : "outline"}
+                                                    onClick={() => handleShare(album)}
+                                                    style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
+                                                    title="Copier le lien de partage"
+                                                >
+                                                    {copiedAlbumId === album.id ? <Check size={14} /> : <Copy size={14} />}
+                                                    {copiedAlbumId === album.id ? 'Copied!' : 'Copy Link'}
+                                                </Button>
                                             </div>
-                                        )}
-                                        {album.pre_inscription_enabled && (
-                                            <div className="pre-inscription-label">PRÉ-INSCRIPTION</div>
-                                        )}
-                                    </div>
-                                    <div className="album-card-mini-body">
-                                        <h3>{album.title}</h3>
-                                        <p className="album-meta">
-                                            {album.is_published ? 'Publié' : 'Brouillon'} • ${album.price}
-                                        </p>
-                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                            <Link to={`/photographer/albums/${encodeURIComponent(album.title)}/edit`} style={{ flex: 1 }}>
-                                                <Button className="w-full action-btn">Edit</Button>
-                                            </Link>
-                                            <Button
-                                                variant={copiedAlbumId === album.id ? "secondary" : "outline"}
-                                                onClick={() => handleShare(album)}
-                                                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
-                                                title="Copier le lien de partage"
-                                            >
-                                                {copiedAlbumId === album.id ? <Check size={14} /> : <Copy size={14} />}
-                                                {copiedAlbumId === album.id ? 'Copied!' : 'Copy Link'}
-                                            </Button>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            )}
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )
+            }
 
             {/* TAB CONTENT: SALES */}
-            {activeTab === 'sales' && (
-                <div className="tab-content sales-content">
-                    {/* Stats Overview */}
-                    <div className="stats-grid">
-                        <div className="stat-card">
-                            <div className="stat-label">Volume total des ventes</div>
-                            <div className="stat-value">${salesStats.total.toFixed(2)}</div>
+            {
+                activeTab === 'sales' && (
+                    <div className="tab-content sales-content">
+                        {/* Stats Overview */}
+                        <div className="stats-grid">
+                            <div className="stat-card">
+                                <div className="stat-label">Volume total des ventes</div>
+                                <div className="stat-value">${salesStats.total.toFixed(2)}</div>
+                            </div>
+                            <div className="stat-card highlight">
+                                <div className="stat-label">Revenus nets</div>
+                                <div className="stat-value">${salesStats.net.toFixed(2)}</div>
+                                <div className="stat-note">Paiements via Stripe</div>
+                            </div>
+                            <div className="stat-card">
+                                <div className="stat-label">Commandes totales</div>
+                                <div className="stat-value">{salesStats.count}</div>
+                            </div>
                         </div>
-                        <div className="stat-card highlight">
-                            <div className="stat-label">Revenus nets</div>
-                            <div className="stat-value">${salesStats.net.toFixed(2)}</div>
-                            <div className="stat-note">Paiements via Stripe</div>
-                        </div>
-                        <div className="stat-card">
-                            <div className="stat-label">Commandes totales</div>
-                            <div className="stat-value">{salesStats.count}</div>
-                        </div>
-                    </div>
 
-                    {/* Desktop Transactions Table */}
-                    <div className="transactions-table-wrapper hide-mobile">
-                        <table className="transactions-table">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Album</th>
-                                    <th>Runner</th>
-                                    <th>Brut</th>
-                                    <th>Commission</th>
-                                    <th>Net</th>
-                                    <th>Statut</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {sales.length === 0 ? (
+                        {/* Desktop Transactions Table */}
+                        <div className="transactions-table-wrapper hide-mobile">
+                            <table className="transactions-table">
+                                <thead>
                                     <tr>
-                                        <td colSpan="7" className="empty-table-cell">
-                                            Aucune vente enregistrée pour le moment.
-                                        </td>
+                                        <th>Date</th>
+                                        <th>Album</th>
+                                        <th>Runner</th>
+                                        <th style={{ textAlign: 'right' }}>Brut</th>
+                                        <th style={{ textAlign: 'right' }}>Commission</th>
+                                        <th style={{ textAlign: 'right' }}>Net</th>
+                                        <th style={{ textAlign: 'center' }}>Statut</th>
+                                        <th style={{ textAlign: 'center' }}>Actions</th>
                                     </tr>
-                                ) : (
-                                    sales.map(tx => (
-                                        <tr key={tx.id}>
-                                            <td>{new Date(tx.created_at).toLocaleDateString()}</td>
-                                            <td>{tx.albums?.title || 'Album inconnu'}</td>
-                                            <td>{tx.profiles?.full_name || 'Invité'}</td>
-                                            <td>${Number(tx.amount).toFixed(2)}</td>
-                                            <td className="commission-text">-${Number(tx.commission_amount).toFixed(2)}</td>
-                                            <td className="net-text">
-                                                ${(Number(tx.amount) - Number(tx.commission_amount)).toFixed(2)}
-                                            </td>
-                                            <td>
-                                                <span className={`status-badge ${tx.status}`}>
-                                                    {tx.status?.toUpperCase()}
-                                                </span>
+                                </thead>
+                                <tbody>
+                                    {sales.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="8" className="empty-table-cell">
+                                                Aucune vente enregistrée pour le moment.
                                             </td>
                                         </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+                                    ) : (
+                                        sales.map(tx => (
+                                            <tr key={tx.id}>
+                                                <td>{new Date(tx.created_at).toLocaleDateString()}</td>
+                                                <td>{tx.albums?.title || 'Album inconnu'}</td>
+                                                <td>{tx.profiles?.full_name || 'Invité'}</td>
+                                                <td style={{ textAlign: 'right', fontWeight: 700 }}>${Number(tx.amount).toFixed(2)}</td>
+                                                <td className="commission-text" style={{ textAlign: 'right' }}>-${Number(tx.commission_amount).toFixed(2)}</td>
+                                                <td className="net-text" style={{ textAlign: 'right' }}>
+                                                    ${(Number(tx.amount) - Number(tx.commission_amount)).toFixed(2)}
+                                                </td>
+                                                <td style={{ textAlign: 'center' }}>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
+                                                        <span className={`status-badge ${tx.status}`}>
+                                                            {tx.status?.toUpperCase()}
+                                                        </span>
+                                                        {tx.payment_method === 'bank_transfer' && (
+                                                            <span style={{ fontSize: '10px', fontWeight: 800, color: '#94a3b8' }}>BANQUE</span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td style={{ minWidth: '220px' }}>
+                                                    {tx.status === 'manual_pending' ? (
+                                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center' }}>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                onClick={() => {
+                                                                    setInspectingTx(tx);
+                                                                    setPhotogMsg(tx.photographer_message || '');
+                                                                }}
+                                                                className="verify-btn"
+                                                                style={{ height: '36px', padding: '0 12px', fontSize: '13px' }}
+                                                            >
+                                                                <Eye size={14} />
+                                                                Vérifier
+                                                            </Button>
+                                                            <Button
+                                                                size="sm"
+                                                                className="approve-btn"
+                                                                onClick={() => handleApprovePayment(tx.id)}
+                                                                style={{ height: '36px', padding: '0 12px', fontSize: '13px' }}
+                                                            >
+                                                                Approuver
+                                                            </Button>
+                                                        </div>
+                                                    ) : (
+                                                        <div style={{ textAlign: 'center', color: '#cbd5e1' }}>—</div>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
 
-                    {/* Mobile Transactions List */}
-                    <div className="transactions-mobile-list hide-desktop">
-                        {sales.length === 0 ? (
-                            <p className="empty-text">Aucune vente enregistrée.</p>
-                        ) : (
-                            sales.map(tx => (
-                                <div key={tx.id} className="transaction-card">
-                                    <div className="tx-header">
-                                        <span className="tx-date">{new Date(tx.created_at).toLocaleDateString()}</span>
-                                        <span className={`status-badge ${tx.status}`}>{tx.status}</span>
-                                    </div>
-                                    <div className="tx-row">
-                                        <span className="tx-label">Album:</span>
-                                        <span className="tx-value">{tx.albums?.title || 'Inconnu'}</span>
-                                    </div>
-                                    <div className="tx-row">
-                                        <span className="tx-label">Acheteur:</span>
-                                        <span className="tx-value">{tx.profiles?.full_name || 'Invité'}</span>
-                                    </div>
-                                    <div className="tx-footer">
-                                        <div className="tx-amount-group">
-                                            <span className="tx-label">Net:</span>
-                                            <span className="tx-net-amount">${(Number(tx.amount) - Number(tx.commission_amount)).toFixed(2)}</span>
+                        {/* Mobile Transactions List */}
+                        <div className="transactions-mobile-list hide-desktop">
+                            {sales.length === 0 ? (
+                                <p className="empty-text">Aucune vente enregistrée.</p>
+                            ) : (
+                                sales.map(tx => (
+                                    <div key={tx.id} className="transaction-card">
+                                        <div className="tx-header">
+                                            <span className="tx-date">{new Date(tx.created_at).toLocaleDateString()}</span>
+                                            <span className={`status-badge ${tx.status}`}>
+                                                {tx.status} {tx.payment_method === 'bank_transfer' ? '(Banque)' : ''}
+                                            </span>
                                         </div>
-                                        <div className="tx-gross-info">
-                                            Brut: ${Number(tx.amount).toFixed(2)}
+                                        <div className="tx-row">
+                                            <span className="tx-label">Album:</span>
+                                            <span className="tx-value">{tx.albums?.title || 'Inconnu'}</span>
+                                        </div>
+                                        <div className="tx-row">
+                                            <span className="tx-label">Acheteur:</span>
+                                            <span className="tx-value">{tx.profiles?.full_name || 'Invité'}</span>
+                                        </div>
+                                        <div className="tx-footer">
+                                            <div className="tx-amount-group">
+                                                <span className="tx-label">Net:</span>
+                                                <span className="tx-net-amount">${(Number(tx.amount) - Number(tx.commission_amount)).toFixed(2)}</span>
+                                            </div>
+                                            <div className="btn-group-mini">
+                                                {tx.status === 'manual_pending' && (
+                                                    <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className="flex-1"
+                                                            onClick={() => {
+                                                                setInspectingTx(tx);
+                                                                setPhotogMsg(tx.photographer_message || '');
+                                                            }}
+                                                        >
+                                                            Vérifier
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
+                                                            className="approve-btn flex-1"
+                                                            onClick={() => handleApprovePayment(tx.id)}
+                                                        >
+                                                            Approuver
+                                                        </Button>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* INSPECTION MODAL */}
+            {inspectingTx && (
+                <div className="inspection-modal-overlay" onClick={() => setInspectingTx(null)}>
+                    <div className="inspection-modal-content" onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <div className="mobile-handle show-mobile"></div>
+                            <h3>Vérification du Paiement</h3>
+                            <button className="close-x" onClick={() => setInspectingTx(null)}>&times;</button>
+                        </div>
+
+                        <div className="modal-body">
+                            <div className="tx-overview">
+                                <div className="overview-item">
+                                    <label>Album</label>
+                                    <span>{inspectingTx.albums?.title}</span>
                                 </div>
-                            ))
-                        )}
+                                <div className="overview-item">
+                                    <label>Runner</label>
+                                    <span>{inspectingTx.profiles?.full_name || 'Invité'} ({inspectingTx.profiles?.email || 'N/A'})</span>
+                                </div>
+                                <div className="overview-item highlight">
+                                    <label>Montant Net à recevoir</label>
+                                    <span>${(Number(inspectingTx.amount) - Number(inspectingTx.commission_amount)).toFixed(2)}</span>
+                                </div>
+                            </div>
+
+                            <hr className="modal-divider" />
+
+                            <div className="proof-viewer">
+                                <label className="section-label">Preuve de paiement (Screenshot)</label>
+                                {inspectingTx.payment_proof_url ? (
+                                    <div className="proof-image-container">
+                                        <img src={inspectingTx.payment_proof_url} alt="Preuve de paiement" />
+                                        <a href={inspectingTx.payment_proof_url} target="_blank" rel="noopener noreferrer" className="zoom-btn">
+                                            <Eye size={16} /> Ouvrir en grand
+                                        </a>
+                                    </div>
+                                ) : (
+                                    <div className="no-proof-state">
+                                        <ImageIcon size={48} strokeWidth={1} />
+                                        <p>Aucune preuve de paiement n'a encore été envoyée par le runner.</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="message-sender">
+                                <label className="section-label">Message au Runner</label>
+                                <textarea
+                                    placeholder="Écrivez un message au runner (ex: 'Paiement bien reçu' ou 'RIB erroné, merci de vérifier'...)"
+                                    value={photogMsg}
+                                    onChange={(e) => setPhotogMsg(e.target.value)}
+                                    className="message-textarea"
+                                />
+                                <Button
+                                    className="save-msg-btn"
+                                    onClick={handleSaveMessage}
+                                    disabled={savingMsg}
+                                >
+                                    {savingMsg ? 'Envoi...' : 'Enregistrer le message'}
+                                </Button>
+                            </div>
+                        </div>
+
+                        <div className="modal-footer">
+                            <Button variant="outline" onClick={() => setInspectingTx(null)}>Fermer</Button>
+                            <Button
+                                className="approve-btn-large"
+                                onClick={() => {
+                                    handleApprovePayment(inspectingTx.id);
+                                    setInspectingTx(null);
+                                }}
+                            >
+                                <FileCheck size={20} />
+                                Confirmer la Réception du Paiement
+                            </Button>
+                        </div>
                     </div>
                 </div>
             )}
@@ -479,21 +674,338 @@ const PhotographerDashboard = () => {
                 }
 
                 .transactions-table th {
-                    background: var(--bg-tertiary);
-                    padding: 1rem;
-                    font-size: 0.9rem;
+                    background: #f8fafc;
+                    padding: 1rem 1.25rem;
+                    font-size: 0.8rem;
                     text-align: left;
-                    font-weight: 700;
-                    color: var(--text-secondary);
+                    font-weight: 800;
+                    color: #64748b;
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                    border-bottom: 1px solid #f1f5f9;
                 }
 
                 .transactions-table td {
-                    padding: 1.25rem 1rem;
-                    border-top: 1px solid var(--border-subtle);
+                    padding: 1.25rem;
                     font-size: 0.95rem;
+                    color: #1e293b;
+                    border-bottom: 1px solid #f1f5f9;
+                    vertical-align: middle;
                 }
 
-                .commission-text { color: var(--danger-red); }
+                .transactions-table tr:hover {
+                    background: #fdfdfd;
+                }
+
+                .verify-btn {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.4rem;
+                    background: #f1f5f9 !important;
+                    border-color: #e2e8f0 !important;
+                    color: #475569 !important;
+                }
+
+                .verify-btn:hover {
+                    background: #e2e8f0 !important;
+                    color: #1e293b !important;
+                }
+
+                /* Inspection Modal */
+                .inspection-modal-overlay {
+                    position: fixed;
+                    inset: 0;
+                    background: rgba(15, 23, 42, 0.75);
+                    backdrop-filter: blur(8px);
+                    z-index: 10000;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 0; /* Important for mobile */
+                    animation: fadeIn 0.2s ease-out;
+                }
+
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+
+                .inspection-modal-content {
+                    background: white;
+                    width: 100%;
+                    max-width: 650px;
+                    max-height: 90vh;
+                    border-radius: 24px 24px 24px 24px;
+                    display: flex;
+                    flex-direction: column;
+                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+                    overflow: hidden;
+                    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+                    position: relative;
+                }
+
+                /* Mobile Bottom Sheet */
+                @media (max-width: 768px) {
+                    .inspection-modal-overlay {
+                        align-items: flex-end;
+                    }
+                    .inspection-modal-content {
+                        max-height: 95vh;
+                        border-radius: 20px 20px 0 0;
+                        animation: slideFromBottom 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+                    }
+                }
+
+                @keyframes slideFromBottom {
+                    from { transform: translateY(100%); }
+                    to { transform: translateY(0); }
+                }
+
+                .mobile-handle {
+                    width: 40px;
+                    height: 4px;
+                    background: #e2e8f0;
+                    border-radius: 2px;
+                    margin: 0 auto 0.5rem auto;
+                }
+
+                .inspection-modal-content .modal-header {
+                    padding: 1.5rem 2rem;
+                    border-bottom: 1px solid #f1f5f9;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    position: relative;
+                }
+
+                .inspection-modal-content .modal-header h3 {
+                    margin: 0;
+                    text-align: center;
+                    font-size: 1.15rem;
+                }
+
+                .inspection-modal-content .modal-header .close-x {
+                    position: absolute;
+                    right: 1.5rem;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    background: #f1f5f9;
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 1.25rem;
+                    color: #64748b;
+                    transition: all 0.2s;
+                }
+
+                .inspection-modal-content .modal-header .close-x:hover {
+                    background: #e2e8f0;
+                    color: #0f172a;
+                }
+
+                .inspection-modal-content .modal-body {
+                    padding: 1.5rem;
+                    overflow-y: auto;
+                    flex: 1;
+                }
+
+                .tx-overview {
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 1rem;
+                    background: #f8fafc;
+                    padding: 1.25rem;
+                    border-radius: 16px;
+                    border: 1px solid #f1f5f9;
+                }
+
+                @media (max-width: 480px) {
+                    .tx-overview {
+                        grid-template-columns: 1fr;
+                        gap: 0.75rem;
+                    }
+                }
+
+                .overview-item label {
+                    display: block;
+                    font-size: 0.65rem;
+                    font-weight: 800;
+                    color: #94a3b8;
+                    text-transform: uppercase;
+                    margin-bottom: 0.15rem;
+                }
+
+                .overview-item span {
+                    font-size: 0.9rem;
+                    font-weight: 700;
+                    color: #1e293b;
+                    word-break: break-word;
+                }
+
+                .overview-item.highlight span {
+                    color: #166534;
+                    font-size: 1.1rem;
+                }
+
+                .modal-divider {
+                    margin: 1.5rem 0;
+                    border: none;
+                    border-top: 1px solid #f1f5f9;
+                }
+
+                .section-label {
+                    display: block;
+                    font-size: 0.8rem;
+                    font-weight: 800;
+                    color: #1e293b;
+                    margin-bottom: 0.75rem;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                }
+
+                .section-label::before {
+                    content: '';
+                    display: inline-block;
+                    width: 3px;
+                    height: 12px;
+                    background: var(--primary-blue);
+                    border-radius: 2px;
+                }
+
+                .proof-viewer {
+                    margin-bottom: 1.5rem;
+                }
+
+                .proof-image-container {
+                    background: #f1f5f9;
+                    border-radius: 16px;
+                    padding: 0.5rem;
+                    border: 1px solid #e2e8f0;
+                    position: relative;
+                    overflow: hidden;
+                    min-height: 151px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+                .proof-image-container img {
+                    width: 100%;
+                    max-height: 350px;
+                    object-fit: contain;
+                    border-radius: 12px;
+                }
+
+                .zoom-btn {
+                    position: absolute;
+                    bottom: 1rem;
+                    right: 1rem;
+                    background: rgba(255,255,255,0.95);
+                    backdrop-filter: blur(4px);
+                    padding: 8px 16px;
+                    border-radius: 12px;
+                    font-size: 0.75rem;
+                    font-weight: 700;
+                    color: #0f172a;
+                    text-decoration: none;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                    border: 1px solid rgba(0,0,0,0.05);
+                }
+
+                .no-proof-state {
+                    background: #f8fafc;
+                    border: 2px dashed #cbd5e1;
+                    border-radius: 16px;
+                    padding: 2.5rem 1.5rem;
+                    text-align: center;
+                    color: #64748b;
+                }
+
+                .message-sender {
+                    margin-top: 1.5rem;
+                }
+
+                .message-textarea {
+                    width: 100%;
+                    min-height: 90px;
+                    background: #ffffff;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 14px;
+                    padding: 1rem;
+                    font-family: inherit;
+                    font-size: 0.9rem;
+                    resize: vertical;
+                    margin-bottom: 0.75rem;
+                    transition: all 0.2s;
+                    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+                }
+
+                .message-textarea:focus {
+                    outline: none;
+                    border-color: var(--primary-blue);
+                    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+                }
+
+                .save-msg-btn {
+                    background: var(--primary-blue) !important;
+                    width: auto !important;
+                    font-size: 0.8rem !important;
+                    padding: 0.6rem 1.25rem !important;
+                    border-radius: 10px !important;
+                }
+
+                .inspection-modal-content .modal-footer {
+                    padding: 1.25rem 1.5rem;
+                    background: #f8fafc;
+                    border-top: 1px solid #f1f5f9;
+                    display: flex;
+                    flex-direction: row;
+                    justify-content: flex-end;
+                    gap: 0.75rem;
+                }
+
+                @media (max-width: 480px) {
+                    .inspection-modal-content .modal-footer {
+                        flex-direction: column-reverse;
+                    }
+                    .inspection-modal-content .modal-footer button {
+                        width: 100% !important;
+                    }
+                }
+
+                .approve-btn-large {
+                    background: #16a34a !important;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 0.5rem;
+                    font-weight: 700 !important;
+                    padding-left: 1.5rem !important;
+                    padding-right: 1.5rem !important;
+                    border-radius: 12px !important;
+                }
+
+                .show-mobile { display: block; }
+                .hide-mobile { display: block; }
+
+                @media (max-width: 768px) {
+                    .show-mobile { display: block; }
+                    .hide-mobile { display: none; }
+                }
+
+                @media (min-width: 769px) {
+                    .show-mobile { display: none; }
+                    .hide-mobile { display: block; }
+                }
+
+                .commission-text { color: #ef4444; font-weight: 600; }
                 .net-text { font-weight: 800; color: #16a34a; }
 
                 .status-badge {
@@ -504,8 +1016,21 @@ const PhotographerDashboard = () => {
                     letter-spacing: 0.02em;
                 }
 
-                .status-badge.paid { background: #dcfce7; color: #15803d; }
-                .status-badge.pending { background: #fef9c3; color: #854d0e; }
+                .status-badge.paid { background: #ecfdf5; color: #065f46; }
+                .status-badge.pending { background: #fffbeb; color: #92400e; }
+                .status-badge.manual_pending { background: #fff7ed; color: #9a3412; border: 1px solid #ffedd5; }
+
+                .approve-btn {
+                    background: #10b981 !important;
+                    border: none !important;
+                    color: white !important;
+                    font-weight: 700 !important;
+                }
+
+                .approve-btn:hover {
+                    background: #059669 !important;
+                    transform: translateY(-1px);
+                }
 
                 .transaction-card {
                     background: #ffffff;
@@ -667,14 +1192,16 @@ const PhotographerDashboard = () => {
                     letter-spacing: 0.05em;
                 }
             `}</style>
-            {toast && (
-                <Toast
-                    message={toast.message}
-                    type={toast.type}
-                    onClose={() => setToast(null)}
-                />
-            )}
-        </div>
+            {
+                toast && (
+                    <Toast
+                        message={toast.message}
+                        type={toast.type}
+                        onClose={() => setToast(null)}
+                    />
+                )
+            }
+        </div >
     );
 };
 

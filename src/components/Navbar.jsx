@@ -70,7 +70,7 @@ const Navbar = () => {
                         >
                             <LayoutDashboard size={20} />
                             <span>
-                                {isProvider(profile?.role) || profile?.role === 'admin' ? 'DASHBOARD' : 'PURCHASES'}
+                                {profile?.role === 'admin' ? 'ADMIN CONSOLE' : isProvider(profile?.role) ? 'DASHBOARD' : 'PURCHASES'}
                             </span>
                         </button>
                     )}
@@ -103,7 +103,7 @@ const Navbar = () => {
                                 onClick={navigateToDashboard}
                             >
                                 <span className="user-icon"><User size={18} /></span>
-                                {isProvider(profile?.role) || profile?.role === 'admin' ? 'DASHBOARD' : 'MY PURCHASES'}
+                                {profile?.role === 'admin' ? 'ADMIN CONSOLE' : isProvider(profile?.role) ? 'DASHBOARD' : 'MY PURCHASES'}
                             </Button>
 
                             {/* Profile Dropdown */}
@@ -143,7 +143,7 @@ const Navbar = () => {
                                         )}
 
                                         <button className="profile-menu-item" onClick={navigateToDashboard}>
-                                            <LayoutDashboard size={18} /> {isProvider(profile?.role) || profile?.role === 'admin' ? 'My Dashboard' : 'My Purchases'}
+                                            <LayoutDashboard size={18} /> {profile?.role === 'admin' ? 'Admin Console' : isProvider(profile?.role) ? 'My Dashboard' : 'My Purchases'}
                                         </button>
 
                                         <button
@@ -215,7 +215,7 @@ const Navbar = () => {
 
                             {user && (
                                 <button className="mobile-nav-link" onClick={navigateToDashboard} style={{ background: 'none', border: 'none', textAlign: 'left', font: 'inherit', padding: '1rem', width: '100%' }}>
-                                    <span className="mobile-nav-icon"><LayoutDashboard size={20} /></span> DASHBOARD
+                                    <span className="mobile-nav-icon"><LayoutDashboard size={20} /></span> {profile?.role === 'admin' ? 'ADMIN CONSOLE' : 'DASHBOARD'}
                                 </button>
                             )}
 

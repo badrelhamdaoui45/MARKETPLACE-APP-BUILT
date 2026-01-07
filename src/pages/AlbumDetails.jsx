@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import PhotoUpload from '../components/PhotoUpload';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
-import { ArrowLeft, Trash2, Upload, Eye, EyeOff, Share2, Copy, Check, Hash } from 'lucide-react';
+import { ArrowLeft, Trash2, Upload, Eye, EyeOff, Share2, Copy, Check, Hash, Edit2, Save, X } from 'lucide-react';
 import Toast from '../components/ui/Toast';
 import { detectBibs } from '../lib/gemini';
 
@@ -24,6 +24,13 @@ const AlbumDetails = () => {
     const [isDetecting, setIsDetecting] = useState(false);
     const [availablePackages, setAvailablePackages] = useState([]);
     const [isEditingPackages, setIsEditingPackages] = useState(false);
+    const [isEditingMainDetails, setIsEditingMainDetails] = useState(false);
+    const [savingMainDetails, setSavingMainDetails] = useState(false);
+    const [mainDetailsForm, setMainDetailsForm] = useState({
+        title: '',
+        description: '',
+        price: 0
+    });
 
     // Popup management state
     const [albumPopup, setAlbumPopup] = useState({
@@ -95,6 +102,13 @@ const AlbumDetails = () => {
                     is_active: true
                 });
             }
+
+            // Sync main details form
+            setMainDetailsForm({
+                title: albumData.title,
+                description: albumData.description || '',
+                price: albumData.price
+            });
 
             // Fetch subscriber count
             const { count, error: countError } = await supabase
@@ -177,6 +191,50 @@ const AlbumDetails = () => {
         } catch (error) {
             console.error('Error updating packages:', error);
             setToast({ message: 'Erreur lors de la mise à jour.', type: 'error' });
+        }
+    };
+
+    const handleSaveMainDetails = async () => {
+        if (!mainDetailsForm.title.trim()) {
+            setToast({ message: 'Le titre est obligatoire.', type: 'error' });
+            return;
+        }
+
+        setSavingMainDetails(true);
+        try {
+            const { error } = await supabase
+                .from('albums')
+                .update({
+                    title: mainDetailsForm.title,
+                    description: mainDetailsForm.description,
+                    price: parseFloat(mainDetailsForm.price)
+                })
+                .eq('id', album.id);
+
+            if (error) throw error;
+
+            const oldTitle = album.title;
+            const newTitle = mainDetailsForm.title;
+
+            setAlbum({
+                ...album,
+                title: newTitle,
+                description: mainDetailsForm.description,
+                price: parseFloat(mainDetailsForm.price)
+            });
+
+            setToast({ message: 'Album mis à jour !', type: 'success' });
+            setIsEditingMainDetails(false);
+
+            // If title changed, we need to update the URL to match the route /photographer/albums/:albumTitle/edit
+            if (encodeURIComponent(oldTitle).toLowerCase() !== encodeURIComponent(newTitle).toLowerCase()) {
+                navigate(`/photographer/albums/${encodeURIComponent(newTitle)}/edit`, { replace: true });
+            }
+        } catch (error) {
+            console.error('Error saving main details:', error);
+            setToast({ message: 'Erreur lors de la mise à jour.', type: 'error' });
+        } finally {
+            setSavingMainDetails(false);
         }
     };
 
@@ -367,30 +425,95 @@ const AlbumDetails = () => {
                 <div className="header-content">
                     <div className="header-info">
                         <div className="album-info-card">
-                            <div className="info-group main-group">
-                                <label className="modern-label">ALBUM NAME</label>
-                                <h1 className="album-title-modern">{album.title}</h1>
+                            <div className="info-card-header">
+                                <label className="modern-label">INFORMATIONS GÉNÉRALES</label>
+                                <button
+                                    className="edit-details-btn"
+                                    onClick={() => {
+                                        if (isEditingMainDetails) {
+                                            // Reset form on cancel
+                                            setMainDetailsForm({
+                                                title: album.title,
+                                                description: album.description || '',
+                                                price: album.price
+                                            });
+                                        }
+                                        setIsEditingMainDetails(!isEditingMainDetails);
+                                    }}
+                                >
+                                    {isEditingMainDetails ? <X size={16} /> : <Edit2 size={16} />}
+                                    {isEditingMainDetails ? 'Annuler' : 'Modifier'}
+                                </button>
                             </div>
 
-                            <div className="info-group">
-                                <label className="modern-label">DESCRIPTION</label>
-                                <p className="album-description-modern">{album.description || "No description provided."}</p>
-                            </div>
+                            {!isEditingMainDetails ? (
+                                <>
+                                    <div className="info-group main-group">
+                                        <label className="modern-label">ALBUM NAME</label>
+                                        <h1 className="album-title-modern">{album.title}</h1>
+                                    </div>
 
-                            <div className="modern-meta-grid">
-                                <div className="meta-box">
-                                    <label className="modern-label">PRICE</label>
-                                    <span className="meta-value-modern">${album.price}</span>
+                                    <div className="info-group">
+                                        <label className="modern-label">DESCRIPTION</label>
+                                        <p className="album-description-modern">{album.description || "No description provided."}</p>
+                                    </div>
+
+                                    <div className="modern-meta-grid">
+                                        <div className="meta-box">
+                                            <label className="modern-label">PRICE</label>
+                                            <span className="meta-value-modern">${album.price}</span>
+                                        </div>
+                                        <div className="meta-box">
+                                            <label className="modern-label">PHOTOS</label>
+                                            <span className="meta-value-modern">{photos.length}</span>
+                                        </div>
+                                        <div className="meta-box">
+                                            <label className="modern-label">CREATED ON</label>
+                                            <span className="meta-value-modern">{new Date(album.created_at).toLocaleDateString()}</span>
+                                        </div>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="main-details-editor">
+                                    <div className="popup-field-group">
+                                        <label>Nom de l'album</label>
+                                        <input
+                                            type="text"
+                                            value={mainDetailsForm.title}
+                                            onChange={(e) => setMainDetailsForm({ ...mainDetailsForm, title: e.target.value })}
+                                            placeholder="Titre de l'album"
+                                        />
+                                    </div>
+                                    <div className="popup-field-group">
+                                        <label>Description</label>
+                                        <textarea
+                                            value={mainDetailsForm.description}
+                                            onChange={(e) => setMainDetailsForm({ ...mainDetailsForm, description: e.target.value })}
+                                            placeholder="Description de l'album"
+                                        />
+                                    </div>
+                                    <div className="popup-field-group">
+                                        <label>Prix par défaut ($)</label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            value={mainDetailsForm.price}
+                                            onChange={(e) => setMainDetailsForm({ ...mainDetailsForm, price: e.target.value })}
+                                            placeholder="0.00"
+                                        />
+                                    </div>
+                                    <div className="editor-actions">
+                                        <Button
+                                            onClick={handleSaveMainDetails}
+                                            className="save-details-btn"
+                                            disabled={savingMainDetails}
+                                        >
+                                            <Save size={16} style={{ marginRight: '8px' }} />
+                                            {savingMainDetails ? 'Enregistrement...' : 'Enregistrer les modifications'}
+                                        </Button>
+                                    </div>
                                 </div>
-                                <div className="meta-box">
-                                    <label className="modern-label">PHOTOS</label>
-                                    <span className="meta-value-modern">{photos.length}</span>
-                                </div>
-                                <div className="meta-box">
-                                    <label className="modern-label">CREATED ON</label>
-                                    <span className="meta-value-modern">{new Date(album.created_at).toLocaleDateString()}</span>
-                                </div>
-                            </div>
+                            )}
 
                             <div className="album-packages-section">
                                 <div className="packages-header-row">
@@ -1506,6 +1629,63 @@ const AlbumDetails = () => {
 
                 @keyframes spin {
                     to { transform: rotate(360deg); }
+                }
+
+                .info-card-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 1.5rem;
+                }
+
+                .edit-details-btn {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    background: none;
+                    border: 1px solid var(--border-subtle);
+                    padding: 0.4rem 0.75rem;
+                    border-radius: 8px;
+                    font-size: 0.85rem;
+                    font-weight: 600;
+                    color: var(--text-secondary);
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }
+
+                .edit-details-btn:hover {
+                    background: var(--bg-tertiary);
+                    border-color: var(--primary-blue);
+                    color: var(--primary-blue);
+                }
+
+                .main-details-editor {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 1.25rem;
+                    background: #f8fafc;
+                    padding: 1.5rem;
+                    border-radius: 12px;
+                    border: 1px solid #e2e8f0;
+                }
+
+                .editor-actions {
+                    margin-top: 0.5rem;
+                    display: flex;
+                    justify-content: flex-end;
+                }
+
+                .save-details-btn {
+                    background-color: #F5A623 !important;
+                    border-color: #F5A623 !important;
+                    color: white !important;
+                    height: 44px !important;
+                    font-weight: 700 !important;
+                }
+
+                .save-details-btn:hover {
+                    background-color: #e59512 !important;
+                    box-shadow: 0 4px 12px rgba(245, 166, 35, 0.3) !important;
                 }
 
                 @media (max-width: 768px) {

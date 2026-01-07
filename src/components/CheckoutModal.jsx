@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import Modal from './ui/Modal';
 import Button from './ui/Button';
-import { CreditCard, User, Mail, ShieldCheck, CheckCircle, ArrowRight, Lock, LogIn, UserPlus } from 'lucide-react';
+import { CreditCard, User, Mail, ShieldCheck, CheckCircle, ArrowRight, Lock, LogIn, UserPlus, Landmark, Copy, Check } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 import { loadStripe } from '@stripe/stripe-js';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
 import { useAuth } from '../context/AuthContext';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
-const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading }) => {
+const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, photographerId }) => {
     const { user, signIn, signUp } = useAuth();
     const [step, setStep] = useState(1);
     const [authMode, setAuthMode] = useState('signup'); // 'login' or 'signup'
@@ -20,6 +21,10 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading }) =
     const [clientSecret, setClientSecret] = useState(null);
     const [initializingPayment, setInitializingPayment] = useState(false);
     const [authError, setAuthError] = useState('');
+    const [paymentMethod, setPaymentMethod] = useState('stripe'); // 'stripe' or 'bank_transfer'
+    const [photographerSettings, setPhotographerSettings] = useState(null);
+    const [copied, setCopied] = useState(false);
+    const [confirmedTransfer, setConfirmedTransfer] = useState(false);
 
     useEffect(() => {
         if (user) {
@@ -29,7 +34,33 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading }) =
                 fullName: user.user_metadata?.full_name || ''
             }));
         }
-    }, [user]);
+        if (isOpen && photographerId) {
+            fetchPhotographerSettings();
+        }
+    }, [user, isOpen, photographerId]);
+
+    const fetchPhotographerSettings = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('bank_transfer_enabled, bank_details, bank_name, account_holder, bank_code, account_number, rib')
+                .eq('id', photographerId)
+                .single();
+
+            if (error) throw error;
+            setPhotographerSettings(data);
+        } catch (error) {
+            console.error("Error fetching photographer settings:", error);
+        }
+    };
+
+    const handleCopyDetails = (text, fieldId) => {
+        if (!text) return;
+        navigator.clipboard.writeText(text).then(() => {
+            setCopied(fieldId);
+            setTimeout(() => setCopied(false), 2000);
+        });
+    };
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -57,22 +88,54 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading }) =
                 }
             }
 
-            // Proceed to payment setup
-            const secret = await onConfirm({
-                fullName: formData.fullName,
-                email: formData.email
-            });
-
-            if (secret) {
-                setClientSecret(secret);
-                setStep(2);
-            }
+            // Move to Step 2
+            setStep(2);
 
         } catch (error) {
-            console.error("Authentication/Payment Error:", error);
+            console.error("Authentication Error:", error);
             setAuthError(error.message || "An error occurred.");
         } finally {
             setInitializingPayment(false);
+        }
+    };
+
+    const handleFinalConfirm = async () => {
+        setInitializingPayment(true);
+        try {
+            const result = await onConfirm({
+                fullName: formData.fullName,
+                email: formData.email,
+                paymentMethod: paymentMethod
+            });
+
+            if (paymentMethod === 'stripe' && result) {
+                setClientSecret(result);
+                setStep(3);
+            } else if (paymentMethod === 'bank_transfer') {
+                setStep(3); // Just show instructions first
+            }
+        } catch (error) {
+            setAuthError(error.message);
+        } finally {
+            setInitializingPayment(false);
+        }
+    };
+
+    const handleManualConfirm = async () => {
+        setInitializingPayment(true);
+        setIsLoading(true);
+        try {
+            const result = await onConfirm({
+                fullName: formData.fullName,
+                email: formData.email,
+                paymentMethod: paymentMethod,
+                confirmedTransfer: true
+            });
+        } catch (error) {
+            setAuthError(error.message);
+        } finally {
+            setInitializingPayment(false);
+            setIsLoading(false);
         }
     };
 
@@ -91,9 +154,14 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading }) =
                             <span>Account</span>
                         </div>
                         <div className="step-line"></div>
-                        <div className={`step ${step >= 2 ? 'active' : ''}`}>
-                            <div className="step-circle">2</div>
-                            <span>Payment</span>
+                        <div className={`step ${step >= 2 ? 'active' : ''} ${step > 2 ? 'completed' : ''}`}>
+                            <div className="step-circle">{step > 2 ? <CheckCircle size={16} /> : '2'}</div>
+                            <span>Method</span>
+                        </div>
+                        <div className="step-line"></div>
+                        <div className={`step ${step >= 3 ? 'active' : ''}`}>
+                            <div className="step-circle">3</div>
+                            <span>Finish</span>
                         </div>
                     </div>
                 </div>
@@ -122,7 +190,7 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading }) =
                                 {user ? `Welcome back, ${formData.fullName || 'User'}` : (authMode === 'login' ? 'Log in to continue' : 'Create your account')}
                             </h3>
                             <p className="step-desc">
-                                {user ? 'Confirm your details to proceed to payment.' : 'You need an account to access your photos securely.'}
+                                {user ? 'Confirm your details to proceed.' : 'You need an account to access your photos securely.'}
                             </p>
 
                             {authError && <div className="error-message">{authError}</div>}
@@ -177,15 +245,151 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading }) =
                                 </div>
                             )}
                         </div>
-                    ) : (
-                        <div className="step-content fade-in stripe-container">
-                            {clientSecret && (
-                                <EmbeddedCheckoutProvider
-                                    stripe={stripePromise}
-                                    options={{ clientSecret }}
+                    ) : step === 2 ? (
+                        <div className="step-content fade-in">
+                            <h3 className="step-title">Choose Payment Method</h3>
+                            <p className="step-desc">Select how you would like to pay for your photos.</p>
+
+                            <div className="payment-options">
+                                <div
+                                    className={`payment-option ${paymentMethod === 'stripe' ? 'active' : ''}`}
+                                    onClick={() => setPaymentMethod('stripe')}
                                 >
-                                    <EmbeddedCheckout />
-                                </EmbeddedCheckoutProvider>
+                                    <div className="option-icon"><CreditCard size={24} /></div>
+                                    <div className="option-text">
+                                        <h4>Credit Card</h4>
+                                        <p>Secure payment via Stripe</p>
+                                    </div>
+                                    <div className="option-check">{paymentMethod === 'stripe' && <CheckCircle size={20} />}</div>
+                                </div>
+
+                                {photographerSettings?.bank_transfer_enabled && (
+                                    <div
+                                        className={`payment-option ${paymentMethod === 'bank_transfer' ? 'active' : ''}`}
+                                        onClick={() => setPaymentMethod('bank_transfer')}
+                                    >
+                                        <div className="option-icon"><Landmark size={24} /></div>
+                                        <div className="option-text">
+                                            <h4>Bank Transfer</h4>
+                                            <p>Direct payment to photographer</p>
+                                        </div>
+                                        <div className="option-check">{paymentMethod === 'bank_transfer' && <CheckCircle size={20} />}</div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="total-indicator">
+                                <span>Total to pay:</span>
+                                <strong>${totalAmount}</strong>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="step-content fade-in">
+                            {paymentMethod === 'stripe' ? (
+                                <div className="stripe-container">
+                                    {clientSecret && (
+                                        <EmbeddedCheckoutProvider
+                                            stripe={stripePromise}
+                                            options={{ clientSecret }}
+                                        >
+                                            <EmbeddedCheckout />
+                                        </EmbeddedCheckoutProvider>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="bank-transfer-instructions">
+                                    <div className="instruction-header">
+                                        <Landmark size={32} className="header-icon" />
+                                        <h3>Virement Bancaire</h3>
+                                    </div>
+
+                                    <div className="bank-details-grid">
+                                        {photographerSettings?.bank_name && (
+                                            <div className="bank-detail-item">
+                                                <label>Banque</label>
+                                                <div className="detail-value-box">
+                                                    <span>{photographerSettings.bank_name}</span>
+                                                    <button className="copy-btn-mini" onClick={() => handleCopyDetails(photographerSettings.bank_name, 'bank_name')}>
+                                                        {copied === 'bank_name' ? <Check size={14} /> : <Copy size={14} />}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {photographerSettings?.account_holder && (
+                                            <div className="bank-detail-item">
+                                                <label>Titulaire</label>
+                                                <div className="detail-value-box">
+                                                    <span>{photographerSettings.account_holder}</span>
+                                                    <button className="copy-btn-mini" onClick={() => handleCopyDetails(photographerSettings.account_holder, 'account_holder')}>
+                                                        {copied === 'account_holder' ? <Check size={14} /> : <Copy size={14} />}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {photographerSettings?.bank_code && (
+                                            <div className="bank-detail-item">
+                                                <label>Code Banque</label>
+                                                <div className="detail-value-box">
+                                                    <span>{photographerSettings.bank_code}</span>
+                                                    <button className="copy-btn-mini" onClick={() => handleCopyDetails(photographerSettings.bank_code, 'bank_code')}>
+                                                        {copied === 'bank_code' ? <Check size={14} /> : <Copy size={14} />}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {photographerSettings?.account_number && (
+                                            <div className="bank-detail-item">
+                                                <label>Numéro de Compte</label>
+                                                <div className="detail-value-box">
+                                                    <span>{photographerSettings.account_number}</span>
+                                                    <button className="copy-btn-mini" onClick={() => handleCopyDetails(photographerSettings.account_number, 'account_number')}>
+                                                        {copied === 'account_number' ? <Check size={14} /> : <Copy size={14} />}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {photographerSettings?.rib && (
+                                            <div className="bank-detail-item full-width">
+                                                <label>RIB / IBAN</label>
+                                                <div className="detail-value-box">
+                                                    <span>{photographerSettings.rib}</span>
+                                                    <button className="copy-btn-mini" onClick={() => handleCopyDetails(photographerSettings.rib, 'rib')}>
+                                                        {copied === 'rib' ? <Check size={14} /> : <Copy size={14} />}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {photographerSettings?.bank_details && (
+                                            <div className="bank-detail-item full-width">
+                                                <label>Instructions</label>
+                                                <div className="detail-value-box instructions">
+                                                    <pre>{photographerSettings.bank_details}</pre>
+                                                    <button className="copy-btn-mini" onClick={() => handleCopyDetails(photographerSettings.bank_details, 'details')}>
+                                                        {copied === 'details' ? <Check size={14} /> : <Copy size={14} />}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="important-note">
+                                        <ShieldCheck size={20} />
+                                        <p>
+                                            Une fois le virement effectué, le photographe devra valider manuellement votre paiement pour débloquer vos photos haute résolution.
+                                        </p>
+                                    </div>
+
+                                    <div className="confirmation-step">
+                                        <label className="checkbox-label">
+                                            <input
+                                                type="checkbox"
+                                                checked={confirmedTransfer}
+                                                onChange={(e) => setConfirmedTransfer(e.target.checked)}
+                                            />
+                                            <span>J'ai envoyé le virement au photographe</span>
+                                        </label>
+                                    </div>
+                                </div>
                             )}
                         </div>
                     )}
@@ -205,9 +409,37 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading }) =
                                 </>
                             )}
                         </Button>
+                    ) : step === 2 ? (
+                        <div style={{ display: 'flex', gap: '1rem' }}>
+                            <Button variant="outline" onClick={() => setStep(1)} disabled={initializingPayment}>
+                                Back
+                            </Button>
+                            <Button
+                                className="flex-1 orange-btn"
+                                onClick={handleFinalConfirm}
+                                disabled={initializingPayment}
+                            >
+                                {initializingPayment ? 'Processing...' : (
+                                    <>
+                                        Confirm {paymentMethod === 'stripe' ? 'Card' : 'Bank Transfer'}
+                                        <ArrowRight size={18} style={{ marginLeft: '8px' }} />
+                                    </>
+                                )}
+                            </Button>
+                        </div>
                     ) : (
                         <div className="step-actions">
-                            <button className="back-btn" onClick={() => setStep(1)}>change info</button>
+                            {paymentMethod === 'bank_transfer' ? (
+                                <Button
+                                    className="w-100 orange-btn"
+                                    disabled={!confirmedTransfer || initializingPayment || isLoading}
+                                    onClick={() => handleManualConfirm()} // Call the new manual confirm
+                                >
+                                    {(isLoading || initializingPayment) ? 'Processing...' : 'I HAVE SENT THE PAYMENT'}
+                                </Button>
+                            ) : (
+                                <button className="back-btn" onClick={() => setStep(2)}>change method</button>
+                            )}
                         </div>
                     )}
                 </div>
@@ -466,6 +698,194 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading }) =
                     margin-bottom: 1rem;
                     font-size: 0.9rem;
                 }
+
+                .total-indicator {
+                    margin-top: 2rem;
+                    padding: 1.5rem;
+                    background: #f8fafc;
+                    border-radius: 12px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    border: 1px dashed #cbd5e1;
+                }
+
+                .total-indicator span { font-weight: 600; color: #64748b; }
+                .total-indicator strong { font-size: 1.5rem; color: var(--text-primary); }
+
+                .payment-options {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 1rem;
+                    margin: 1.5rem 0;
+                }
+
+                .payment-option {
+                    display: flex;
+                    align-items: center;
+                    gap: 1.5rem;
+                    padding: 1.25rem;
+                    border: 2px solid #e2e8f0;
+                    border-radius: 16px;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }
+
+                .payment-option:hover {
+                    border-color: var(--primary-blue-light);
+                    background: #f8fafc;
+                }
+
+                .payment-option.active {
+                    border-color: var(--primary-blue);
+                    background: #eff6ff;
+                }
+
+                .option-icon {
+                    width: 48px;
+                    height: 48px;
+                    border-radius: 12px;
+                    background: white;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: #64748b;
+                    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+                }
+
+                .payment-option.active .option-icon {
+                    color: var(--primary-blue);
+                }
+
+                .option-text h4 { font-size: 1rem; font-weight: 700; margin-bottom: 0.15rem; }
+                .option-text p { font-size: 0.8rem; color: #94a3b8; }
+
+                .option-check { margin-left: auto; color: var(--primary-blue); }
+
+                /* Bank Instructions */
+                .bank-transfer-instructions {
+                    animation: fadeIn 0.3s ease-out;
+                }
+
+                .instruction-header {
+                    text-align: center;
+                    margin-bottom: 1.5rem;
+                }
+
+                .header-icon { color: var(--primary-blue); margin-bottom: 0.5rem; }
+                .instruction-header h3 { font-size: 1.25rem; font-weight: 800; }
+
+                .bank-details-grid {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 1rem;
+                    background: #f8fafc;
+                    padding: 1.25rem;
+                    border-radius: 16px;
+                    margin-bottom: 1.5rem;
+                    border: 1px solid #e2e8f0;
+                }
+
+                .bank-detail-item {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.25rem;
+                }
+
+                .bank-detail-item.full-width {
+                    grid-column: span 2;
+                }
+
+                .bank-detail-item label {
+                    font-size: 0.7rem;
+                    font-weight: 800;
+                    color: #94a3b8;
+                    text-transform: uppercase;
+                    letter-spacing: 0.025em;
+                }
+
+                .detail-value-box {
+                    position: relative;
+                    background: white;
+                    padding: 0.6rem 2.5rem 0.6rem 0.75rem;
+                    border-radius: 8px;
+                    border: 1px solid #e2e8f0;
+                    min-height: 40px;
+                    display: flex;
+                    align-items: center;
+                }
+
+                .detail-value-box span {
+                    font-size: 0.9rem;
+                    font-weight: 700;
+                    color: #1e293b;
+                    word-break: break-all;
+                }
+
+                .detail-value-box.instructions {
+                    align-items: flex-start;
+                    padding-top: 0.75rem;
+                }
+
+                .detail-value-box pre {
+                    font-family: inherit;
+                    font-size: 0.85rem;
+                    white-space: pre-wrap;
+                    color: #475569;
+                    margin: 0;
+                }
+
+                .copy-btn-mini {
+                    position: absolute;
+                    top: 50%;
+                    right: 0.5rem;
+                    transform: translateY(-50%);
+                    background: #f1f5f9;
+                    border: none;
+                    border-radius: 6px;
+                    width: 28px;
+                    height: 28px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    color: #64748b;
+                    transition: all 0.2s;
+                }
+
+                .copy-btn-mini:hover {
+                    background: var(--primary-blue-light);
+                    color: var(--primary-blue);
+                }
+
+                .important-note {
+                    display: flex;
+                    gap: 1rem;
+                    padding: 1rem;
+                    background: #fff7ed;
+                    border-radius: 12px;
+                    color: #9a3412;
+                    margin-bottom: 1.5rem;
+                }
+
+                .important-note p { font-size: 0.85rem; line-height: 1.4; font-weight: 500; }
+
+                .confirmation-step {
+                    display: flex;
+                    justify-content: center;
+                }
+
+                .checkbox-label {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                    font-size: 0.95rem;
+                    font-weight: 700;
+                    cursor: pointer;
+                    color: #1e293b;
+                }
+
+                .checkbox-label input { width: 20px; height: 20px; cursor: pointer; }
 
                 @keyframes slideUp {
                     from { transform: translateY(100px); opacity: 0; }

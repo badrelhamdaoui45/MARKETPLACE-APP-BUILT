@@ -161,7 +161,7 @@ const PackageSettings = () => {
                                         {pkg.tiers.map((tier, i) => (
                                             <div key={i} className="tier-row">
                                                 <span className="tier-qty">{tier.quantity} Photo{tier.quantity > 1 ? 's' : ''}</span>
-                                                <span className="tier-price">${tier.price} <small>/ea</small></span>
+                                                <span className="tier-price">${tier.price} <small>/photo</small></span>
                                                 <span className="tier-total">${(tier.quantity * tier.price).toFixed(2)}</span>
                                             </div>
                                         ))}
@@ -269,7 +269,7 @@ const PackageSettings = () => {
                                                 <span className="qty-col">{tier.quantity} item{tier.quantity > 1 ? 's' : ''}</span>
                                                 <span className="price-col">
                                                     <strong>${(tier.quantity * tier.price).toFixed(2)}</strong>
-                                                    <small>(${tier.price}/u)</small>
+                                                    <small>(${tier.price}/photo)</small>
                                                 </span>
                                             </div>
                                         ))}

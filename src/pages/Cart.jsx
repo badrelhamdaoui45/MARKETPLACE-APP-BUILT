@@ -30,7 +30,7 @@ const Cart = () => {
     const [activeAlbumId, setActiveAlbumId] = useState(null);
 
     // Success Modal State
-    const [showSuccess, setShowSuccess] = useState(false);
+    const [showSuccess, setShowSuccess] = useState(false); // Can be boolean or { txId }
 
     // Ref to prevent double processing
     const processedRef = React.useRef(false);
@@ -162,7 +162,56 @@ const Cart = () => {
         try {
             const group = activeGroup;
             const albumId = activeAlbumId;
+            const { paymentMethod } = checkoutData;
 
+            // Calculate price for THIS group
+            let groupPrice = 0;
+            const count = group.items.length;
+            if (group.pricing_package && group.pricing_package.tiers) {
+                const tiers = [...group.pricing_package.tiers].sort((a, b) => b.quantity - a.quantity);
+                const activeTier = tiers.find(tier => count >= tier.quantity);
+                const unitPrice = activeTier ? activeTier.price : (tiers[tiers.length - 1]?.price || 0);
+                groupPrice = count * unitPrice;
+            } else {
+                groupPrice = group.album_price;
+            }
+
+            const commission = calculateCommission(groupPrice);
+            const photoIdsArray = group.items.map(i => i.id);
+
+            if (paymentMethod === 'bank_transfer') {
+                // MANUAL FLOW
+                const { error: txError } = await supabase.from('transactions').insert({
+                    buyer_id: user?.id || null,
+                    photographer_id: group.photographer_id,
+                    album_id: albumId,
+                    amount: groupPrice,
+                    commission_amount: commission,
+                    status: 'manual_pending',
+                    payment_method: 'bank_transfer',
+                    unlocked_photo_ids: photoIdsArray
+                });
+
+                if (txError) throw txError;
+
+                // Get the ID of the newly created transaction
+                const { data: newTx } = await supabase
+                    .from('transactions')
+                    .select('id')
+                    .eq('album_id', albumId)
+                    .eq('photographer_id', group.photographer_id)
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .single();
+
+                setPurchasing(false);
+                setIsCheckoutOpen(false);
+                setShowSuccess({ txId: newTx?.id }); // Pass ID to success state
+                clearCart();
+                return true;
+            }
+
+            // STRIPE FLOW (paymentMethod === 'stripe')
             // 1. Get Photographer Stripe ID
             const { data: photographer, error } = await supabase
                 .from('profiles')
@@ -177,24 +226,10 @@ const Cart = () => {
                 return;
             }
 
-            // Calculate price for THIS group
-            let groupPrice = 0;
-            const count = group.items.length;
-            if (group.pricing_package && group.pricing_package.tiers) {
-                const tiers = [...group.pricing_package.tiers].sort((a, b) => b.quantity - a.quantity);
-                const activeTier = tiers.find(tier => count >= tier.quantity);
-                const unitPrice = activeTier ? activeTier.price : (tiers[tiers.length - 1]?.price || 0);
-                groupPrice = count * unitPrice;
-            } else {
-                groupPrice = group.album_price;
-            }
-
 
 
             // 2. Create Session (Mode: Embedded)
             const { createCheckoutSession } = await import('../lib/stripe/service');
-            const commission = calculateCommission(groupPrice);
-            const photoIdsArray = group.items.map(i => i.id);
 
             // Use the passed email from modal, or user's email as fallback
             const customerEmail = checkoutData.email || user?.email;
@@ -646,6 +681,23 @@ const Cart = () => {
                     height: 44px;
                 }
             }
+
+            .btn-brand-orange {
+                background: #F5A623 !important;
+                border: 2px solid #F5A623 !important;
+                color: white !important;
+                font-weight: 700 !important;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                transition: all 0.2s ease !important;
+            }
+
+            .btn-brand-orange:hover {
+                background: #e6951b !important;
+                border-color: #e6951b !important;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(245, 166, 35, 0.4) !important;
+            }
         `}</style>
     );
 
@@ -658,7 +710,7 @@ const Cart = () => {
                     <h2>Your cart is empty</h2>
                     <p>Browse our albums and select your favorite photos.</p>
                     <Link to="/albums">
-                        <Button variant="primary">Explore Albums</Button>
+                        <Button className="btn-brand-orange">Explore Albums</Button>
                     </Link>
                 </div>
             </div>
@@ -778,6 +830,7 @@ const Cart = () => {
                 isOpen={isCheckoutOpen}
                 onClose={() => setIsCheckoutOpen(false)}
                 onConfirm={handleConfirmCheckout}
+                photographerId={activeGroup?.photographer_id}
                 totalAmount={(function () {
                     // Calculate total for just this group
                     if (!activeGroup) return 0;

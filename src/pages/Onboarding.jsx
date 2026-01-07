@@ -98,7 +98,7 @@ const Onboarding = () => {
                 formData.email,
                 formData.password,
                 formData.fullName,
-                formData.userType, // Pass selected type as role
+                'photographer', // Use fixed 'photographer' role for this flow
                 { // Additional metadata
                     provider_type: formData.userType,
                     preferred_language: formData.language,

@@ -341,7 +341,7 @@ const PublicAlbumView = () => {
                                             {selectedPackage.tiers.sort((a, b) => a.quantity - b.quantity).map((tier, i) => (
                                                 <div key={i} className="tier-item">
                                                     <span>{tier.quantity}+ Photos</span>
-                                                    <span className="tier-price">{tier.price} <small>/ea</small></span>
+                                                    <span className="tier-price">{tier.price} <small>/photo</small></span>
                                                 </div>
                                             ))}
                                         </div>
