@@ -78,7 +78,7 @@
     /* Align visually */
 }
 
-/* Hover Effect: Capture becomes Orange */
+/* Hover Effect: "RUN" becomes Orange */
 .navbar-logo:hover .logo-capture {
     color: #F5A623;
 }

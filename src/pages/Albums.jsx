@@ -58,7 +58,7 @@ const Albums = () => {
                         <span className="search-icon"><Search size={22} strokeWidth={2} /></span>
                         <input
                             type="text"
-                            placeholder="Rechercher un album ou un photographe ..."
+                            placeholder="Search for an album or photographer ..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="search-input"
@@ -106,13 +106,13 @@ const Albums = () => {
 
                                     {album.pre_inscription_enabled && (
                                         <div className="pre-inscription-badge">
-                                            PRE INSCRIPTION
+                                            PRE-REGISTRATION
                                         </div>
                                     )}
 
                                     {album.is_free && (
                                         <div className="free-album-badge">
-                                            ALBUM GRATUIT
+                                            FREE ALBUM
                                         </div>
                                     )}
                                 </div>
@@ -356,19 +356,17 @@ const Albums = () => {
                 }
 
                 .albums-grid {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
-                    gap: 1.5rem; 
+                    /* Masonry Layout */
+                    column-count: 4;
+                    column-gap: 1.5rem;
                     margin-top: 5rem;
                     width: 100%;
-                    align-items: start;
                 }
 
                 .album-card-main-link {
                     text-decoration: none;
                     color: inherit;
                     display: block;
-                    flex: 1;
                 }
 
                 .album-card {
@@ -377,8 +375,10 @@ const Albums = () => {
                     border-radius: 8px;
                     overflow: hidden;
                     transition: all 0.3s ease;
-                    display: flex;
-                    flex-direction: column;
+                    display: inline-block; /* Essential for column layout */
+                    width: 100%;           /* Essential for column layout */
+                    margin-bottom: 1.5rem; /* Vertical spacing */
+                    break-inside: avoid;   /* Prevent splitting */
                 }
 
                 .album-card:hover {
@@ -391,7 +391,7 @@ const Albums = () => {
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    min-height: 200px;
+                    /* Removed min-height to allow natural height */
                 }
 
                 .pre-inscription-badge, .free-album-badge {
@@ -418,7 +418,7 @@ const Albums = () => {
 
                 .album-card-image img {
                     width: 100%;
-                    height: auto;
+                    height: auto; /* Natural height */
                     display: block;
                 }
                 
@@ -429,7 +429,7 @@ const Albums = () => {
                     justify-content: center;
                     color: var(--text-tertiary);
                     width: 100%;
-                    height: 100%;
+                    padding: 3rem 0; /* Add padding for no-cover state */
                 }
 
 
@@ -494,6 +494,18 @@ const Albums = () => {
                     to { transform: rotate(360deg); }
                 }
 
+                @media (max-width: 1280px) {
+                     .albums-grid {
+                        column-count: 3;
+                    }
+                }
+
+                @media (max-width: 1024px) {
+                    .albums-grid {
+                        column-count: 2;
+                    }
+                }
+
                 @media (max-width: 768px) {
                     .albums-container {
                         padding: 0 1rem;
@@ -514,15 +526,14 @@ const Albums = () => {
                     }
                     .albums-grid {
                         margin-top: 3.5rem;
-                        grid-template-columns: 1fr;
-                        gap: 1rem;
+                        column-count: 1; /* Stack on mobile */
+                        column-gap: 0;
                     }
                 }
 
                 @media (max-width: 640px) {
                     .albums-grid {
-                        grid-template-columns: 1fr;
-                        gap: 1rem;
+                        column-count: 1;
                     }
                 }
             `}</style>

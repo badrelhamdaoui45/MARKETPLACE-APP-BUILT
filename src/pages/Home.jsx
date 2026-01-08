@@ -151,7 +151,10 @@ const Home = () => {
                                 <span className="d-none-mobile">Feature</span>
                             </div>
                             <div className="col-us">
-                                <span className="brand-text-logo">RUN CAPTURE</span>
+                                <span className="brand-text-logo">
+                                    <span className="brand-run">RUN</span>
+                                    <span className="brand-capture">CAPTURE</span>
+                                </span>
                             </div>
                             <div className="col-others">Other Apps</div>
                         </div>
@@ -174,6 +177,71 @@ const Home = () => {
                                 </div>
                             </div>
                         ))}
+                    </div>
+                </div>
+
+                {/* Pricing Section */}
+                <div className="pricing-section">
+                    <div className="section-header">
+                        <h2 className="section-title">Simple, Transparent Pricing</h2>
+                        <p className="section-subtitle">Choose the plan that fits your photography business</p>
+                    </div>
+
+                    <div className="pricing-grid">
+                        {/* Free Tier */}
+                        <div className="pricing-card">
+                            <div className="pricing-header">
+                                <h3 className="pricing-tier">Free</h3>
+                                <div className="pricing-price">$0<span className="pricing-period">/mo</span></div>
+                                <p className="pricing-desc">Perfect for getting started</p>
+                            </div>
+                            <ul className="pricing-features">
+                                <li><span className="check-icon">✓</span> Unlimited Uploads</li>
+                                <li><span className="check-icon">✓</span> AI Detection</li>
+                                <li><span className="check-icon">✓</span> <strong>15%</strong> Commission</li>
+                                <li><span className="check-icon">✓</span> Standard Support</li>
+                            </ul>
+                            <Button variant="outline" className="pricing-btn" onClick={() => navigate('/register')}>
+                                Get Started
+                            </Button>
+                        </div>
+
+                        {/* Starter Tier */}
+                        <div className="pricing-card popular">
+                            <div className="popular-badge">MOST POPULAR</div>
+                            <div className="pricing-header">
+                                <h3 className="pricing-tier">Starter</h3>
+                                <div className="pricing-price">$19<span className="pricing-period">/mo</span></div>
+                                <p className="pricing-desc">For growing businesses</p>
+                            </div>
+                            <ul className="pricing-features">
+                                <li><span className="check-icon">✓</span> All Free features</li>
+                                <li><span className="check-icon">✓</span> <strong>10%</strong> Commission</li>
+                                <li><span className="check-icon">✓</span> Priority Processing</li>
+                                <li><span className="check-icon">✓</span> Portfolio Page</li>
+                            </ul>
+                            <Button className="pricing-btn btn-primary" onClick={() => navigate('/register?plan=starter')}>
+                                Start Trial
+                            </Button>
+                        </div>
+
+                        {/* Premium Tier */}
+                        <div className="pricing-card">
+                            <div className="pricing-header">
+                                <h3 className="pricing-tier">Premium</h3>
+                                <div className="pricing-price">$49<span className="pricing-period">/mo</span></div>
+                                <p className="pricing-desc">For professionals & agencies</p>
+                            </div>
+                            <ul className="pricing-features">
+                                <li><span className="check-icon">✓</span> All Starter features</li>
+                                <li><span className="check-icon">✓</span> <strong>5%</strong> Commission</li>
+                                <li><span className="check-icon">✓</span> White Labeling</li>
+                                <li><span className="check-icon">✓</span> Dedicated Manager</li>
+                            </ul>
+                            <Button variant="outline" className="pricing-btn" onClick={() => navigate('/contact')}>
+                                Contact Sales
+                            </Button>
+                        </div>
                     </div>
                 </div>
 
@@ -200,13 +268,26 @@ const Home = () => {
                     }
 
                     .brand-text-logo {
-                        font-family: 'Montserrat', sans-serif; /* Assuming app uses a nice font, fallback to sans */
+                        font-family: 'Montserrat', sans-serif;
                         font-weight: 900;
                         font-size: 1.2rem;
-                        color: var(--primary-blue);
                         letter-spacing: -0.02em;
                         text-transform: uppercase;
                         display: inline-block;
+                        cursor: default;
+                    }
+
+                    .brand-run {
+                        color: #0A162B; /* Dark Slate Grey */
+                        transition: color 0.3s ease;
+                    }
+
+                    .brand-capture {
+                        color: #F5A623; /* Safety Orange */
+                    }
+
+                    .col-us:hover .brand-run {
+                        color: #F5A623;
                     }
 
                     .col-feature { 
@@ -356,6 +437,166 @@ const Home = () => {
                         .comparison-row .col-us {
                             font-weight: 800;
                             background: #eff6ff;
+                        }
+                    }
+                button {
+                        font-family: inherit;
+                    }
+
+                    /* Pricing Section Styles */
+                    .pricing-section {
+                        margin-bottom: 6rem;
+                        padding: 0 1rem;
+                    }
+
+                    .pricing-grid {
+                        display: grid;
+                        grid-template-columns: repeat(3, 1fr);
+                        gap: 2rem;
+                        max-width: 1100px;
+                        margin: 3rem auto 0;
+                    }
+
+                    .pricing-card {
+                        background: white;
+                        border: 1px solid var(--border-subtle);
+                        border-radius: 16px;
+                        padding: 2.5rem 2rem;
+                        display: flex;
+                        flex-direction: column;
+                        position: relative;
+                        transition: transform 0.3s ease, box-shadow 0.3s ease;
+                    }
+
+                    .pricing-card:hover {
+                        transform: translateY(-8px);
+                        box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+                        border-color: #cbd5e1;
+                    }
+
+                    .pricing-card.popular {
+                        border: 2px solid var(--primary-blue);
+                        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.1);
+                        transform: scale(1.05);
+                        z-index: 2;
+                    }
+
+                    .pricing-card.popular:hover {
+                        transform: scale(1.05) translateY(-8px);
+                    }
+
+                    .popular-badge {
+                        position: absolute;
+                        top: -12px;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        background: var(--primary-blue);
+                        color: white;
+                        padding: 0.25rem 1rem;
+                        border-radius: 50px;
+                        font-size: 0.75rem;
+                        font-weight: 800;
+                        letter-spacing: 0.05em;
+                        text-transform: uppercase;
+                    }
+
+                    .pricing-header {
+                        text-align: center;
+                        margin-bottom: 2rem;
+                        padding-bottom: 2rem;
+                        border-bottom: 1px solid var(--border-light);
+                    }
+
+                    .pricing-tier {
+                        font-size: 1.25rem;
+                        font-weight: 800;
+                        color: var(--text-primary);
+                        margin-bottom: 0.5rem;
+                    }
+
+                    .pricing-price {
+                        font-size: 3rem;
+                        font-weight: 900;
+                        color: var(--text-primary);
+                        line-height: 1;
+                        margin-bottom: 0.5rem;
+                    }
+
+                    .pricing-period {
+                        font-size: 1rem;
+                        color: var(--text-secondary);
+                        font-weight: 500;
+                    }
+
+                    .pricing-desc {
+                        color: var(--text-secondary);
+                        font-size: 0.95rem;
+                    }
+
+                    .pricing-features {
+                        list-style: none;
+                        padding: 0;
+                        margin: 0 0 2rem;
+                        flex-grow: 1;
+                    }
+
+                    .pricing-features li {
+                        display: flex;
+                        align-items: center;
+                        margin-bottom: 1rem;
+                        font-size: 0.95rem;
+                        color: var(--text-secondary);
+                    }
+                    
+                    .pricing-features li strong {
+                        color: var(--text-primary);
+                        font-weight: 700;
+                        margin-right: 0.25rem;
+                        margin-left: 0.25rem;
+                    }
+
+                    .pricing-btn {
+                        width: 100%;
+                        justify-content: center;
+                        font-weight: 700;
+                        text-transform: uppercase;
+                        letter-spacing: 0.02em;
+                    }
+                    
+                    .pricing-btn.btn-primary {
+                        background: var(--primary-blue);
+                        color: white;
+                    }
+                    
+                    .pricing-btn.btn-primary:hover {
+                        background: var(--primary-blue-dark);
+                    }
+
+                    @media (max-width: 1024px) {
+                        .pricing-grid {
+                            grid-template-columns: repeat(2, 1fr);
+                            gap: 1.5rem;
+                        }
+                        .pricing-card.popular {
+                            transform: scale(1);
+                            order: -1; /* Show popular first on tablet */
+                            grid-column: span 2; /* Full width on tablet */
+                        }
+                         .pricing-card.popular:hover {
+                            transform: translateY(-8px);
+                        }
+                    }
+
+                    @media (max-width: 768px) {
+                        .pricing-grid {
+                            grid-template-columns: 1fr;
+                            margin-top: 2rem;
+                        }
+                        .pricing-card.popular {
+                            grid-column: span 1;
+                        }
+                        .pricing-price {
+                            font-size: 2.5rem;
                         }
                     }
                 `}</style>

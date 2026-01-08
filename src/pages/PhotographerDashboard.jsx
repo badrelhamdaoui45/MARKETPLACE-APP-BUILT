@@ -95,7 +95,7 @@ const PhotographerDashboard = () => {
         const shareUrl = `${window.location.origin}/albums/${encodeURIComponent(photogName)}/${encodeURIComponent(albumIdentifier)}`;
         navigator.clipboard.writeText(shareUrl).then(() => {
             setCopiedAlbumId(album.id);
-            setToast({ message: 'Lien de l\'album copié !', type: 'success' });
+            setToast({ message: 'Album link copied!', type: 'success' });
             setTimeout(() => setCopiedAlbumId(null), 2000);
         });
     };
@@ -108,11 +108,11 @@ const PhotographerDashboard = () => {
                 .eq('id', txId);
 
             if (error) throw error;
-            setToast({ message: 'Paiement approuvé ! Les photos sont débloquées.', type: 'success' });
+            setToast({ message: 'Payment approved! Photos unlocked.', type: 'success' });
             fetchSales(); // Refresh the list
         } catch (error) {
             console.error('Error approving payment:', error);
-            setToast({ message: 'Erreur lors de l\'approbation.', type: 'error' });
+            setToast({ message: 'Error approving payment.', type: 'error' });
         }
     };
 
@@ -127,11 +127,11 @@ const PhotographerDashboard = () => {
 
             if (error) throw error;
 
-            setToast({ message: 'Message enregistré !', type: 'success' });
+            setToast({ message: 'Message saved!', type: 'success' });
             fetchSales(); // Refresh list
         } catch (error) {
             console.error("Error saving message:", error);
-            setToast({ message: 'Erreur lors de l\'enregistrement', type: 'error' });
+            setToast({ message: 'Error saving message', type: 'error' });
         } finally {
             setSavingMsg(false);
         }
@@ -140,14 +140,14 @@ const PhotographerDashboard = () => {
     return (
         <div className="dashboard-container">
             <header className="dashboard-header">
-                <h1>{profile?.role === 'admin' ? 'Admin Console' : 'Tableau de bord Photographe'}</h1>
+                <h1>{profile?.role === 'admin' ? 'Admin Console' : 'Photographer Dashboard'}</h1>
                 <div className="dashboard-actions">
                     <Button className="action-btn" onClick={() => setIsSettingsOpen(true)}>Options</Button>
                     <Link to="/photographer/packages">
-                        <Button className="action-btn">Réglages Prix</Button>
+                        <Button className="action-btn">Pricing Settings</Button>
                     </Link>
                     <Link to="/photographer/albums/new">
-                        <Button className="action-btn">+ Créer un Album</Button>
+                        <Button className="action-btn">+ Create Album</Button>
                     </Link>
                 </div>
             </header>
@@ -157,7 +157,7 @@ const PhotographerDashboard = () => {
                 onClose={() => setIsSettingsOpen(false)}
                 profile={profile}
                 onSave={() => {
-                    setToast({ message: 'Paramètres de paiement enregistrés !', type: 'success' });
+                    setToast({ message: 'Payment settings saved!', type: 'success' });
                     // Refresh profile if needed, or just let context handle it on next fetch
                 }}
             />
@@ -170,7 +170,7 @@ const PhotographerDashboard = () => {
                     onClick={() => setActiveTab('albums')}
                     className={`tab-button ${activeTab === 'albums' ? 'active' : ''}`}
                 >
-                    Mes Albums
+                    My Albums
                 </button>
                 <button
                     onClick={() => setActiveTab('sales')}
@@ -185,12 +185,12 @@ const PhotographerDashboard = () => {
                 activeTab === 'albums' && (
                     <div className="tab-content">
                         {loadingAlbums ? (
-                            <p className="loading-text">Chargement des albums...</p>
+                            <p className="loading-text">Loading albums...</p>
                         ) : albums.length === 0 ? (
                             <div className="empty-dashboard-state">
-                                <p>Vous n'avez pas encore créé d'albums.</p>
+                                <p>You haven't created any albums yet.</p>
                                 <Link to="/photographer/albums/new">
-                                    <Button variant="outline">Créer votre premier album</Button>
+                                    <Button variant="outline">Create your first album</Button>
                                 </Link>
                             </div>
                         ) : (
@@ -207,16 +207,16 @@ const PhotographerDashboard = () => {
                                                 </div>
                                             )}
                                             {album.pre_inscription_enabled && (
-                                                <div className="pre-inscription-label">PRÉ-INSCRIPTION</div>
+                                                <div className="pre-inscription-label">PRE-REGISTRATION</div>
                                             )}
                                             {album.is_free && (
-                                                <div className="free-album-label">ALBUM GRATUIT</div>
+                                                <div className="free-album-label">FREE ALBUM</div>
                                             )}
                                         </div>
                                         <div className="album-card-mini-body">
                                             <h3>{album.title}</h3>
                                             <p className="album-meta">
-                                                {album.is_published ? 'Publié' : 'Brouillon'} • {album.is_free ? <span style={{ color: '#10b981', fontWeight: 800 }}>GRATUIT</span> : `$${album.price}`}
+                                                {album.is_published ? 'Published' : 'Draft'} • {album.is_free ? <span style={{ color: '#10b981', fontWeight: 800 }}>FREE</span> : `$${album.price}`}
                                             </p>
                                             <div style={{ display: 'flex', gap: '1rem', marginTop: 'auto' }}>
                                                 <Link to={`/photographer/albums/${encodeURIComponent(album.slug || album.title)}/edit`} style={{ flex: 1 }}>
@@ -226,7 +226,7 @@ const PhotographerDashboard = () => {
                                                     variant={copiedAlbumId === album.id ? "secondary" : "outline"}
                                                     onClick={() => handleShare(album)}
                                                     style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', padding: '0 1rem' }}
-                                                    title="Copier le lien de partage"
+                                                    title="Copy share link"
                                                 >
                                                     {copiedAlbumId === album.id ? <Check size={16} /> : <Copy size={16} />}
                                                     {copiedAlbumId === album.id ? 'Copied!' : 'Copy Link'}
@@ -248,16 +248,16 @@ const PhotographerDashboard = () => {
                         {/* Stats Overview */}
                         <div className="stats-grid">
                             <div className="stat-card">
-                                <div className="stat-label">Volume total des ventes</div>
+                                <div className="stat-label">Total Sales Volume</div>
                                 <div className="stat-value">${salesStats.total.toFixed(2)}</div>
                             </div>
                             <div className="stat-card highlight">
-                                <div className="stat-label">Revenus nets</div>
+                                <div className="stat-label">Net Revenue</div>
                                 <div className="stat-value">${salesStats.net.toFixed(2)}</div>
-                                <div className="stat-note">Paiements via Stripe</div>
+                                <div className="stat-note">Payments via Stripe</div>
                             </div>
                             <div className="stat-card">
-                                <div className="stat-label">Commandes totales</div>
+                                <div className="stat-label">Total Orders</div>
                                 <div className="stat-value">{salesStats.count}</div>
                             </div>
                         </div>
@@ -281,15 +281,15 @@ const PhotographerDashboard = () => {
                                     {sales.length === 0 ? (
                                         <tr>
                                             <td colSpan="8" className="empty-table-cell">
-                                                Aucune vente enregistrée pour le moment.
+                                                No sales recorded yet.
                                             </td>
                                         </tr>
                                     ) : (
                                         sales.map(tx => (
                                             <tr key={tx.id}>
                                                 <td>{new Date(tx.created_at).toLocaleDateString()}</td>
-                                                <td>{tx.albums?.title || 'Album inconnu'}</td>
-                                                <td>{tx.profiles?.full_name || 'Invité'}</td>
+                                                <td>{tx.albums?.title || 'Unknown Album'}</td>
+                                                <td>{tx.profiles?.full_name || 'Guest'}</td>
                                                 <td style={{ textAlign: 'right', fontWeight: 700 }}>${Number(tx.amount).toFixed(2)}</td>
                                                 <td className="commission-text" style={{ textAlign: 'right' }}>-${Number(tx.commission_amount).toFixed(2)}</td>
                                                 <td className="net-text" style={{ textAlign: 'right' }}>
@@ -301,7 +301,7 @@ const PhotographerDashboard = () => {
                                                             {tx.status?.toUpperCase()}
                                                         </span>
                                                         {tx.payment_method === 'bank_transfer' && (
-                                                            <span style={{ fontSize: '10px', fontWeight: 800, color: '#94a3b8' }}>BANQUE</span>
+                                                            <span style={{ fontSize: '10px', fontWeight: 800, color: '#94a3b8' }}>BANK</span>
                                                         )}
                                                     </div>
                                                 </td>
@@ -319,7 +319,7 @@ const PhotographerDashboard = () => {
                                                                 style={{ height: '32px', padding: '0 8px', fontSize: '12px' }}
                                                             >
                                                                 <Eye size={13} />
-                                                                Vérifier
+                                                                Verify
                                                             </Button>
                                                             <Button
                                                                 size="sm"
@@ -327,7 +327,7 @@ const PhotographerDashboard = () => {
                                                                 onClick={() => handleApprovePayment(tx.id)}
                                                                 style={{ height: '32px', padding: '0 8px', fontSize: '12px' }}
                                                             >
-                                                                Approuver
+                                                                Approve
                                                             </Button>
                                                         </div>
                                                     ) : (
@@ -344,23 +344,23 @@ const PhotographerDashboard = () => {
                         {/* Mobile Transactions List */}
                         <div className="transactions-mobile-list hide-desktop">
                             {sales.length === 0 ? (
-                                <p className="empty-text">Aucune vente enregistrée.</p>
+                                <p className="empty-text">No sales recorded.</p>
                             ) : (
                                 sales.map(tx => (
                                     <div key={tx.id} className="transaction-card">
                                         <div className="tx-header">
                                             <span className="tx-date">{new Date(tx.created_at).toLocaleDateString()}</span>
                                             <span className={`status-badge ${tx.status}`}>
-                                                {tx.status} {tx.payment_method === 'bank_transfer' ? '(Banque)' : ''}
+                                                {tx.status} {tx.payment_method === 'bank_transfer' ? '(Bank)' : ''}
                                             </span>
                                         </div>
                                         <div className="tx-row">
                                             <span className="tx-label">Album:</span>
-                                            <span className="tx-value">{tx.albums?.title || 'Inconnu'}</span>
+                                            <span className="tx-value">{tx.albums?.title || 'Unknown'}</span>
                                         </div>
                                         <div className="tx-row">
-                                            <span className="tx-label">Acheteur:</span>
-                                            <span className="tx-value">{tx.profiles?.full_name || 'Invité'}</span>
+                                            <span className="tx-label">Buyer:</span>
+                                            <span className="tx-value">{tx.profiles?.full_name || 'Guest'}</span>
                                         </div>
                                         <div className="tx-footer">
                                             <div className="tx-amount-group">
@@ -379,14 +379,14 @@ const PhotographerDashboard = () => {
                                                                 setPhotogMsg(tx.photographer_message || '');
                                                             }}
                                                         >
-                                                            Vérifier
+                                                            Verify
                                                         </Button>
                                                         <Button
                                                             size="sm"
                                                             className="approve-btn flex-1"
                                                             onClick={() => handleApprovePayment(tx.id)}
                                                         >
-                                                            Approuver
+                                                            Approve
                                                         </Button>
                                                     </div>
                                                 )}
@@ -406,7 +406,7 @@ const PhotographerDashboard = () => {
                     <div className="inspection-modal-content" onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
                             <div className="mobile-handle show-mobile"></div>
-                            <h3>Vérification du Paiement</h3>
+                            <h3>Payment Verification</h3>
                             <button className="close-x" onClick={() => setInspectingTx(null)}>&times;</button>
                         </div>
 
@@ -418,10 +418,10 @@ const PhotographerDashboard = () => {
                                 </div>
                                 <div className="overview-item">
                                     <label>Runner</label>
-                                    <span>{inspectingTx.profiles?.full_name || 'Invité'} ({inspectingTx.profiles?.email || 'N/A'})</span>
+                                    <span>{inspectingTx.profiles?.full_name || 'Guest'} ({inspectingTx.profiles?.email || 'N/A'})</span>
                                 </div>
                                 <div className="overview-item highlight">
-                                    <label>Montant Net à recevoir</label>
+                                    <label>Net Amount to Receive</label>
                                     <span>${(Number(inspectingTx.amount) - Number(inspectingTx.commission_amount)).toFixed(2)}</span>
                                 </div>
                             </div>
@@ -429,26 +429,26 @@ const PhotographerDashboard = () => {
                             <hr className="modal-divider" />
 
                             <div className="proof-viewer">
-                                <label className="section-label">Preuve de paiement (Screenshot)</label>
+                                <label className="section-label">Payment Proof (Screenshot)</label>
                                 {inspectingTx.payment_proof_url ? (
                                     <div className="proof-image-container">
-                                        <img src={inspectingTx.payment_proof_url} alt="Preuve de paiement" />
+                                        <img src={inspectingTx.payment_proof_url} alt="Proof of Payment" />
                                         <a href={inspectingTx.payment_proof_url} target="_blank" rel="noopener noreferrer" className="zoom-btn">
-                                            <Eye size={16} /> Ouvrir en grand
+                                            <Eye size={16} /> Open full size
                                         </a>
                                     </div>
                                 ) : (
                                     <div className="no-proof-state">
                                         <ImageIcon size={48} strokeWidth={1} />
-                                        <p>Aucune preuve de paiement n'a encore été envoyée par le runner.</p>
+                                        <p>No payment proof sent by runner yet.</p>
                                     </div>
                                 )}
                             </div>
 
                             <div className="message-sender">
-                                <label className="section-label">Message au Runner</label>
+                                <label className="section-label">Message to Runner</label>
                                 <textarea
-                                    placeholder="Écrivez un message au runner (ex: 'Paiement bien reçu' ou 'RIB erroné, merci de vérifier'...)"
+                                    placeholder="Write a message to the runner (ex: 'Payment received' or 'Wrong bank details'...)"
                                     value={photogMsg}
                                     onChange={(e) => setPhotogMsg(e.target.value)}
                                     className="message-textarea"
@@ -458,13 +458,13 @@ const PhotographerDashboard = () => {
                                     onClick={handleSaveMessage}
                                     disabled={savingMsg}
                                 >
-                                    {savingMsg ? 'Envoi...' : 'Enregistrer le message'}
+                                    {savingMsg ? 'Sending...' : 'Save Message'}
                                 </Button>
                             </div>
                         </div>
 
                         <div className="modal-footer">
-                            <Button variant="outline" onClick={() => setInspectingTx(null)}>Fermer</Button>
+                            <Button variant="outline" onClick={() => setInspectingTx(null)}>Close</Button>
                             <Button
                                 className="approve-btn-large"
                                 onClick={() => {
@@ -473,7 +473,7 @@ const PhotographerDashboard = () => {
                                 }}
                             >
                                 <FileCheck size={20} />
-                                Confirmer la Réception du Paiement
+                                Confirm Payment Receipt
                             </Button>
                         </div>
                     </div>
