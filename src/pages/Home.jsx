@@ -304,14 +304,12 @@ const Home = () => {
                         .comparison-table-container {
                             border-radius: 12px;
                             font-size: 0.9rem;
-                            margin: 0 1rem;
-                            border: 1px solid var(--border-subtle);
                         }
                         
                         .comparison-header-row, .comparison-row {
-                            padding: 1rem 0.75rem;
+                            padding: 1rem 0.5rem;
                             grid-template-columns: 1fr 1fr 1fr;
-                            gap: 0.5rem;
+                            gap: 0.25rem;
                         }
 
                         .comparison-logo {
@@ -329,7 +327,7 @@ const Home = () => {
                         
                         .comparison-row .col-us {
                             font-size: 0.85rem;
-                            padding: 1rem 0.5rem;
+                            padding: 1rem 0;
                             margin: -1rem 0;
                         }
                     }
@@ -337,20 +335,17 @@ const Home = () => {
                     @media (max-width: 480px) {
                         .comparison-table-container {
                             font-size: 0.75rem;
-                            margin: 0 0.75rem;
                         }
                         
                         .comparison-header-row, .comparison-row {
-                            padding: 0.85rem 0.5rem;
-                            grid-template-columns: 0.9fr 1.2fr 0.9fr;
-                            gap: 0.35rem;
+                            padding: 0.75rem 0.25rem;
+                            grid-template-columns: 0.8fr 1.2fr 0.8fr; /* Give more space to middle column */
                         }
                         
                         .col-feature {
-                            justify-content: flex-start;
+                            justify-content: flex-start; /* Align text left */
                             text-align: left;
                             font-size: 0.75rem;
-                            padding-left: 0.35rem;
                         }
 
                         .check-icon, .cross-icon {
@@ -361,12 +356,6 @@ const Home = () => {
                         .comparison-row .col-us {
                             font-weight: 800;
                             background: #eff6ff;
-                            padding: 0.85rem 0.35rem;
-                            margin: -0.85rem 0;
-                        }
-                        
-                        .brand-text-logo {
-                            font-size: 1rem;
                         }
                     }
                 `}</style>
@@ -399,21 +388,15 @@ const Home = () => {
                                             navigate(`/albums/${encodeURIComponent(photogName)}/${encodeURIComponent(albumIdentifier)}`);
                                         }}
                                     >
+                                        <div className="album-badges">
+                                            {album.is_free && (
+                                                <span className="badge-free">FREE</span>
+                                            )}
+                                            {album.pre_inscription_enabled && (
+                                                <span className="badge-pre">PRE-INSCRIPTION</span>
+                                            )}
+                                        </div>
 
-                                        {album.pre_inscription_enabled && (
-                                            <div style={{
-                                                position: 'absolute',
-                                                top: '1rem',
-                                                left: '1rem',
-                                                background: '#f97316',
-                                                color: 'white',
-                                                padding: '0.4rem 0.8rem',
-                                                borderRadius: '6px',
-                                                fontSize: '0.7rem',
-                                                fontWeight: 800,
-                                                zIndex: 5
-                                            }}>PRE-INSCRIPTION</div>
-                                        )}
                                         <div className="album-cover">
                                             {album.cover_image_url ? (
                                                 <img src={album.cover_image_url} alt={album.title} />
@@ -422,9 +405,6 @@ const Home = () => {
                                                     <ImageIcon size={40} />
                                                 </div>
                                             )}
-                                            {album.pre_inscription_enabled && (
-                                                <div className="pre-badge">PRE-INSCRIPTION</div>
-                                            )}
                                         </div>
                                         <div className="album-info">
                                             <h3 className="album-title">{album.title}</h3>
@@ -432,14 +412,11 @@ const Home = () => {
                                                 by <Link
                                                     to={`/photographer/${encodeURIComponent(album.profiles?.full_name)}`}
                                                     onClick={(e) => e.stopPropagation()}
-                                                    style={{ color: 'inherit', textDecoration: 'none' }}
-                                                    onMouseOver={(e) => e.target.style.color = 'var(--primary-blue)'}
-                                                    onMouseOut={(e) => e.target.style.color = 'inherit'}
+                                                    className="photographer-link"
                                                 >
                                                     {album.profiles?.full_name || 'Unknown'}
                                                 </Link>
                                             </p>
-
                                         </div>
                                     </div>
                                 ))}
@@ -674,35 +651,68 @@ const Home = () => {
 
                 /* Recent Albums Carousel Section */
                 .recent-albums-section {
-                    margin-top: 4rem;
+                    margin-top: 6rem;
                     width: 100%;
+                    position: relative;
                 }
 
                 .section-header {
                     text-align: center;
-                    margin-bottom: 2.5rem;
+                    margin-bottom: 3rem;
                 }
 
                 .section-title {
-                    font-size: 2rem;
+                    font-size: 2.25rem;
                     font-weight: 900;
-                    color: #0f172a;
-                    margin-bottom: 0.5rem;
+                    color: #1f2937;
+                    margin-bottom: 0.75rem;
                     letter-spacing: -0.02em;
-                    text-transform: uppercase;
-                    opacity: 1;
                 }
 
                 .section-subtitle {
-                    font-size: 1rem;
+                    font-size: 1.1rem;
                     color: #6b7280;
                     font-weight: 500;
                 }
 
                 .carousel-container {
                     position: relative;
-                    max-width: 1200px;
+                    max-width: 1240px;
                     margin: 0 auto;
+                    padding: 0 1rem;
+                }
+                
+                .carousel-nav {
+                    position: absolute;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    width: 48px;
+                    height: 48px;
+                    border-radius: 50%;
+                    background: white;
+                    border: 1px solid #e2e8f0;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    z-index: 10;
+                    color: #1f2937;
+                    transition: all 0.2s ease;
+                }
+                
+                .carousel-nav:hover {
+                    background: #f8fafc;
+                    box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+                    color: var(--primary-blue);
+                }
+                
+                .carousel-nav-left {
+                    left: -24px;
+                }
+                
+                .carousel-nav-right {
+                    right: -24px;
                 }
 
                 .albums-carousel {
@@ -710,51 +720,68 @@ const Home = () => {
                     gap: 1.5rem;
                     overflow-x: auto;
                     scroll-behavior: smooth;
-                    padding: 1rem 0.5rem 1.5rem;
+                    padding: 1rem 0.5rem 2rem;
                     -webkit-overflow-scrolling: touch;
-                    scrollbar-width: thin;
-                    scrollbar-color: #d1d5db #f3f4f6;
+                    scrollbar-width: none; /* Hide scrollbar for cleaner look */
                 }
-
+                
                 .albums-carousel::-webkit-scrollbar {
-                    height: 8px;
-                }
-
-                .albums-carousel::-webkit-scrollbar-track {
-                    background: #f3f4f6;
-                    border-radius: 4px;
-                }
-
-                .albums-carousel::-webkit-scrollbar-thumb {
-                    background: #d1d5db;
-                    border-radius: 4px;
-                }
-
-                .albums-carousel::-webkit-scrollbar-thumb:hover {
-                    background: #9ca3af;
+                    display: none;
                 }
 
                 .album-card {
-                    flex: 0 0 280px;
+                    flex: 0 0 300px;
                     background: white;
-                    border-radius: 12px;
+                    border-radius: 20px;
                     overflow: hidden;
                     cursor: pointer;
-                    transition: all 0.3s ease;
-                    border: 1px solid #e5e7eb;
-                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                    border: 1px solid rgba(226, 232, 240, 0.8);
+                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+                    position: relative;
                 }
 
                 .album-card:hover {
-                    transform: translateY(-4px);
-                    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
-                    border-color: var(--primary-blue);
+                    transform: translateY(-8px);
+                    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+                    border-color: rgba(59, 130, 246, 0.3);
+                }
+
+                .album-badges {
+                    position: absolute;
+                    top: 1rem;
+                    left: 1rem;
+                    z-index: 5;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.5rem;
+                    align-items: flex-start;
+                }
+                
+                .badge-free {
+                    background: #10b981;
+                    color: white;
+                    padding: 0.35rem 0.75rem;
+                    border-radius: 50px;
+                    font-size: 0.75rem;
+                    font-weight: 800;
+                    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+                }
+                
+                .badge-pre {
+                    background: #f97316;
+                    color: white;
+                    padding: 0.35rem 0.75rem;
+                    border-radius: 50px;
+                    font-size: 0.75rem;
+                    font-weight: 800;
+                    box-shadow: 0 2px 4px rgba(249, 115, 22, 0.3);
                 }
 
                 .album-cover {
                     width: 100%;
-                    height: 200px;
-                    background: #f3f4f6;
+                    height: 220px;
+                    background: #f1f5f9;
                     position: relative;
                     overflow: hidden;
                 }
@@ -763,11 +790,11 @@ const Home = () => {
                     width: 100%;
                     height: 100%;
                     object-fit: cover;
-                    transition: transform 0.3s ease;
+                    transition: transform 0.6s ease;
                 }
 
                 .album-card:hover .album-cover img {
-                    transform: scale(1.05);
+                    transform: scale(1.1);
                 }
 
                 .album-placeholder {
@@ -776,27 +803,39 @@ const Home = () => {
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    color: #9ca3af;
+                    color: #cbd5e1;
                 }
 
                 .album-info {
-                    padding: 1.25rem;
+                    padding: 1.5rem;
                 }
 
                 .album-title {
-                    font-size: 1.1rem;
-                    font-weight: 700;
+                    font-size: 1.15rem;
+                    font-weight: 800;
                     color: #1f2937;
-                    margin-bottom: 0.5rem;
+                    margin-bottom: 0.4rem;
                     overflow: hidden;
                     text-overflow: ellipsis;
                     white-space: nowrap;
+                    letter-spacing: -0.01em;
                 }
 
                 .album-photographer {
-                    font-size: 0.875rem;
-                    color: #6b7280;
-                    margin-bottom: 0.75rem;
+                    font-size: 0.9rem;
+                    color: #64748b;
+                    font-weight: 500;
+                }
+                
+                .photographer-link {
+                    color: #64748b;
+                    text-decoration: none;
+                    transition: color 0.2s;
+                }
+                
+                .photographer-link:hover {
+                    color: var(--primary-blue);
+                    text-decoration: underline;
                 }
 
                 .album-price {

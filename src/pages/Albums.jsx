@@ -357,8 +357,8 @@ const Albums = () => {
 
                 .albums-grid {
                     display: grid;
-                    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-                    gap: 2.5rem;
+                    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
+                    gap: 1.5rem; 
                     margin-top: 5rem;
                     width: 100%;
                     align-items: start;
@@ -379,7 +379,6 @@ const Albums = () => {
                     transition: all 0.3s ease;
                     display: flex;
                     flex-direction: column;
-                    height: 100%;
                 }
 
                 .album-card:hover {
@@ -392,8 +391,7 @@ const Albums = () => {
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    width: 100%;
-                    overflow: hidden;
+                    min-height: 200px;
                 }
 
                 .pre-inscription-badge, .free-album-badge {
@@ -436,7 +434,7 @@ const Albums = () => {
 
 
                 .album-card-content {
-                    padding: 1.5rem 1.5rem 2rem 1.5rem;
+                    padding: 1.5rem;
                     text-align: center;
                 }
 
@@ -453,7 +451,6 @@ const Albums = () => {
                     justify-content: center;
                     gap: 0.75rem;
                     padding-top: 1rem;
-                    padding-bottom: 0.5rem;
                     border-top: 1px solid #f3f4f6;
                 }
 

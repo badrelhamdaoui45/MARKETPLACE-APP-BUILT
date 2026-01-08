@@ -218,17 +218,17 @@ const PhotographerDashboard = () => {
                                             <p className="album-meta">
                                                 {album.is_published ? 'Publié' : 'Brouillon'} • {album.is_free ? <span style={{ color: '#10b981', fontWeight: 800 }}>GRATUIT</span> : `$${album.price}`}
                                             </p>
-                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                            <div style={{ display: 'flex', gap: '1rem', marginTop: 'auto' }}>
                                                 <Link to={`/photographer/albums/${encodeURIComponent(album.slug || album.title)}/edit`} style={{ flex: 1 }}>
                                                     <Button className="w-full action-btn">Edit</Button>
                                                 </Link>
                                                 <Button
                                                     variant={copiedAlbumId === album.id ? "secondary" : "outline"}
                                                     onClick={() => handleShare(album)}
-                                                    style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
+                                                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', padding: '0 1rem' }}
                                                     title="Copier le lien de partage"
                                                 >
-                                                    {copiedAlbumId === album.id ? <Check size={14} /> : <Copy size={14} />}
+                                                    {copiedAlbumId === album.id ? <Check size={16} /> : <Copy size={16} />}
                                                     {copiedAlbumId === album.id ? 'Copied!' : 'Copy Link'}
                                                 </Button>
                                             </div>
@@ -305,9 +305,9 @@ const PhotographerDashboard = () => {
                                                         )}
                                                     </div>
                                                 </td>
-                                                <td style={{ minWidth: '220px' }}>
+                                                <td style={{ minWidth: '240px' }}>
                                                     {tx.status === 'manual_pending' ? (
-                                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
                                                             <Button
                                                                 size="sm"
                                                                 variant="outline"
@@ -316,16 +316,16 @@ const PhotographerDashboard = () => {
                                                                     setPhotogMsg(tx.photographer_message || '');
                                                                 }}
                                                                 className="verify-btn"
-                                                                style={{ height: '36px', padding: '0 12px', fontSize: '13px' }}
+                                                                style={{ height: '32px', padding: '0 8px', fontSize: '12px' }}
                                                             >
-                                                                <Eye size={14} />
+                                                                <Eye size={13} />
                                                                 Vérifier
                                                             </Button>
                                                             <Button
                                                                 size="sm"
                                                                 className="approve-btn"
                                                                 onClick={() => handleApprovePayment(tx.id)}
-                                                                style={{ height: '36px', padding: '0 12px', fontSize: '13px' }}
+                                                                style={{ height: '32px', padding: '0 8px', fontSize: '12px' }}
                                                             >
                                                                 Approuver
                                                             </Button>
@@ -536,21 +536,24 @@ const PhotographerDashboard = () => {
                     display: grid;
                     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
                     gap: 1.5rem;
-                    align-items: start;
+                    align-items: stretch;
                 }
 
                 .album-card-mini {
                     background: #ffffff;
-                    border: 1px solid #e5e7eb;
-                    border-radius: 8px;
+                    border: 1px solid #f1f5f9;
+                    border-radius: 16px;
                     overflow: hidden;
-                    transition: all 0.3s ease;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                     display: flex;
                     flex-direction: column;
+                    box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.05);
                 }
 
                 .album-card-mini:hover {
-                    border-color: #d1d5db;
+                    border-color: #cbd5e1;
+                    transform: translateY(-4px);
+                    box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
                 }
 
                 .album-card-mini-image {
@@ -570,11 +573,11 @@ const PhotographerDashboard = () => {
                     height: 100%;
                     object-fit: cover;
                     display: block;
-                    transition: transform 0.5s ease;
+                    transition: transform 0.6s ease;
                 }
 
                 .album-card-mini:hover .album-card-mini-image img {
-                    transform: scale(1.05);
+                    transform: scale(1.08);
                 }
 
                 .album-placeholder {
@@ -604,51 +607,59 @@ const PhotographerDashboard = () => {
 
                 .pre-inscription-label, .free-album-label {
                     position: absolute;
-                    bottom: 0;
-                    left: 0;
-                    right: 0;
-                    padding: 6px;
+                    bottom: 0.75rem;
+                    padding: 0.35rem 0.75rem;
                     font-size: 0.7rem;
                     font-weight: 800;
-                    text-align: center;
                     letter-spacing: 0.05em;
                     color: white;
+                    border-radius: 50px;
                     z-index: 5;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
                 }
 
                 .pre-inscription-label {
                     background: #f97316;
+                    left: 0.75rem;
                 }
 
                 .free-album-label {
                     background: #10b981;
-                }
-                    color: #94a3b8;
-                    font-weight: 600;
-                    text-transform: uppercase;
-                    background: white;
-                    padding: 4px 8px;
-                    border-radius: 4px;
-                    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+                    right: 0.75rem;
                 }
 
                 .album-card-mini-body {
                     padding: 1.5rem;
                     text-align: center;
+                    flex: 1;
+                    display: flex;
+                    flex-direction: column;
                 }
 
                 .album-card-mini-body h3 {
                     margin-bottom: 0.5rem;
-                    font-size: 1.1rem;
-                    font-weight: 700;
-                    color: #1f2937;
+                    font-size: 1.15rem;
+                    font-weight: 800;
+                    color: #1e293b;
+                    letter-spacing: -0.01em;
                 }
 
                 .album-meta {
-                    color: var(--text-secondary);
-                    font-size: 0.9rem;
-                    margin-bottom: 1.25rem;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 0.5rem;
+                    margin-bottom: 1.5rem;
+                    font-size: 0.85rem;
+                    color: #64748b;
                     font-weight: 500;
+                }
+
+                .album-meta-divider {
+                    width: 4px;
+                    height: 4px;
+                    background: #cbd5e1;
+                    border-radius: 50%;
                 }
 
                 .stats-grid {
@@ -694,7 +705,7 @@ const PhotographerDashboard = () => {
                     background: #ffffff;
                     border-radius: 12px;
                     border: 1px solid var(--border-subtle);
-                    overflow: hidden;
+                    overflow-x: auto;
                 }
 
                 .transactions-table {
@@ -715,7 +726,7 @@ const PhotographerDashboard = () => {
                 }
 
                 .transactions-table td {
-                    padding: 1.25rem;
+                    padding: 1rem;
                     font-size: 0.95rem;
                     color: #1e293b;
                     border-bottom: 1px solid #f1f5f9;
@@ -1038,11 +1049,13 @@ const PhotographerDashboard = () => {
                 .net-text { font-weight: 800; color: #16a34a; }
 
                 .status-badge {
-                    padding: 0.4rem 0.75rem;
+                    padding: 0.25rem 0.6rem;
                     border-radius: 50px;
-                    font-size: 0.75rem;
+                    font-size: 0.7rem;
                     font-weight: 700;
-                    letter-spacing: 0.02em;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.35rem;
                 }
 
                 .status-badge.paid { background: #ecfdf5; color: #065f46; }
