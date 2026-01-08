@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
-import { Search, Camera, ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react';
+import { Search, Camera, ChevronLeft, ChevronRight, Image as ImageIcon, Zap, Shield, Globe, Smartphone, CreditCard, Layers } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 const Home = () => {
@@ -242,6 +242,63 @@ const Home = () => {
                                 Contact Sales
                             </Button>
                         </div>
+                    </div>
+                </div>
+
+                {/* Timeline Section */}
+                <div className="timeline-section">
+                    <div className="section-header">
+                        <h2 className="section-title">How It Works</h2>
+                        <p className="section-subtitle">Start selling your photos in 4 simple steps</p>
+                    </div>
+
+                    <div className="timeline-container">
+                        {[
+                            { title: "Sign Up", desc: "Create your free photographer account", icon: "1" },
+                            { title: "Upload Photos", desc: "Create albums and upload your best shots", icon: "2" },
+                            { title: "Set Pricing", desc: "Choose your rates and publish", icon: "3" },
+                            { title: "Get Paid", desc: "Receive earnings directly to your bank", icon: "4" }
+                        ].map((step, i) => (
+                            <div key={i} className="timeline-step">
+                                <div className="step-number">{step.icon}</div>
+                                <div className="step-content">
+                                    <h3>{step.title}</h3>
+                                    <p>{step.desc}</p>
+                                </div>
+                                {i < 3 && <div className="step-connector"></div>}
+                            </div>
+                        ))}
+                    </div>
+
+                    <div style={{ textAlign: 'center', marginTop: '3rem' }}>
+                        <Button className="pricing-btn btn-primary" style={{ maxWidth: '300px', margin: '0 auto' }} onClick={() => navigate('/register')}>
+                            Join Now
+                        </Button>
+                    </div>
+                </div>
+
+                {/* Features Section */}
+                <div className="features-section">
+                    <div className="section-header">
+                        <h2 className="section-title">Everything You Need</h2>
+                        <p className="section-subtitle">Powerful tools built for sports photography businesses</p>
+                    </div>
+
+                    <div className="features-grid">
+                        {[
+                            { icon: <Zap size={32} />, title: "Instant Payouts", desc: "Get paid immediately after every sale via Stripe Connect." },
+                            { icon: <Shield size={32} />, title: "Secure Storage", desc: "Unlimited cloud storage for your high-resolution albums." },
+                            { icon: <Globe size={32} />, title: "Global Reach", desc: "Sell your photos to runners from all around the world." },
+                            { icon: <Smartphone size={32} />, title: "Mobile Optimized", desc: "Runners can find and buy photos easily on any device." },
+                            { icon: <CreditCard size={32} />, title: "Low Commission", desc: "Keep more of your earnings with our transparent pricing." },
+                            { icon: <Layers size={32} />, title: "Album Management", desc: "Organize thousands of photos in minutes with bulk tools." }
+                        ].map((item, i) => (
+                            <div key={i} className="feature-card">
+                                <div className="feature-icon">{item.icon}</div>
+                                <h3>{item.title}</h3>
+                                <p>{item.desc}</p>
+                            </div>
+                        ))}
                     </div>
                 </div>
 
@@ -597,6 +654,183 @@ const Home = () => {
                         }
                         .pricing-price {
                             font-size: 2.5rem;
+                        }
+                    }
+
+                    /* Timeline Section */
+                    .timeline-section {
+                        margin-bottom: 6rem;
+                        padding: 0 1rem;
+                    }
+
+                    .timeline-container {
+                        display: flex;
+                        justify-content: space-between;
+                        max-width: 1000px;
+                        margin: 3rem auto 0;
+                        position: relative;
+                        gap: 2rem;
+                    }
+
+                    .timeline-step {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        text-align: center;
+                        position: relative;
+                        flex: 1;
+                        z-index: 2;
+                        cursor: pointer; /* Added cursor pointer to indicate hoverability */
+                    }
+                    
+                    /* Added hover effect for timeline number */
+                    .timeline-step:hover .step-number {
+                        background: #F5A623; /* Safety Orange */
+                        transform: scale(1.1);
+                        transition: all 0.3s ease;
+                    }
+
+                    .step-number {
+                        width: 50px;
+                        height: 50px;
+                        background: var(--primary-blue);
+                        color: white;
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-weight: 800;
+                        font-size: 1.25rem;
+                        margin-bottom: 1.5rem;
+                        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+                        border: 4px solid white;
+                        z-index: 2;
+                    }
+
+                    .step-content h3 {
+                        font-size: 1.1rem;
+                        font-weight: 800;
+                        margin-bottom: 0.5rem;
+                        color: var(--text-primary);
+                    }
+
+                    .step-content p {
+                        font-size: 0.9rem;
+                        color: var(--text-secondary);
+                        line-height: 1.5;
+                    }
+
+                    .step-connector {
+                        position: absolute;
+                        top: 25px;
+                        left: 50%;
+                        width: 100%;
+                        height: 2px;
+                        background: #e2e8f0;
+                        z-index: -1;
+                        transform: translateY(-50%);
+                    }
+
+                    @media (max-width: 768px) {
+                        .timeline-container {
+                            flex-direction: column;
+                            align-items: flex-start;
+                            max-width: 400px;
+                            gap: 0;
+                        }
+
+                        .timeline-step {
+                            flex-direction: row;
+                            text-align: left;
+                            margin-bottom: 2rem;
+                            width: 100%;
+                            align-items: flex-start;
+                        }
+
+                        .step-number {
+                            margin-right: 1.5rem;
+                            margin-bottom: 0;
+                            flex-shrink: 0;
+                        }
+
+                        .step-connector {
+                            width: 2px;
+                            height: 100%;
+                            left: 23px; /* Center of the 50px circle (approx) - actually 25px, minus 1px width? */
+                            top: 25px;
+                            transform: none;
+                        }
+                        
+                         /* Fix connector alignment for mobile */
+                        .timeline-step:nth-child(1) .step-connector,
+                        .timeline-step:nth-child(2) .step-connector,
+                        .timeline-step:nth-child(3) .step-connector {
+                            height: calc(100% + 2rem); /* Reach next circle */
+                        }
+                    }
+
+                    /* Features Section */
+                    .features-section {
+                        margin-bottom: 6rem;
+                        padding: 0 1rem;
+                    }
+
+                    .features-grid {
+                        display: grid;
+                        grid-template-columns: repeat(3, 1fr);
+                        gap: 2rem;
+                        max-width: 1100px;
+                        margin: 3rem auto 0;
+                    }
+
+                    .feature-card {
+                        background: white;
+                        padding: 2rem;
+                        border-radius: 16px;
+                        border: 1px solid var(--border-subtle);
+                        transition: all 0.3s ease;
+                    }
+
+                    .feature-card:hover {
+                        transform: translateY(-5px);
+                        box-shadow: 0 20px 40px rgba(245, 166, 35, 0.15); /* Orange Shadow */
+                        border-color: #F5A623; /* Orange Border */
+                    }
+
+                    .feature-icon {
+                        width: 60px;
+                        height: 60px;
+                        background: #eff6ff;
+                        color: var(--primary-blue);
+                        border-radius: 12px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        margin-bottom: 1.5rem;
+                    }
+
+                    .feature-card h3 {
+                        font-size: 1.25rem;
+                        font-weight: 800;
+                        margin-bottom: 0.75rem;
+                        color: var(--text-primary);
+                    }
+
+                    .feature-card p {
+                        color: var(--text-secondary);
+                        line-height: 1.6;
+                        font-size: 0.95rem;
+                    }
+
+                    @media (max-width: 1024px) {
+                        .features-grid {
+                            grid-template-columns: repeat(2, 1fr);
+                        }
+                    }
+
+                    @media (max-width: 640px) {
+                        .features-grid {
+                            grid-template-columns: 1fr;
                         }
                     }
                 `}</style>

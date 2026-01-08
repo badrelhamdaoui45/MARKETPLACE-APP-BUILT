@@ -4,10 +4,11 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/ui/Button';
-import { Copy, Check, MessageSquare, Eye, FileCheck, Image as ImageIcon } from 'lucide-react';
+import { Copy, Check, MessageSquare, Eye, FileCheck, Image as ImageIcon, Share2 } from 'lucide-react';
 import ConnectStripe from '../components/stripe/ConnectStripe';
 import Toast from '../components/ui/Toast';
 import PaymentSettingsModal from '../components/PaymentSettingsModal';
+import ShareModal from '../components/ShareModal';
 import '../components/ui/ui.css';
 
 const PhotographerDashboard = () => {
@@ -18,6 +19,10 @@ const PhotographerDashboard = () => {
     const [inspectingTx, setInspectingTx] = useState(null);
     const [photogMsg, setPhotogMsg] = useState('');
     const [savingMsg, setSavingMsg] = useState(false);
+
+    // Share Modal State
+    const [shareModalOpen, setShareModalOpen] = useState(false);
+    const [shareModalAlbum, setShareModalAlbum] = useState(null);
 
     // Albums State
     const [albums, setAlbums] = useState([]);
@@ -90,14 +95,8 @@ const PhotographerDashboard = () => {
     };
 
     const handleShare = (album) => {
-        const photogName = profile?.full_name || 'photographer';
-        const albumIdentifier = album.slug || album.title;
-        const shareUrl = `${window.location.origin}/albums/${encodeURIComponent(photogName)}/${encodeURIComponent(albumIdentifier)}`;
-        navigator.clipboard.writeText(shareUrl).then(() => {
-            setCopiedAlbumId(album.id);
-            setToast({ message: 'Album link copied!', type: 'success' });
-            setTimeout(() => setCopiedAlbumId(null), 2000);
-        });
+        setShareModalAlbum(album);
+        setShareModalOpen(true);
     };
 
     const handleApprovePayment = async (txId) => {
@@ -142,7 +141,7 @@ const PhotographerDashboard = () => {
             <header className="dashboard-header">
                 <h1>{profile?.role === 'admin' ? 'Admin Console' : 'Photographer Dashboard'}</h1>
                 <div className="dashboard-actions">
-                    <Button className="action-btn" onClick={() => setIsSettingsOpen(true)}>Options</Button>
+                    <Button className="action-btn" onClick={() => setIsSettingsOpen(true)}>OPTIONS DE PAIEMENT</Button>
                     <Link to="/photographer/packages">
                         <Button className="action-btn">Pricing Settings</Button>
                     </Link>
@@ -223,13 +222,13 @@ const PhotographerDashboard = () => {
                                                     <Button className="w-full action-btn">Edit</Button>
                                                 </Link>
                                                 <Button
-                                                    variant={copiedAlbumId === album.id ? "secondary" : "outline"}
+                                                    variant="outline"
                                                     onClick={() => handleShare(album)}
                                                     style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', padding: '0 1rem' }}
-                                                    title="Copy share link"
+                                                    title="Share Album"
                                                 >
-                                                    {copiedAlbumId === album.id ? <Check size={16} /> : <Copy size={16} />}
-                                                    {copiedAlbumId === album.id ? 'Copied!' : 'Copy Link'}
+                                                    <Share2 size={16} />
+                                                    Share
                                                 </Button>
                                             </div>
                                         </div>
@@ -479,6 +478,14 @@ const PhotographerDashboard = () => {
                     </div>
                 </div>
             )}
+
+            <ShareModal
+                isOpen={shareModalOpen}
+                onClose={() => setShareModalOpen(false)}
+                album={shareModalAlbum}
+                profile={profile}
+            />
+
 
             <style>{`
                 .dashboard-container {
