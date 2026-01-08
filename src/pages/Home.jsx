@@ -304,16 +304,14 @@ const Home = () => {
                         .comparison-table-container {
                             border-radius: 12px;
                             font-size: 0.9rem;
-                            margin: 0 -1rem; /* Full width on mobile */
-                            border-radius: 0;
-                            border-left: none;
-                            border-right: none;
+                            margin: 0 1rem;
+                            border: 1px solid var(--border-subtle);
                         }
                         
                         .comparison-header-row, .comparison-row {
-                            padding: 1rem 0.5rem;
+                            padding: 1rem 0.75rem;
                             grid-template-columns: 1fr 1fr 1fr;
-                            gap: 0.25rem;
+                            gap: 0.5rem;
                         }
 
                         .comparison-logo {
@@ -331,7 +329,7 @@ const Home = () => {
                         
                         .comparison-row .col-us {
                             font-size: 0.85rem;
-                            padding: 1rem 0;
+                            padding: 1rem 0.5rem;
                             margin: -1rem 0;
                         }
                     }
@@ -339,17 +337,20 @@ const Home = () => {
                     @media (max-width: 480px) {
                         .comparison-table-container {
                             font-size: 0.75rem;
+                            margin: 0 0.75rem;
                         }
                         
                         .comparison-header-row, .comparison-row {
-                            padding: 0.75rem 0.25rem;
-                            grid-template-columns: 0.8fr 1.2fr 0.8fr; /* Give more space to middle column */
+                            padding: 0.85rem 0.5rem;
+                            grid-template-columns: 0.9fr 1.2fr 0.9fr;
+                            gap: 0.35rem;
                         }
                         
                         .col-feature {
-                            justify-content: flex-start; /* Align text left */
+                            justify-content: flex-start;
                             text-align: left;
                             font-size: 0.75rem;
+                            padding-left: 0.35rem;
                         }
 
                         .check-icon, .cross-icon {
@@ -360,6 +361,12 @@ const Home = () => {
                         .comparison-row .col-us {
                             font-weight: 800;
                             background: #eff6ff;
+                            padding: 0.85rem 0.35rem;
+                            margin: -0.85rem 0;
+                        }
+                        
+                        .brand-text-logo {
+                            font-size: 1rem;
                         }
                     }
                 `}</style>
@@ -392,15 +399,7 @@ const Home = () => {
                                             navigate(`/albums/${encodeURIComponent(photogName)}/${encodeURIComponent(albumIdentifier)}`);
                                         }}
                                     >
-                                        <div className="album-price-overlay">
-                                            {album.is_free ? (
-                                                <span className="price-badge" style={{ background: '#10b981', color: 'white' }}>FREE</span>
-                                            ) : (
-                                                !album.pricing_package_id && (
-                                                    <span className="price-badge">${album.price}</span>
-                                                )
-                                            )}
-                                        </div>
+
                                         {album.pre_inscription_enabled && (
                                             <div style={{
                                                 position: 'absolute',
@@ -440,7 +439,7 @@ const Home = () => {
                                                     {album.profiles?.full_name || 'Unknown'}
                                                 </Link>
                                             </p>
-                                            <p className="album-price">{album.is_free ? 'FREE' : album.price}</p>
+
                                         </div>
                                     </div>
                                 ))}
@@ -686,10 +685,12 @@ const Home = () => {
 
                 .section-title {
                     font-size: 2rem;
-                    font-weight: 800;
-                    color: #1f2937;
+                    font-weight: 900;
+                    color: #0f172a;
                     margin-bottom: 0.5rem;
                     letter-spacing: -0.02em;
+                    text-transform: uppercase;
+                    opacity: 1;
                 }
 
                 .section-subtitle {
