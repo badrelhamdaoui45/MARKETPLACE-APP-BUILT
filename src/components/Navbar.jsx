@@ -90,7 +90,8 @@ const Navbar = () => {
                 <div className="navbar-links desktop-nav">
                     <Link to="/" className="nav-link">HOME</Link>
                     <Link to="/albums" className="nav-link">ALBUMS</Link>
-                    <Link to="/how-it-works" className="nav-link">HOW IT WORKS</Link>
+                    <a href="/#how-it-works" className="nav-link">HOW IT WORKS</a>
+                    <a href="/#pricing" className="nav-link">PRICING</a>
                 </div>
 
                 {/* Desktop Auth/Dashboard Buttons */}
@@ -209,9 +210,12 @@ const Navbar = () => {
                             <Link to="/albums" className="mobile-nav-link" onClick={closeMenu}>
                                 <span className="mobile-nav-icon"><Image size={20} /></span> ALBUMS
                             </Link>
-                            <Link to="/how-it-works" className="mobile-nav-link" onClick={closeMenu}>
-                                <span className="mobile-nav-icon"><HelpCircle size={20} /></span> HELP
-                            </Link>
+                            <a href="/#how-it-works" className="mobile-nav-link" onClick={closeMenu}>
+                                <span className="mobile-nav-icon"><HelpCircle size={20} /></span> HOW IT WORKS
+                            </a>
+                            <a href="/#pricing" className="mobile-nav-link" onClick={closeMenu}>
+                                <span className="mobile-nav-icon"><HelpCircle size={20} /></span> PRICING
+                            </a>
 
                             {user && (
                                 <button className="mobile-nav-link" onClick={navigateToDashboard} style={{ background: 'none', border: 'none', textAlign: 'left', font: 'inherit', padding: '1rem', width: '100%' }}>

@@ -4,11 +4,12 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/ui/Button';
-import { Copy, Check, MessageSquare, Eye, FileCheck, Image as ImageIcon, Share2 } from 'lucide-react';
+import { Copy, Check, MessageSquare, Eye, FileCheck, Image as ImageIcon, Share2, HelpCircle } from 'lucide-react';
 import ConnectStripe from '../components/stripe/ConnectStripe';
 import Toast from '../components/ui/Toast';
 import PaymentSettingsModal from '../components/PaymentSettingsModal';
 import ShareModal from '../components/ShareModal';
+import DashboardSetupModal from '../components/DashboardSetupModal';
 import '../components/ui/ui.css';
 
 const PhotographerDashboard = () => {
@@ -23,6 +24,7 @@ const PhotographerDashboard = () => {
     // Share Modal State
     const [shareModalOpen, setShareModalOpen] = useState(false);
     const [shareModalAlbum, setShareModalAlbum] = useState(null);
+    const [setupModalOpen, setSetupModalOpen] = useState(false);
 
     // Albums State
     const [albums, setAlbums] = useState([]);
@@ -141,6 +143,14 @@ const PhotographerDashboard = () => {
             <header className="dashboard-header">
                 <h1>{profile?.role === 'admin' ? 'Admin Console' : 'Photographer Dashboard'}</h1>
                 <div className="dashboard-actions">
+                    <Button
+                        variant="secondary"
+                        onClick={() => setSetupModalOpen(true)}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#F5A623', color: 'white', border: 'none' }}
+                    >
+                        <HelpCircle size={18} />
+                        SETUP GUIDE
+                    </Button>
                     <Button className="action-btn" onClick={() => setIsSettingsOpen(true)}>OPTIONS DE PAIEMENT</Button>
                     <Link to="/photographer/packages">
                         <Button className="action-btn">Pricing Settings</Button>
@@ -486,6 +496,10 @@ const PhotographerDashboard = () => {
                 profile={profile}
             />
 
+            <DashboardSetupModal
+                isOpen={setupModalOpen}
+                onClose={() => setSetupModalOpen(false)}
+            />
 
             <style>{`
                 .dashboard-container {

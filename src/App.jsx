@@ -24,6 +24,10 @@ import { CartProvider } from './context/CartContext';
 import DynamicPopup from './components/DynamicPopup';
 import FloatingCart from './components/FloatingCart';
 import Onboarding from './pages/Onboarding';
+import TermsOfService from './pages/TermsOfService';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import CookiePolicy from './pages/CookiePolicy';
+import FAQ from './pages/FAQ';
 import Footer from './components/Footer';
 
 function App() {
@@ -60,6 +64,13 @@ function App() {
               <Route path="/contact" element={<Contact />} />
               <Route path="/my-purchases" element={<RunnerProfile />} />
               <Route path="/my-purchases/:albumId" element={<AlbumDownload />} />
+
+              {/* Legal Routes */}
+              <Route path="/terms" element={<TermsOfService />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/cookies" element={<CookiePolicy />} />
+              <Route path="/faq" element={<FAQ />} />
+
             </Routes>
             <Footer />
           </div>

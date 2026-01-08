@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
-import { Search, Camera, ChevronLeft, ChevronRight, Image as ImageIcon, Zap, Shield, Globe, Smartphone, CreditCard, Layers } from 'lucide-react';
+import { Search, Camera, ChevronLeft, ChevronRight, Image as ImageIcon, Zap, Shield, Globe, Smartphone, CreditCard, Layers, Users, Trophy, Flag, Briefcase } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 const Home = () => {
@@ -10,6 +10,39 @@ const Home = () => {
     const navigate = useNavigate();
 
     const [currentSportIndex, setCurrentSportIndex] = useState(0);
+    const [activeUserType, setActiveUserType] = useState('photographer');
+
+    const userTypeData = {
+        photographer: {
+            title: "For Photographers",
+            desc: "Turn your passion into profit. Upload your albums, set your prices, and let our AI technology handle the tagging and sales.",
+            features: ["Automated AI Indexing", "Instant Stripe Payouts", "Custom Watermarking", "Portfolio Page"],
+            icon: <Camera size={120} strokeWidth={1} />,
+            cta: "Start Selling"
+        },
+        agency: {
+            title: "For Photo Agencies",
+            desc: "Scale your operations efficiently. Manage multiple photographers, track global sales, and streamline your workflow in one dashboard.",
+            features: ["Multi-Photographer Management", "Centralized Analytics", "Bulk Album Processing", "Team Permissions"],
+            icon: <Briefcase size={120} strokeWidth={1} />,
+            cta: "Scale Your Business"
+        },
+        organizer: {
+            title: "For Race Organizers",
+            desc: "Enhance your participant experience. Provide easy access to event photos and increase post-race engagement without the hassle.",
+            features: ["Zero Cost Setup", "Boost Event Visibility", "Seamless Photo Distribution", "Sponsor Branding Options"],
+            icon: <Flag size={120} strokeWidth={1} />,
+            cta: "Partner With Us"
+        },
+        club: {
+            title: "For Sport Clubs",
+            desc: "Capture your club's moments. Share match photos with parents and fans while generating extra revenue for the club.",
+            features: ["Fundraising Opportunities", "Private Galleries", "Parent/Fan Engagement", "Season Archives"],
+            icon: <Trophy size={120} strokeWidth={1} />,
+            cta: "Create Club Account"
+        }
+    };
+
     const heroData = [
         { text: "your trail running", image: "/hero_trail_running.png" },
         { text: "your equestrian", image: "/hero_equestrian.png" },
@@ -181,7 +214,7 @@ const Home = () => {
                 </div>
 
                 {/* Pricing Section */}
-                <div className="pricing-section">
+                <div id="pricing" className="pricing-section">
                     <div className="section-header">
                         <h2 className="section-title">Simple, Transparent Pricing</h2>
                         <p className="section-subtitle">Choose the plan that fits your photography business</p>
@@ -246,7 +279,7 @@ const Home = () => {
                 </div>
 
                 {/* Timeline Section */}
-                <div className="timeline-section">
+                <div id="how-it-works" className="timeline-section">
                     <div className="section-header">
                         <h2 className="section-title">How It Works</h2>
                         <p className="section-subtitle">Start selling your photos in 4 simple steps</p>
@@ -299,6 +332,55 @@ const Home = () => {
                                 <p>{item.desc}</p>
                             </div>
                         ))}
+                    </div>
+                </div>
+
+                {/* User Type Switcher Section */}
+                <div className="switcher-section">
+                    <div className="section-header">
+                        <h2 className="section-title">Who is Run Capture For?</h2>
+                        <p className="section-subtitle">Tailored solutions for every player in the sports ecosystem</p>
+                    </div>
+
+                    <div className="switcher-img-box">
+                        {/* Optional: Add a subtle background graphic or shape here */}
+                    </div>
+
+                    <div className="switcher-container">
+                        <div className="switcher-tabs">
+                            <button className={`switcher-tab ${activeUserType === 'photographer' ? 'active' : ''}`} onClick={() => setActiveUserType('photographer')}>
+                                <Camera size={18} /> Photographer
+                            </button>
+                            <button className={`switcher-tab ${activeUserType === 'agency' ? 'active' : ''}`} onClick={() => setActiveUserType('agency')}>
+                                <Briefcase size={18} /> Agency
+                            </button>
+                            <button className={`switcher-tab ${activeUserType === 'organizer' ? 'active' : ''}`} onClick={() => setActiveUserType('organizer')}>
+                                <Flag size={18} /> Organizer
+                            </button>
+                            <button className={`switcher-tab ${activeUserType === 'club' ? 'active' : ''}`} onClick={() => setActiveUserType('club')}>
+                                <Trophy size={18} /> Club
+                            </button>
+                        </div>
+
+                        <div className="switcher-content-card">
+                            <div className="switcher-text-col">
+                                <h3>{userTypeData[activeUserType].title}</h3>
+                                <p className="switcher-desc">{userTypeData[activeUserType].desc}</p>
+                                <ul className="switcher-features">
+                                    {userTypeData[activeUserType].features.map((feat, i) => (
+                                        <li key={i}><span className="check-icon">✓</span> {feat}</li>
+                                    ))}
+                                </ul>
+                                <Button className="switcher-cta-btn" onClick={() => navigate('/register')}>
+                                    {userTypeData[activeUserType].cta}
+                                </Button>
+                            </div>
+                            <div className="switcher-icon-col">
+                                <div className="switcher-large-icon">
+                                    {userTypeData[activeUserType].icon}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -831,6 +913,168 @@ const Home = () => {
                     @media (max-width: 640px) {
                         .features-grid {
                             grid-template-columns: 1fr;
+                        }
+                    }
+
+                    /* Switcher Section */
+                    .switcher-section {
+                        margin-bottom: 6rem;
+                        padding: 0 1rem;
+                        position: relative;
+                    }
+
+                    .switcher-container {
+                        max-width: 1000px;
+                        margin: 0 auto;
+                    }
+
+                    .switcher-tabs {
+                        display: flex;
+                        justify-content: center;
+                        gap: 1rem;
+                        margin-bottom: 2rem;
+                        flex-wrap: wrap;
+                    }
+
+                    .switcher-tab {
+                        display: flex;
+                        align-items: center;
+                        gap: 0.5rem;
+                        padding: 0.75rem 1.5rem;
+                        border-radius: 50px;
+                        background: white;
+                        border: 1px solid var(--border-subtle);
+                        color: var(--text-secondary);
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                        font-size: 0.95rem;
+                    }
+
+                    .switcher-tab:hover {
+                        background: #f8fafc;
+                        transform: translateY(-2px);
+                    }
+
+                    .switcher-tab.active {
+                        background: var(--primary-blue);
+                        color: white;
+                        border-color: var(--primary-blue);
+                        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+                    }
+
+                    .switcher-content-card {
+                        background: white;
+                        border-radius: 24px;
+                        padding: 3rem;
+                        display: grid;
+                        grid-template-columns: 1.2fr 0.8fr;
+                        gap: 3rem;
+                        align-items: center;
+                        box-shadow: 0 20px 50px rgba(0,0,0,0.08); /* Soft large shadow */
+                        border: 1px solid var(--border-subtle);
+                        min-height: 400px;
+                        animation: fadeIn 0.4s ease-out;
+                    }
+                    
+                    @keyframes fadeIn {
+                        from { opacity: 0; transform: translateY(10px); }
+                        to { opacity: 1; transform: translateY(0); }
+                    }
+
+                    .switcher-text-col h3 {
+                        font-size: 2rem;
+                        font-weight: 800;
+                        margin-bottom: 1rem;
+                        color: var(--text-primary);
+                    }
+
+                    .switcher-desc {
+                        font-size: 1.1rem;
+                        color: var(--text-secondary);
+                        line-height: 1.6;
+                        margin-bottom: 2rem;
+                    }
+
+                    .switcher-features {
+                        list-style: none;
+                        padding: 0;
+                        margin-bottom: 2.5rem;
+                        display: grid;
+                        grid-template-columns: 1fr 1fr;
+                        gap: 1rem;
+                    }
+
+                    .switcher-features li {
+                        display: flex;
+                        align-items: center;
+                        font-weight: 600;
+                        color: var(--text-primary);
+                    }
+
+                    .switcher-cta-btn {
+                        padding: 0.8rem 2rem;
+                        font-size: 1rem;
+                        background: #0A162B; /* Dark button for contrast */
+                        color: white;
+                        border: none;
+                    }
+                    
+                    .switcher-cta-btn:hover {
+                         background: #1a2c4e;
+                    }
+
+                    .switcher-icon-col {
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                    }
+
+                    .switcher-large-icon {
+                        color: #eff6ff;
+                        background: var(--primary-blue);
+                        width: 200px;
+                        height: 200px;
+                        border-radius: 40px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        transform: rotate(-5deg);
+                        box-shadow: 0 20px 40px rgba(37, 99, 235, 0.2);
+                    }
+                    
+                    .switcher-large-icon svg {
+                        color: white !important;
+                        filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
+                    }
+
+                    @media (max-width: 900px) {
+                        .switcher-content-card {
+                            grid-template-columns: 1fr;
+                            padding: 2rem;
+                            text-align: center;
+                            gap: 2rem;
+                        }
+
+                        .switcher-features {
+                             text-align: left;
+                             max-width: 400px;
+                             margin-left: auto;
+                             margin-right: auto;
+                        }
+                        
+                        .switcher-icon-col {
+                            order: -1; /* Show icon on top on mobile */
+                        }
+                        
+                        .switcher-large-icon {
+                             width: 120px;
+                             height: 120px;
+                        }
+                        
+                        .switcher-large-icon svg {
+                             width: 60px;
+                             height: 60px;
                         }
                     }
                 `}</style>

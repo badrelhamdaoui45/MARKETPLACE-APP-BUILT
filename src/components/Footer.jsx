@@ -13,8 +13,8 @@ const Footer = () => {
                     <div className="footer-brand">
                         <Link to="/" className="footer-logo">
                             <div className="logo-text-container">
-                                <span className="logo-capture">CAPTURE</span>
-                                <span className="logo-run">RUN</span>
+                                <span className="logo-capture">RUN</span>
+                                <span className="logo-run">CAPTURE</span>
                                 <div className="logo-square"></div>
                             </div>
                         </Link>
