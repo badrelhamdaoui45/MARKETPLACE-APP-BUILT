@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
-import { Search, Camera, ChevronLeft, ChevronRight, Image as ImageIcon, Zap, Shield, Globe, Smartphone, CreditCard, Layers, Users, Trophy, Flag, Briefcase } from 'lucide-react';
+import { Search, Camera, ChevronLeft, ChevronRight, Image as ImageIcon, Zap, Shield, Globe, Smartphone, CreditCard, Layers, Users, Trophy, Flag, Briefcase, PlayCircle, ArrowRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 const Home = () => {
     const [recentAlbums, setRecentAlbums] = useState([]);
+    const [recentBlogs, setRecentBlogs] = useState([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
@@ -61,7 +62,24 @@ const Home = () => {
 
     useEffect(() => {
         fetchRecentAlbums();
+        fetchBlogPosts();
     }, []);
+
+    const fetchBlogPosts = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('blog_posts')
+                .select('*')
+                .eq('is_published', true)
+                .order('created_at', { ascending: false })
+                .limit(3);
+
+            if (error) throw error;
+            setRecentBlogs(data || []);
+        } catch (error) {
+            console.error('Error fetching blog posts:', error);
+        }
+    };
 
     const fetchRecentAlbums = async () => {
         try {
@@ -1151,6 +1169,52 @@ const Home = () => {
                         </div>
                     </div>
                 )}
+
+                {/* Latest Blog Posts Section */}
+                {!loading && recentBlogs.length > 0 && (
+                    <div className="recent-albums-section" style={{ marginTop: '5rem', marginBottom: '4rem' }}>
+                        <div className="section-header">
+                            <h2 className="section-title">Latest from the Blog</h2>
+                            <p className="section-subtitle">Insights, tips, and updates for the community</p>
+                        </div>
+
+                        <div className="blog-posts-grid">
+                            {recentBlogs.map((post) => (
+                                <div
+                                    key={post.id}
+                                    className="blog-item-card"
+                                    onClick={() => navigate(`/blog/${post.slug}`)}
+                                >
+                                    <div className="blog-item-image">
+                                        {post.featured_image ? (
+                                            <img src={post.featured_image} alt={post.title} />
+                                        ) : (
+                                            <div className="blog-item-placeholder">
+                                                <ImageIcon size={48} />
+                                            </div>
+                                        )}
+                                        {post.video_url && (
+                                            <div className="blog-video-icon">
+                                                <PlayCircle size={32} />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="blog-item-content">
+                                        <h3 className="blog-item-title">{post.title}</h3>
+                                        <p className="blog-item-excerpt">
+                                            {post.excerpt || (post.content.length > 100 ? post.content.substring(0, 100) + '...' : post.content)}
+                                        </p>
+                                        <div className="blog-item-footer">
+                                            <span className="read-more-btn">
+                                                Read Article <ArrowRight size={14} style={{ marginLeft: '4px' }} />
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
 
             <style>{`
@@ -1823,6 +1887,146 @@ const Home = () => {
                     }
                     .album-price {
                         font-size: 1.1rem;
+                    }
+                }
+
+                /* Blog Posts Grid Styles */
+                .blog-posts-grid {
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 2rem;
+                    max-width: 1200px;
+                    margin: 0 auto;
+                    padding: 0 1rem;
+                }
+
+                .blog-item-card {
+                    background: white;
+                    border-radius: 20px;
+                    overflow: hidden;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    border: 1px solid #f1f5f9;
+                    display: flex;
+                    flex-direction: column;
+                }
+
+                .blog-item-card:hover {
+                    transform: translateY(-8px);
+                    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+                    border-color: var(--primary-blue);
+                }
+
+                .blog-item-image {
+                    width: 100%;
+                    height: 200px;
+                    position: relative;
+                    background: #f8fafc;
+                    overflow: hidden;
+                }
+
+                .blog-item-image img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                    transition: transform 0.5s ease;
+                }
+
+                .blog-item-card:hover .blog-item-image img {
+                    transform: scale(1.05);
+                }
+
+                .blog-item-placeholder {
+                    width: 100%;
+                    height: 100%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: #cbd5e1;
+                }
+
+                .blog-video-icon {
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    color: white;
+                    background: rgba(37, 99, 235, 0.8);
+                    border-radius: 50%;
+                    padding: 8px;
+                    backdrop-filter: blur(4px);
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                    opacity: 0.9;
+                    transition: all 0.3s ease;
+                }
+
+                .blog-item-card:hover .blog-video-icon {
+                    transform: translate(-50%, -50%) scale(1.1);
+                    background: var(--primary-blue);
+                    opacity: 1;
+                }
+
+                .blog-item-content {
+                    padding: 1.5rem;
+                    flex: 1;
+                    display: flex;
+                    flex-direction: column;
+                }
+
+                .blog-item-title {
+                    font-size: 1.25rem;
+                    font-weight: 800;
+                    color: #0f172a;
+                    margin-bottom: 0.75rem;
+                    line-height: 1.4;
+                    display: -webkit-box;
+                    -webkit-line-clamp: 2;
+                    -webkit-box-orient: vertical;
+                    overflow: hidden;
+                    letter-spacing: -0.01em;
+                }
+
+                .blog-item-excerpt {
+                    font-size: 0.95rem;
+                    color: #64748b;
+                    line-height: 1.6;
+                    margin-bottom: 1.5rem;
+                    display: -webkit-box;
+                    -webkit-line-clamp: 3;
+                    -webkit-box-orient: vertical;
+                    overflow: hidden;
+                }
+
+                .blog-item-footer {
+                    margin-top: auto;
+                }
+
+                .read-more-btn {
+                    display: inline-flex;
+                    align-items: center;
+                    font-size: 0.875rem;
+                    font-weight: 700;
+                    color: var(--primary-blue);
+                    transition: gap 0.2s;
+                }
+
+                .blog-item-card:hover .read-more-btn {
+                    gap: 8px;
+                }
+
+                @media (max-width: 1024px) {
+                    .blog-posts-grid {
+                        grid-template-columns: repeat(2, 1fr);
+                    }
+                }
+
+                @media (max-width: 640px) {
+                    .blog-posts-grid {
+                        grid-template-columns: 1fr;
+                        gap: 1.5rem;
+                    }
+                    .blog-item-image {
+                        height: 180px;
                     }
                 }
             `}</style>

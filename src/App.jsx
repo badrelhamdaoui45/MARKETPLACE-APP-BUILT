@@ -18,6 +18,7 @@ import PhotographerProfile from './pages/PhotographerProfile';
 import PhotographerSettings from './pages/PhotographerSettings';
 import Albums from './pages/Albums';
 import Home from './pages/Home';
+import BlogPost from './pages/BlogPost';
 import Cart from './pages/Cart';
 import Contact from './pages/Contact';
 import { CartProvider } from './context/CartContext';
@@ -51,6 +52,7 @@ function App() {
               {/* Public Viewing Route */}
               <Route path="/albums/:photographerName/:albumTitle" element={<PublicAlbumView />} />
               <Route path="/photographer/:name" element={<PhotographerProfile />} />
+              <Route path="/blog/:slug" element={<BlogPost />} />
 
               {/* Protected Routes */}
               <Route path="/photographer/dashboard" element={<PhotographerDashboard />} />

@@ -8,7 +8,8 @@ import {
 import { format, subDays, isAfter, startOfDay, parseISO } from 'date-fns';
 import {
     TrendingUp, Users, Image as ImageIcon, Briefcase,
-    ChevronDown, Calendar, Filter, DollarSign, Search
+    ChevronDown, Calendar, Filter, DollarSign, Search,
+    FileText, Plus, Trash2, Edit, Video
 } from 'lucide-react';
 
 const AdminDashboard = () => {
@@ -21,6 +22,22 @@ const AdminDashboard = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [salesFilter, setSalesFilter] = useState('all'); // 'all', 'with-sales', 'no-sales'
     const [sortBy, setSortBy] = useState('name'); // 'name', 'revenue-desc', 'revenue-asc'
+
+    // Blog State
+    const [blogPosts, setBlogPosts] = useState([]);
+    const [isEditingBlog, setIsEditingBlog] = useState(false);
+    const [currentBlogPost, setCurrentBlogPost] = useState(null);
+    const [blogForm, setBlogForm] = useState({
+        title: '',
+        content: '',
+        excerpt: '',
+        slug: '',
+        video_url: '',
+        featured_image: '',
+        meta_title: '',
+        meta_description: '',
+        is_published: false
+    });
 
     // Popup Management State
     const [popups, setPopups] = useState([]);
@@ -91,6 +108,14 @@ const AdminDashboard = () => {
 
             if (!popupError) setPopups(globalPopups || []);
 
+            // Fetch Blog Posts
+            const { data: blogs, error: blogError } = await supabase
+                .from('blog_posts')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (!blogError) setBlogPosts(blogs || []);
+
         } catch (error) {
             console.error(error);
         } finally {
@@ -149,6 +174,69 @@ const AdminDashboard = () => {
             button_link: '',
             image_url: ''
         });
+    };
+
+    // Blog Management
+    const resetBlogForm = () => {
+        setBlogForm({
+            title: '',
+            content: '',
+            excerpt: '',
+            slug: '',
+            video_url: '',
+            featured_image: '',
+            meta_title: '',
+            meta_description: '',
+            is_published: false
+        });
+        setCurrentBlogPost(null);
+    };
+
+    const handleSaveBlog = async () => {
+        try {
+            if (!blogForm.title || !blogForm.content || !blogForm.slug) {
+                alert('Title, Content and Slug are required');
+                return;
+            }
+
+            if (currentBlogPost) {
+                const { error } = await supabase
+                    .from('blog_posts')
+                    .update(blogForm)
+                    .eq('id', currentBlogPost.id);
+                if (error) throw error;
+            } else {
+                const { error } = await supabase
+                    .from('blog_posts')
+                    .insert([blogForm]);
+                if (error) throw error;
+            }
+            fetchAllData();
+            setIsEditingBlog(false);
+            resetBlogForm();
+        } catch (error) {
+            console.error(error);
+            alert('Error saving blog post');
+        }
+    };
+
+    const handleDeleteBlog = async (id) => {
+        if (!window.confirm('Are you sure you want to delete this blog post?')) return;
+        try {
+            const { error } = await supabase
+                .from('blog_posts')
+                .delete()
+                .eq('id', id);
+            if (error) throw error;
+            fetchAllData();
+        } catch (error) {
+            console.error(error);
+            alert('Error deleting blog post');
+        }
+    };
+
+    const generateSlug = (title) => {
+        return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
     };
 
     // Chart Data Processing
@@ -461,7 +549,7 @@ const AdminDashboard = () => {
                         <p style={{ fontSize: '0.875rem', color: '#64748b', margin: '0.25rem 0 0' }}>Manage global announcements and platform messages</p>
                     </div>
                     <Button
-                        variant="primary"
+                        variant="orange"
                         onClick={() => {
                             resetPopupForm();
                             setCurrentPopup(null);
@@ -591,7 +679,180 @@ const AdminDashboard = () => {
                             </div>
                             <div className="modal-footer-admin">
                                 <Button variant="secondary" onClick={() => setIsEditingPopup(false)}>Cancel</Button>
-                                <Button variant="primary" onClick={handleSavePopup}>Save Popup</Button>
+                                <Button variant="orange" onClick={handleSavePopup}>Save Popup</Button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Blog Management Section */}
+            <div className="table-section" style={{ marginTop: '3rem' }}>
+                <div className="table-header">
+                    <div>
+                        <h2 className="table-title">Blog Management</h2>
+                        <p style={{ fontSize: '0.875rem', color: '#64748b', margin: '0.25rem 0 0' }}>Write and publish SEO optimized articles</p>
+                    </div>
+                    <Button
+                        variant="orange"
+                        onClick={() => {
+                            resetBlogForm();
+                            setIsEditingBlog(true);
+                        }}
+                    >
+                        <Plus size={18} style={{ marginRight: '8px' }} />
+                        New Blog Post
+                    </Button>
+                </div>
+
+                <div className="popups-grid">
+                    {blogPosts.length === 0 ? (
+                        <div className="empty-popups">No blog posts found. Start writing!</div>
+                    ) : (
+                        blogPosts.map(post => (
+                            <div key={post.id} className="popup-admin-card">
+                                <div className="p-card-header">
+                                    <span className={`p-type-badge ${post.is_published ? 'announcement' : 'album_welcome'}`}>
+                                        {post.is_published ? 'Published' : 'Draft'}
+                                    </span>
+                                    {post.video_url && <Video size={16} color="#64748b" />}
+                                </div>
+                                <div className="p-card-body">
+                                    <h4>{post.title}</h4>
+                                    <p>{post.excerpt || (post.content.length > 80 ? post.content.substring(0, 80) + '...' : post.content)}</p>
+                                    <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#94a3b8' }}>
+                                        Slug: {post.slug}
+                                    </div>
+                                </div>
+                                <div className="p-card-footer">
+                                    <button
+                                        className="p-action-btn edit"
+                                        onClick={() => {
+                                            setCurrentBlogPost(post);
+                                            setBlogForm(post);
+                                            setIsEditingBlog(true);
+                                        }}
+                                    >
+                                        <Edit size={14} style={{ marginRight: '4px' }} />
+                                        Edit
+                                    </button>
+                                    <button
+                                        className="p-action-btn delete"
+                                        onClick={() => handleDeleteBlog(post.id)}
+                                    >
+                                        <Trash2 size={14} style={{ marginRight: '4px' }} />
+                                        Delete
+                                    </button>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+
+                {/* Blog Editor Modal */}
+                {isEditingBlog && (
+                    <div className="popup-overlay-admin" onClick={(e) => e.target === e.currentTarget && setIsEditingBlog(false)}>
+                        <div className="popup-modal-admin" style={{ maxWidth: '800px' }}>
+                            <div className="modal-header-admin">
+                                <h3>{currentBlogPost ? 'Edit Blog Post' : 'Create New Blog Post'}</h3>
+                                <button className="close-modal-admin" onClick={() => setIsEditingBlog(false)}>&times;</button>
+                            </div>
+                            <div className="modal-body-admin">
+                                <div className="form-group-admin">
+                                    <label>Post Title</label>
+                                    <input
+                                        type="text"
+                                        value={blogForm.title}
+                                        onChange={(e) => {
+                                            const title = e.target.value;
+                                            setBlogForm(prev => ({
+                                                ...prev,
+                                                title,
+                                                slug: prev.slug === generateSlug(prev.title) ? generateSlug(title) : prev.slug
+                                            }));
+                                        }}
+                                        placeholder="Enter an engaging title"
+                                    />
+                                </div>
+
+                                <div className="form-row-admin">
+                                    <div className="form-group-admin">
+                                        <label>SEO Slug (URL Segment)</label>
+                                        <input
+                                            type="text"
+                                            value={blogForm.slug}
+                                            onChange={(e) => setBlogForm({ ...blogForm, slug: e.target.value })}
+                                            placeholder="my-cool-post"
+                                        />
+                                    </div>
+                                    <div className="form-group-admin">
+                                        <label>Video URL (YouTube/Vimeo)</label>
+                                        <input
+                                            type="text"
+                                            value={blogForm.video_url || ''}
+                                            onChange={(e) => setBlogForm({ ...blogForm, video_url: e.target.value })}
+                                            placeholder="https://youtube.com/..."
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="form-group-admin">
+                                    <label>Featured Image URL</label>
+                                    <input
+                                        type="text"
+                                        value={blogForm.featured_image || ''}
+                                        onChange={(e) => setBlogForm({ ...blogForm, featured_image: e.target.value })}
+                                        placeholder="https://images.unsplash.com/..."
+                                    />
+                                </div>
+
+                                <div className="form-group-admin">
+                                    <label>Content (supports HTML/Markdown style layout)</label>
+                                    <textarea
+                                        value={blogForm.content}
+                                        onChange={(e) => setBlogForm({ ...blogForm, content: e.target.value })}
+                                        placeholder="Write your story here..."
+                                        style={{ minHeight: '300px' }}
+                                    />
+                                </div>
+
+                                <div className="form-group-admin">
+                                    <label>Excerpt (SEO Meta Description)</label>
+                                    <textarea
+                                        value={blogForm.excerpt || ''}
+                                        onChange={(e) => setBlogForm({ ...blogForm, excerpt: e.target.value })}
+                                        placeholder="Short summary for search results..."
+                                        style={{ minHeight: '80px' }}
+                                    />
+                                </div>
+
+                                <div className="form-row-admin">
+                                    <div className="form-group-admin">
+                                        <label>SEO Meta Title</label>
+                                        <input
+                                            type="text"
+                                            value={blogForm.meta_title || ''}
+                                            onChange={(e) => setBlogForm({ ...blogForm, meta_title: e.target.value })}
+                                            placeholder="Custom title for Google"
+                                        />
+                                    </div>
+                                    <div className="form-group-admin checkbox">
+                                        <label>
+                                            <input
+                                                type="checkbox"
+                                                checked={blogForm.is_published}
+                                                onChange={(e) => setBlogForm({ ...blogForm, is_published: e.target.checked })}
+                                            />
+                                            <span>Publish this post immediately</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="modal-footer-admin">
+                                <Button variant="secondary" onClick={() => setIsEditingBlog(false)}>Cancel</Button>
+                                <Button variant="orange" onClick={handleSaveBlog}>
+                                    {currentBlogPost ? 'Update Post' : 'Publish Blog Post'}
+                                </Button>
                             </div>
                         </div>
                     </div>
@@ -604,6 +865,13 @@ const AdminDashboard = () => {
                     max-width: 1400px;
                     margin: 0 auto;
                     font-family: 'Inter', sans-serif;
+                    box-sizing: border-box;
+                    width: 100%;
+                    overflow-x: hidden;
+                }
+
+                .admin-container *, .admin-container *:before, .admin-container *:after {
+                    box-sizing: inherit;
                 }
 
                 .admin-header {
@@ -664,6 +932,7 @@ const AdminDashboard = () => {
                     flex-direction: column;
                     align-items: flex-start;
                     gap: 1.25rem;
+                    width: 100%;
                 }
 
                 @media (min-width: 1024px) {
@@ -671,6 +940,7 @@ const AdminDashboard = () => {
                         flex-direction: row;
                         align-items: center;
                         justify-content: space-between;
+                        width: auto;
                     }
                 }
 
@@ -848,6 +1118,8 @@ const AdminDashboard = () => {
                     justify-content: space-between;
                     align-items: center;
                     border-bottom: 1px solid #f1f5f9;
+                    width: 100%;
+                    box-sizing: border-box;
                 }
 
                 .table-title {
@@ -1006,36 +1278,47 @@ const AdminDashboard = () => {
                 }
 
                 @media (max-width: 768px) {
-                    .admin-container { padding: 1.5rem 1rem; }
+                    .admin-container { 
+                        padding: 1.5rem 1rem; 
+                        overflow-x: hidden;
+                    }
                     .admin-header { 
                         flex-direction: column; 
                         align-items: stretch; 
                         gap: 1.5rem; 
                         text-align: center;
+                        width: 100%;
                     }
-                    .admin-title { font-size: 1.75rem; }
-                    .admin-subtitle { font-size: 0.95rem; }
-                    .admin-actions { justify-content: center; }
+                    .admin-title { font-size: 1.5rem; letter-spacing: -0.01em; }
+                    .admin-subtitle { font-size: 0.9rem; }
+                    .admin-actions { justify-content: center; width: 100%; }
                     
-                    .stats-grid { gap: 1rem; margin-bottom: 2rem; }
+                    .stats-grid { gap: 1rem; margin-bottom: 2rem; width: 100%; }
                     .stat-card { padding: 1.25rem; gap: 1rem; }
                     .stat-value { font-size: 1.25rem; }
                     
-                    .table-header { padding: 1.25rem 1rem; }
+                    .table-header { padding: 1.25rem 1rem; flex-direction: column; align-items: stretch; gap: 1.25rem; }
+                    .table-title { font-size: 1rem; text-align: center; }
+                    .results-count { text-align: center; }
+                    
                     .table-controls { width: 100%; flex-direction: column; align-items: stretch; }
-                    .search-box-admin { min-width: 100%; }
+                    .search-box-admin { min-width: 0; width: 100%; }
                     .filter-select-group { width: 100%; justify-content: space-between; }
-                    .filter-select-group select { flex: 1; }
+                    .filter-select-group select { flex: 1; min-width: 0; }
                     
-                    .chart-card { padding: 1.25rem; }
-                    .chart-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
+                    .chart-card { padding: 1rem; margin-bottom: 2rem; }
+                    .chart-header { flex-direction: column; align-items: center; text-align: center; gap: 1rem; }
+                    .chart-title { font-size: 1.1rem; }
+                    .chart-legend { justify-content: center; }
                     
-                    .admin-table { min-width: 900px; }
-                    .admin-table th, .admin-table td { padding: 1rem 1.25rem; }
+                    .admin-table { min-width: 800px; }
+                    .admin-table th, .admin-table td { padding: 0.75rem 1rem; font-size: 0.85rem; }
                     
-                    .inspected-details { margin: 0 1rem 1rem; padding: 1.5rem; }
+                    .inspected-details { margin: 0 0.5rem 1rem; padding: 1rem; }
+                    .detail-grid { gap: 1rem; }
                     
-                    .popups-grid { padding: 1rem; grid-template-columns: 1fr; }
+                    .popups-grid { padding: 1rem; grid-template-columns: 1fr; width: 100%; }
+                    .p-action-btn { padding: 0.75rem; font-size: 0.75rem; }
                 }
 
                 @media (max-width: 480px) {
@@ -1056,6 +1339,19 @@ const AdminDashboard = () => {
                     font-size: 1.25rem;
                     font-weight: 600;
                     color: var(--primary-blue);
+                }
+
+                /* Blog Card Special Hover and Video Indicator */
+                .popup-admin-card.blog {
+                    border-left: 4px solid #cbd5e1;
+                }
+                
+                .popup-admin-card.blog.published {
+                    border-left-color: var(--primary-blue);
+                }
+
+                .p-status-dot.video {
+                    background: #f43f5e;
                 }
 
                 /* Site Popups Specific Styles */
