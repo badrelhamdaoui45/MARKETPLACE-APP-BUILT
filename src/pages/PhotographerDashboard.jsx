@@ -4,12 +4,14 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/ui/Button';
-import { Copy, Check, MessageSquare, Eye, FileCheck, Image as ImageIcon, Share2, HelpCircle } from 'lucide-react';
+import { Copy, Check, MessageSquare, Eye, FileCheck, Image as ImageIcon, Share2, HelpCircle, Wallet } from 'lucide-react';
 import ConnectStripe from '../components/stripe/ConnectStripe';
 import Toast from '../components/ui/Toast';
 import PaymentSettingsModal from '../components/PaymentSettingsModal';
 import ShareModal from '../components/ShareModal';
 import DashboardSetupModal from '../components/DashboardSetupModal';
+import WithdrawalModal from '../components/WithdrawalModal';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import '../components/ui/ui.css';
 
 const PhotographerDashboard = () => {
@@ -25,6 +27,7 @@ const PhotographerDashboard = () => {
     const [shareModalOpen, setShareModalOpen] = useState(false);
     const [shareModalAlbum, setShareModalAlbum] = useState(null);
     const [setupModalOpen, setSetupModalOpen] = useState(false);
+    const [withdrawalModalOpen, setWithdrawalModalOpen] = useState(false);
 
     // Albums State
     const [albums, setAlbums] = useState([]);
@@ -35,6 +38,9 @@ const PhotographerDashboard = () => {
     const [loadingSales, setLoadingSales] = useState(false);
     const [salesStats, setSalesStats] = useState({ total: 0, net: 0, count: 0 });
     const [copiedAlbumId, setCopiedAlbumId] = useState(null);
+    const [paymentFilter, setPaymentFilter] = useState('all'); // 'all', 'stripe', 'bank_transfer'
+    const [dateFilter, setDateFilter] = useState('all'); // 'all', '7days', '30days', '90days'
+    const [albumFilter, setAlbumFilter] = useState('all'); // 'all' or album_id
 
     useEffect(() => {
         if (user) {
@@ -136,6 +142,36 @@ const PhotographerDashboard = () => {
         } finally {
             setSavingMsg(false);
         }
+    };
+
+    // Filter sales based on payment method, date, and album
+    const filteredSales = sales.filter(sale => {
+        // Payment method filter
+        if (paymentFilter === 'stripe' && sale.payment_method === 'bank_transfer') return false;
+        if (paymentFilter === 'bank_transfer' && sale.payment_method !== 'bank_transfer') return false;
+
+        // Date filter
+        if (dateFilter !== 'all') {
+            const saleDate = new Date(sale.created_at);
+            const now = new Date();
+            const daysDiff = Math.floor((now - saleDate) / (1000 * 60 * 60 * 24));
+
+            if (dateFilter === '7days' && daysDiff > 7) return false;
+            if (dateFilter === '30days' && daysDiff > 30) return false;
+            if (dateFilter === '90days' && daysDiff > 90) return false;
+        }
+
+        // Album filter
+        if (albumFilter !== 'all' && sale.album_id !== albumFilter) return false;
+
+        return true;
+    });
+
+    // Calculate filtered stats
+    const filteredStats = {
+        total: filteredSales.reduce((sum, t) => sum + Number(t.amount || 0), 0),
+        net: filteredSales.reduce((sum, t) => sum + (Number(t.amount || 0) - Number(t.commission_amount || 0)), 0),
+        count: filteredSales.length
     };
 
     return (
@@ -254,20 +290,170 @@ const PhotographerDashboard = () => {
             {
                 activeTab === 'sales' && (
                     <div className="tab-content sales-content">
+                        {/* Enhanced Filters Section */}
+                        <div className="filters-section">
+                            {/* Payment Method Filter */}
+                            <div className="filter-group">
+                                <label className="filter-label">Payment Method</label>
+                                <div className="filter-buttons">
+                                    <button
+                                        className={`filter-btn ${paymentFilter === 'all' ? 'active' : ''}`}
+                                        onClick={() => setPaymentFilter('all')}
+                                    >
+                                        All
+                                    </button>
+                                    <button
+                                        className={`filter-btn ${paymentFilter === 'stripe' ? 'active' : ''}`}
+                                        onClick={() => setPaymentFilter('stripe')}
+                                    >
+                                        Stripe
+                                    </button>
+                                    <button
+                                        className={`filter-btn ${paymentFilter === 'bank_transfer' ? 'active' : ''}`}
+                                        onClick={() => setPaymentFilter('bank_transfer')}
+                                    >
+                                        Bank Transfer
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Date Range Filter */}
+                            <div className="filter-group">
+                                <label className="filter-label">Date Range</label>
+                                <div className="filter-buttons">
+                                    <button
+                                        className={`filter-btn ${dateFilter === 'all' ? 'active' : ''}`}
+                                        onClick={() => setDateFilter('all')}
+                                    >
+                                        All Time
+                                    </button>
+                                    <button
+                                        className={`filter-btn ${dateFilter === '7days' ? 'active' : ''}`}
+                                        onClick={() => setDateFilter('7days')}
+                                    >
+                                        Last 7 Days
+                                    </button>
+                                    <button
+                                        className={`filter-btn ${dateFilter === '30days' ? 'active' : ''}`}
+                                        onClick={() => setDateFilter('30days')}
+                                    >
+                                        Last 30 Days
+                                    </button>
+                                    <button
+                                        className={`filter-btn ${dateFilter === '90days' ? 'active' : ''}`}
+                                        onClick={() => setDateFilter('90days')}
+                                    >
+                                        Last 90 Days
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Album Filter */}
+                            <div className="filter-group">
+                                <label className="filter-label">Album</label>
+                                <select
+                                    className="album-filter-select"
+                                    value={albumFilter}
+                                    onChange={(e) => setAlbumFilter(e.target.value)}
+                                >
+                                    <option value="all">All Albums</option>
+                                    {albums.map(album => (
+                                        <option key={album.id} value={album.id}>
+                                            {album.title}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* Sales Chart */}
+                        <div className="sales-chart-container">
+                            <h3 className="chart-title">Revenue Trend</h3>
+                            <ResponsiveContainer width="100%" height={300}>
+                                <AreaChart data={(() => {
+                                    // Group sales by date for chart
+                                    const salesByDate = {};
+                                    filteredSales.forEach(sale => {
+                                        const date = new Date(sale.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                                        if (!salesByDate[date]) {
+                                            salesByDate[date] = 0;
+                                        }
+                                        salesByDate[date] += Number(sale.amount || 0);
+                                    });
+                                    return Object.entries(salesByDate).map(([date, amount]) => ({ date, amount })).slice(-10);
+                                })()}>
+                                    <defs>
+                                        <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#F5A623" stopOpacity={0.8} />
+                                            <stop offset="95%" stopColor="#F5A623" stopOpacity={0.1} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                                    <XAxis
+                                        dataKey="date"
+                                        stroke="#64748b"
+                                        style={{ fontSize: '0.75rem' }}
+                                    />
+                                    <YAxis
+                                        stroke="#64748b"
+                                        style={{ fontSize: '0.75rem' }}
+                                        tickFormatter={(value) => `$${value}`}
+                                    />
+                                    <Tooltip
+                                        contentStyle={{
+                                            backgroundColor: 'white',
+                                            border: '1px solid #e2e8f0',
+                                            borderRadius: '8px',
+                                            boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                                        }}
+                                        formatter={(value) => [`$${Number(value).toFixed(2)}`, 'Revenue']}
+                                    />
+                                    <Area
+                                        type="monotone"
+                                        dataKey="amount"
+                                        stroke="#F5A623"
+                                        strokeWidth={3}
+                                        fillOpacity={1}
+                                        fill="url(#colorRevenue)"
+                                    />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
+
                         {/* Stats Overview */}
                         <div className="stats-grid">
                             <div className="stat-card">
                                 <div className="stat-label">Total Sales Volume</div>
-                                <div className="stat-value">${salesStats.total.toFixed(2)}</div>
+                                <div className="stat-value">${filteredStats.total.toFixed(2)}</div>
                             </div>
                             <div className="stat-card highlight">
                                 <div className="stat-label">Net Revenue</div>
-                                <div className="stat-value">${salesStats.net.toFixed(2)}</div>
+                                <div className="stat-value">${filteredStats.net.toFixed(2)}</div>
                                 <div className="stat-note">Payments via Stripe</div>
+                                {profile?.stripe_account_id && (
+                                    <Button
+                                        onClick={() => setWithdrawalModalOpen(true)}
+                                        style={{
+                                            marginTop: '1rem',
+                                            width: '100%',
+                                            background: '#059669',
+                                            color: 'white',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '0.5rem',
+                                            fontWeight: 700,
+                                            border: 'none'
+                                        }}
+                                    >
+                                        <Wallet size={18} />
+                                        Withdraw Funds
+                                    </Button>
+                                )}
                             </div>
                             <div className="stat-card">
                                 <div className="stat-label">Total Orders</div>
-                                <div className="stat-value">{salesStats.count}</div>
+                                <div className="stat-value">{filteredStats.count}</div>
                             </div>
                         </div>
 
@@ -287,14 +473,14 @@ const PhotographerDashboard = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {sales.length === 0 ? (
+                                    {filteredSales.length === 0 ? (
                                         <tr>
                                             <td colSpan="8" className="empty-table-cell">
                                                 No sales recorded yet.
                                             </td>
                                         </tr>
                                     ) : (
-                                        sales.map(tx => (
+                                        filteredSales.map(tx => (
                                             <tr key={tx.id}>
                                                 <td>{new Date(tx.created_at).toLocaleDateString()}</td>
                                                 <td>{tx.albums?.title || 'Unknown Album'}</td>
@@ -352,10 +538,10 @@ const PhotographerDashboard = () => {
 
                         {/* Mobile Transactions List */}
                         <div className="transactions-mobile-list hide-desktop">
-                            {sales.length === 0 ? (
+                            {filteredSales.length === 0 ? (
                                 <p className="empty-text">No sales recorded.</p>
                             ) : (
-                                sales.map(tx => (
+                                filteredSales.map(tx => (
                                     <div key={tx.id} className="transaction-card">
                                         <div className="tx-header">
                                             <span className="tx-date">{new Date(tx.created_at).toLocaleDateString()}</span>
@@ -501,6 +687,12 @@ const PhotographerDashboard = () => {
                 onClose={() => setSetupModalOpen(false)}
             />
 
+            <WithdrawalModal
+                isOpen={withdrawalModalOpen}
+                onClose={() => setWithdrawalModalOpen(false)}
+                profile={profile}
+            />
+
             <style>{`
                 .dashboard-container {
                     padding: 2rem;
@@ -551,6 +743,106 @@ const PhotographerDashboard = () => {
                 .tab-button.active {
                     border-bottom-color: var(--primary-blue);
                     color: var(--text-primary);
+                }
+
+                .filters-section {
+                    background: #ffffff;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 16px;
+                    padding: 1.5rem;
+                    margin-bottom: 2rem;
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                    gap: 1.5rem;
+                }
+
+                .filter-group {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.75rem;
+                }
+
+                .filter-label {
+                    font-size: 0.875rem;
+                    font-weight: 700;
+                    color: #1e293b;
+                    margin: 0;
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                }
+
+                .filter-buttons {
+                    display: flex;
+                    gap: 0.5rem;
+                    flex-wrap: wrap;
+                }
+
+                .filter-btn {
+                    padding: 0.625rem 1rem;
+                    background: #f8fafc;
+                    border: 2px solid #e2e8f0;
+                    border-radius: 8px;
+                    font-size: 0.8rem;
+                    font-weight: 600;
+                    color: #64748b;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    white-space: nowrap;
+                }
+
+                .filter-btn:hover {
+                    background: #f1f5f9;
+                    border-color: #cbd5e1;
+                    transform: translateY(-1px);
+                }
+
+                .filter-btn.active {
+                    background: #F5A623;
+                    border-color: #F5A623;
+                    color: white;
+                    box-shadow: 0 2px 4px rgba(245, 166, 35, 0.3);
+                }
+
+                .filter-btn.active:hover {
+                    background: #E09616;
+                    border-color: #E09616;
+                }
+
+                .album-filter-select {
+                    padding: 0.75rem 1rem;
+                    background: white;
+                    border: 2px solid #e2e8f0;
+                    border-radius: 8px;
+                    font-size: 0.875rem;
+                    font-weight: 600;
+                    color: #475569;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                }
+
+                .album-filter-select:hover {
+                    border-color: #cbd5e1;
+                }
+
+                .album-filter-select:focus {
+                    outline: none;
+                    border-color: #F5A623;
+                    box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.1);
+                }
+
+                .sales-chart-container {
+                    background: white;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 16px;
+                    padding: 1.5rem;
+                    margin-bottom: 2rem;
+                }
+
+                .chart-title {
+                    font-size: 1.125rem;
+                    font-weight: 700;
+                    color: #1e293b;
+                    margin: 0 0 1.5rem 0;
                 }
 
                 .dashboard-albums-grid {
@@ -1214,6 +1506,30 @@ const PhotographerDashboard = () => {
                     .transactions-table td {
                         padding: 0.75rem 0.5rem;
                         font-size: 0.875rem;
+                    }
+                    .filters-section {
+                        grid-template-columns: 1fr;
+                        padding: 1rem;
+                        gap: 1.25rem;
+                    }
+                    .filter-buttons {
+                        flex-wrap: wrap;
+                    }
+                    .filter-btn {
+                        flex: 1;
+                        min-width: 0;
+                        padding: 0.625rem 0.5rem;
+                        font-size: 0.75rem;
+                    }
+                    .album-filter-select {
+                        width: 100%;
+                    }
+                    .sales-chart-container {
+                        padding: 1rem;
+                    }
+                    .chart-title {
+                        font-size: 1rem;
+                        margin-bottom: 1rem;
                     }
                 }
                 

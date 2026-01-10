@@ -168,3 +168,80 @@ export const createLoginLink = async (accountId) => {
         throw error;
     }
 };
+
+/**
+ * SIMULATED BACKEND FUNCTION: Get Account Balance
+ * Retrieves the available and pending balance for a connected account
+ */
+export const getAccountBalance = async (accountId) => {
+    try {
+        const response = await fetch(`https://api.stripe.com/v1/balance`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${STRIPE_SECRET_KEY}`,
+                'Stripe-Account': accountId,
+            },
+        });
+
+        const balance = await response.json();
+        if (balance.error) throw new Error(balance.error.message);
+
+        return balance;
+    } catch (error) {
+        console.error('Error fetching account balance:', error);
+        throw error;
+    }
+};
+
+/**
+ * SIMULATED BACKEND FUNCTION: Create Payout
+ * Creates a payout to transfer funds to the photographer's bank account
+ */
+export const createPayout = async (accountId, amount, currency = 'usd') => {
+    try {
+        const response = await fetch('https://api.stripe.com/v1/payouts', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${STRIPE_SECRET_KEY}`,
+                'Stripe-Account': accountId,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+                'amount': Math.round(amount * 100), // Convert to cents
+                'currency': currency,
+            }),
+        });
+
+        const payout = await response.json();
+        if (payout.error) throw new Error(payout.error.message);
+
+        return payout;
+    } catch (error) {
+        console.error('Error creating payout:', error);
+        throw error;
+    }
+};
+
+/**
+ * SIMULATED BACKEND FUNCTION: Get Payout History
+ * Retrieves the payout history for a connected account
+ */
+export const getPayoutHistory = async (accountId, limit = 10) => {
+    try {
+        const response = await fetch(`https://api.stripe.com/v1/payouts?limit=${limit}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${STRIPE_SECRET_KEY}`,
+                'Stripe-Account': accountId,
+            },
+        });
+
+        const payouts = await response.json();
+        if (payouts.error) throw new Error(payouts.error.message);
+
+        return payouts.data;
+    } catch (error) {
+        console.error('Error fetching payout history:', error);
+        throw error;
+    }
+};
