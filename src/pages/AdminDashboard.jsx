@@ -8,7 +8,7 @@ import {
 import { format, subDays, isAfter, startOfDay, parseISO } from 'date-fns';
 import {
     TrendingUp, Users, Image as ImageIcon, Briefcase,
-    ChevronDown, Calendar, Filter, DollarSign
+    ChevronDown, Calendar, Filter, DollarSign, Search
 } from 'lucide-react';
 
 const AdminDashboard = () => {
@@ -18,6 +18,9 @@ const AdminDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [selectedPhotographer, setSelectedPhotographer] = useState(null);
     const [dateFilter, setDateFilter] = useState('7'); // '7', '30', 'all'
+    const [searchTerm, setSearchTerm] = useState('');
+    const [salesFilter, setSalesFilter] = useState('all'); // 'all', 'with-sales', 'no-sales'
+    const [sortBy, setSortBy] = useState('name'); // 'name', 'revenue-desc', 'revenue-asc'
 
     // Popup Management State
     const [popups, setPopups] = useState([]);
@@ -175,6 +178,29 @@ const AdminDashboard = () => {
         return Object.values(grouped);
     }, [transactions, dateFilter]);
 
+    const filteredPhotographers = useMemo(() => {
+        let result = photographers.filter(p => {
+            const matchesSearch = p.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                p.email?.toLowerCase().includes(searchTerm.toLowerCase());
+
+            const matchesSales = salesFilter === 'all' ||
+                (salesFilter === 'with-sales' && p.salesCount > 0) ||
+                (salesFilter === 'no-sales' && p.salesCount === 0);
+
+            return matchesSearch && matchesSales;
+        });
+
+        if (sortBy === 'name') {
+            result.sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''));
+        } else if (sortBy === 'revenue-desc') {
+            result.sort((a, b) => b.totalRevenue - a.totalRevenue);
+        } else if (sortBy === 'revenue-asc') {
+            result.sort((a, b) => a.totalRevenue - b.totalRevenue);
+        }
+
+        return result;
+    }, [photographers, searchTerm, salesFilter, sortBy]);
+
     if (loading) return <div className="admin-loading">Loading Admin Panel...</div>;
 
     const totalPlatformRevenue = transactions.reduce((sum, t) => sum + Number(t.commission_amount), 0);
@@ -299,9 +325,49 @@ const AdminDashboard = () => {
 
             {/* Photographers List */}
             <div className="table-section">
-                <div className="table-header">
-                    <h2 className="table-title">Photographer Management</h2>
-                    <Button variant="secondary" onClick={fetchAllData} className="refresh-btn">Refresh</Button>
+                <div className="table-header photographers-table-header">
+                    <div className="table-title-group">
+                        <h2 className="table-title">Photographer Management</h2>
+                        <span className="results-count">{filteredPhotographers.length} photographers</span>
+                    </div>
+
+                    <div className="table-controls">
+                        <div className="search-box-admin">
+                            <Search size={18} />
+                            <input
+                                type="text"
+                                placeholder="Search by name or email..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="filter-select-group">
+                            <Filter size={16} />
+                            <select
+                                value={salesFilter}
+                                onChange={(e) => setSalesFilter(e.target.value)}
+                            >
+                                <option value="all">All Status</option>
+                                <option value="with-sales">With Sales</option>
+                                <option value="no-sales">No Sales</option>
+                            </select>
+                        </div>
+
+                        <div className="filter-select-group">
+                            <ChevronDown size={16} />
+                            <select
+                                value={sortBy}
+                                onChange={(e) => setSortBy(e.target.value)}
+                            >
+                                <option value="name">Sort by Name</option>
+                                <option value="revenue-desc">Revenue (High to Low)</option>
+                                <option value="revenue-asc">Revenue (Low to High)</option>
+                            </select>
+                        </div>
+
+                        <Button variant="secondary" onClick={fetchAllData} className="refresh-btn">Refresh</Button>
+                    </div>
                 </div>
                 <div className="table-wrapper">
                     <table className="admin-table">
@@ -317,64 +383,71 @@ const AdminDashboard = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {photographers.map(p => (
-                                <React.Fragment key={p.id}>
-                                    <tr className={selectedPhotographer === p.id ? 'active-row' : ''}>
-                                        <td>
-                                            <div className="user-info">
-                                                <div className="user-avatar">{p.full_name?.[0] || 'P'}</div>
-                                                <div className="user-details">
-                                                    <span className="user-name">{p.full_name || 'No Name'}</span>
-                                                    <span className="user-email">{p.email}</span>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <span className={`status-chip ${p.stripe_account_id ? 'linked' : 'pending'}`}>
-                                                {p.stripe_account_id ? 'Verified' : 'Unlinked'}
-                                            </span>
-                                        </td>
-                                        <td>{p.albumCount}</td>
-                                        <td>${p.totalRevenue.toFixed(2)}</td>
-                                        <td>${p.platformFees.toFixed(2)}</td>
-                                        <td className="net-earning">${p.netEarnings.toFixed(2)}</td>
-                                        <td>
-                                            <button
-                                                className="view-btn"
-                                                onClick={() => setSelectedPhotographer(selectedPhotographer === p.id ? null : p.id)}
-                                            >
-                                                {selectedPhotographer === p.id ? 'Hide' : 'Inspect'}
-                                            </button>
-                                        </td>
-                                    </tr>
-                                    {selectedPhotographer === p.id && (
-                                        <tr className="detail-row">
-                                            <td colSpan="7">
-                                                <div className="inspected-details">
-                                                    <div className="detail-grid">
-                                                        <div className="detail-col">
-                                                            <h4>Recent Albums</h4>
-                                                            <div className="mini-list">
-                                                                {albums.filter(a => a.photographer_id === p.id).slice(0, 3).map(a => (
-                                                                    <div key={a.id} className="mini-item">
-                                                                        <span>{a.title}</span>
-                                                                        <span className="mini-tag">{a.is_published ? 'Live' : 'Draft'}</span>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                        <div className="detail-col">
-                                                            <h4>Contact Stats</h4>
-                                                            <div className="stat-pill">WhatsApp: {p.whatsapp || 'N/A'}</div>
-                                                            <div className="stat-pill">Web: {p.website || 'N/A'}</div>
-                                                        </div>
+                            {filteredPhotographers.length === 0 ? (
+                                <tr>
+                                    <td colSpan="7" className="empty-results">
+                                        No photographers found matching your filters.
+                                    </td>
+                                </tr>
+                            ) : (
+                                filteredPhotographers.map(p => (
+                                    <React.Fragment key={p.id}>
+                                        <tr className={selectedPhotographer === p.id ? 'active-row' : ''}>
+                                            <td>
+                                                <div className="user-info">
+                                                    <div className="user-avatar">{p.full_name?.[0] || 'P'}</div>
+                                                    <div className="user-details">
+                                                        <span className="user-name">{p.full_name || 'No Name'}</span>
+                                                        <span className="user-email">{p.email}</span>
                                                     </div>
                                                 </div>
                                             </td>
+                                            <td>
+                                                <span className={`status-chip ${p.stripe_account_id ? 'linked' : 'pending'}`}>
+                                                    {p.stripe_account_id ? 'Verified' : 'Unlinked'}
+                                                </span>
+                                            </td>
+                                            <td>{p.albumCount}</td>
+                                            <td>${p.totalRevenue.toFixed(2)}</td>
+                                            <td>${p.platformFees.toFixed(2)}</td>
+                                            <td className="net-earning">${p.netEarnings.toFixed(2)}</td>
+                                            <td>
+                                                <button
+                                                    className="view-btn"
+                                                    onClick={() => setSelectedPhotographer(selectedPhotographer === p.id ? null : p.id)}
+                                                >
+                                                    {selectedPhotographer === p.id ? 'Hide' : 'Inspect'}
+                                                </button>
+                                            </td>
                                         </tr>
-                                    )}
-                                </React.Fragment>
-                            ))}
+                                        {selectedPhotographer === p.id && (
+                                            <tr className="detail-row">
+                                                <td colSpan="7">
+                                                    <div className="inspected-details">
+                                                        <div className="detail-grid">
+                                                            <div className="detail-col">
+                                                                <h4>Recent Albums</h4>
+                                                                <div className="mini-list">
+                                                                    {albums.filter(a => a.photographer_id === p.id).slice(0, 3).map(a => (
+                                                                        <div key={a.id} className="mini-item">
+                                                                            <span>{a.title}</span>
+                                                                            <span className="mini-tag">{a.is_published ? 'Live' : 'Draft'}</span>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                            <div className="detail-col">
+                                                                <h4>Contact Stats</h4>
+                                                                <div className="stat-pill">WhatsApp: {p.whatsapp || 'N/A'}</div>
+                                                                <div className="stat-pill">Web: {p.website || 'N/A'}</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </React.Fragment>
+                                )))}
                         </tbody>
                     </table>
                 </div>
@@ -581,6 +654,101 @@ const AdminDashboard = () => {
                     margin-bottom: 3rem;
                 }
 
+                .admin-actions {
+                    display: flex;
+                    gap: 1rem;
+                }
+                
+                .photographers-table-header {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: flex-start;
+                    gap: 1.25rem;
+                }
+
+                @media (min-width: 1024px) {
+                    .photographers-table-header {
+                        flex-direction: row;
+                        align-items: center;
+                        justify-content: space-between;
+                    }
+                }
+
+                .table-title-group {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.25rem;
+                }
+
+                .results-count {
+                    font-size: 0.8125rem;
+                    color: #94a3b8;
+                    font-weight: 500;
+                }
+
+                .table-controls {
+                    display: flex;
+                    align-items: center;
+                    gap: 1rem;
+                    flex-wrap: wrap;
+                }
+
+                .search-box-admin {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                    background: #f8fafc;
+                    padding: 0.5rem 1rem;
+                    border-radius: 12px;
+                    border: 1px solid #e2e8f0;
+                    min-width: 280px;
+                    transition: all 0.2s ease;
+                }
+
+                .search-box-admin:focus-within {
+                    background: white;
+                    border-color: var(--primary-blue);
+                    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+                }
+
+                .search-box-admin input {
+                    border: none;
+                    background: none;
+                    font-size: 0.875rem;
+                    color: #0f172a;
+                    width: 100%;
+                    outline: none;
+                }
+
+                .filter-select-group {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    background: #f8fafc;
+                    padding: 0.5rem 0.75rem;
+                    border-radius: 12px;
+                    border: 1px solid #e2e8f0;
+                    color: #64748b;
+                }
+
+                .filter-select-group select {
+                    border: none;
+                    background: none;
+                    font-size: 0.875rem;
+                    font-weight: 600;
+                    color: #334155;
+                    cursor: pointer;
+                    outline: none;
+                    padding-right: 0.5rem;
+                }
+
+                .empty-results {
+                    text-align: center;
+                    padding: 3rem !important;
+                    color: #64748b;
+                    font-style: italic;
+                }
+
                 .stat-card {
                     background: white;
                     padding: 1.5rem;
@@ -695,6 +863,7 @@ const AdminDashboard = () => {
 
                 .table-wrapper {
                     overflow-x: auto;
+                    -webkit-overflow-scrolling: touch;
                 }
 
                 .admin-table {
@@ -832,11 +1001,51 @@ const AdminDashboard = () => {
 
                 @media (max-width: 1024px) {
                     .stats-grid { grid-template-columns: repeat(2, 1fr); }
+                    .detail-grid { grid-template-columns: 1fr; gap: 1.5rem; }
+                    .form-row-admin { grid-template-columns: 1fr; }
                 }
 
-                @media (max-width: 640px) {
+                @media (max-width: 768px) {
+                    .admin-container { padding: 1.5rem 1rem; }
+                    .admin-header { 
+                        flex-direction: column; 
+                        align-items: stretch; 
+                        gap: 1.5rem; 
+                        text-align: center;
+                    }
+                    .admin-title { font-size: 1.75rem; }
+                    .admin-subtitle { font-size: 0.95rem; }
+                    .admin-actions { justify-content: center; }
+                    
+                    .stats-grid { gap: 1rem; margin-bottom: 2rem; }
+                    .stat-card { padding: 1.25rem; gap: 1rem; }
+                    .stat-value { font-size: 1.25rem; }
+                    
+                    .table-header { padding: 1.25rem 1rem; }
+                    .table-controls { width: 100%; flex-direction: column; align-items: stretch; }
+                    .search-box-admin { min-width: 100%; }
+                    .filter-select-group { width: 100%; justify-content: space-between; }
+                    .filter-select-group select { flex: 1; }
+                    
+                    .chart-card { padding: 1.25rem; }
+                    .chart-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
+                    
+                    .admin-table { min-width: 900px; }
+                    .admin-table th, .admin-table td { padding: 1rem 1.25rem; }
+                    
+                    .inspected-details { margin: 0 1rem 1rem; padding: 1.5rem; }
+                    
+                    .popups-grid { padding: 1rem; grid-template-columns: 1fr; }
+                }
+
+                @media (max-width: 480px) {
                     .stats-grid { grid-template-columns: 1fr; }
-                    .admin-header { flex-direction: column; align-items: flex-start; gap: 1.5rem; }
+                    .admin-title { font-size: 1.5rem; }
+                    .modal-body-admin { padding: 1.25rem; }
+                    .popup-modal-admin { border-radius: 16px; }
+                    .modal-header-admin { padding: 1.25rem 1.5rem; }
+                    .modal-footer-admin { padding: 1.25rem 1.5rem; flex-direction: column; }
+                    .modal-footer-admin button { width: 100%; }
                 }
 
                 .admin-loading {

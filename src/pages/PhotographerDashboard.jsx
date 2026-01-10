@@ -39,7 +39,7 @@ const PhotographerDashboard = () => {
     const [salesStats, setSalesStats] = useState({ total: 0, net: 0, count: 0 });
     const [copiedAlbumId, setCopiedAlbumId] = useState(null);
     const [paymentFilter, setPaymentFilter] = useState('all'); // 'all', 'stripe', 'bank_transfer'
-    const [dateFilter, setDateFilter] = useState('all'); // 'all', '7days', '30days', '90days'
+    const [dateFilter, setDateFilter] = useState('all'); // 'all', 'today', '7days', '30days', '90days'
     const [albumFilter, setAlbumFilter] = useState('all'); // 'all' or album_id
 
     useEffect(() => {
@@ -154,11 +154,19 @@ const PhotographerDashboard = () => {
         if (dateFilter !== 'all') {
             const saleDate = new Date(sale.created_at);
             const now = new Date();
-            const daysDiff = Math.floor((now - saleDate) / (1000 * 60 * 60 * 24));
 
-            if (dateFilter === '7days' && daysDiff > 7) return false;
-            if (dateFilter === '30days' && daysDiff > 30) return false;
-            if (dateFilter === '90days' && daysDiff > 90) return false;
+            if (dateFilter === 'today') {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const saleDateOnly = new Date(saleDate);
+                saleDateOnly.setHours(0, 0, 0, 0);
+                if (saleDateOnly.getTime() !== today.getTime()) return false;
+            } else {
+                const daysDiff = Math.floor((now - saleDate) / (1000 * 60 * 60 * 24));
+                if (dateFilter === '7days' && daysDiff > 7) return false;
+                if (dateFilter === '30days' && daysDiff > 30) return false;
+                if (dateFilter === '90days' && daysDiff > 90) return false;
+            }
         }
 
         // Album filter
@@ -328,22 +336,28 @@ const PhotographerDashboard = () => {
                                         All Time
                                     </button>
                                     <button
+                                        className={`filter-btn ${dateFilter === 'today' ? 'active' : ''}`}
+                                        onClick={() => setDateFilter('today')}
+                                    >
+                                        Today
+                                    </button>
+                                    <button
                                         className={`filter-btn ${dateFilter === '7days' ? 'active' : ''}`}
                                         onClick={() => setDateFilter('7days')}
                                     >
-                                        Last 7 Days
+                                        7 Days
                                     </button>
                                     <button
                                         className={`filter-btn ${dateFilter === '30days' ? 'active' : ''}`}
                                         onClick={() => setDateFilter('30days')}
                                     >
-                                        Last 30 Days
+                                        30 Days
                                     </button>
                                     <button
                                         className={`filter-btn ${dateFilter === '90days' ? 'active' : ''}`}
                                         onClick={() => setDateFilter('90days')}
                                     >
-                                        Last 90 Days
+                                        90 Days
                                     </button>
                                 </div>
                             </div>
@@ -1509,27 +1523,41 @@ const PhotographerDashboard = () => {
                     }
                     .filters-section {
                         grid-template-columns: 1fr;
-                        padding: 1rem;
-                        gap: 1.25rem;
+                        padding: 1.25rem;
+                        gap: 1.5rem;
+                        border-radius: 12px;
+                    }
+                    .filter-group {
+                        gap: 0.875rem;
+                    }
+                    .filter-label {
+                        font-size: 0.8rem;
+                        letter-spacing: 0.03em;
                     }
                     .filter-buttons {
-                        flex-wrap: wrap;
+                        gap: 0.625rem;
                     }
                     .filter-btn {
-                        flex: 1;
-                        min-width: 0;
-                        padding: 0.625rem 0.5rem;
-                        font-size: 0.75rem;
+                        flex: 1 1 auto;
+                        min-width: fit-content;
+                        padding: 0.75rem 0.875rem;
+                        font-size: 0.8rem;
+                        min-height: 44px;
+                        white-space: nowrap;
                     }
                     .album-filter-select {
                         width: 100%;
+                        padding: 0.875rem 1rem;
+                        font-size: 0.875rem;
+                        min-height: 48px;
                     }
                     .sales-chart-container {
-                        padding: 1rem;
+                        padding: 1.25rem;
+                        border-radius: 12px;
                     }
                     .chart-title {
-                        font-size: 1rem;
-                        margin-bottom: 1rem;
+                        font-size: 1.05rem;
+                        margin-bottom: 1.25rem;
                     }
                 }
                 
@@ -1555,6 +1583,25 @@ const PhotographerDashboard = () => {
                     }
                     .stat-label {
                         font-size: 0.85rem;
+                    }
+                    .filters-section {
+                        padding: 1rem;
+                        gap: 1.25rem;
+                    }
+                    .filter-label {
+                        font-size: 0.75rem;
+                    }
+                    .filter-btn {
+                        padding: 0.625rem 0.625rem;
+                        font-size: 0.75rem;
+                        min-height: 42px;
+                    }
+                    .album-filter-select {
+                        padding: 0.75rem 0.875rem;
+                        font-size: 0.8rem;
+                    }
+                    .sales-chart-container {
+                        padding: 1rem;
                     }
                 }
                 .pre-inscription-label {
