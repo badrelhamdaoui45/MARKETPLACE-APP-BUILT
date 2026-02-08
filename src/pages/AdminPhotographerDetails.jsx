@@ -552,6 +552,69 @@ const AdminPhotographerDetails = () => {
                     background: #e2e8f0;
                     color: #0f172a;
                 }
+
+                /* Mobile Responsiveness */
+                @media (max-width: 768px) {
+                    .admin-container {
+                        padding: 1.5rem 1rem;
+                    }
+                    
+                    .profile-header-card {
+                        flex-direction: column;
+                        text-align: center;
+                        padding: 1.5rem;
+                        gap: 1.5rem;
+                    }
+
+                    .profile-info-main {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                    }
+
+                    .profile-name {
+                        flex-direction: column;
+                        gap: 0.5rem;
+                        text-align: center;
+                    }
+
+                    .profile-meta-grid {
+                        justify-content: center;
+                        gap: 1rem;
+                    }
+
+                    .profile-actions-right {
+                        width: 100%;
+                        display: flex;
+                    }
+
+                    .profile-actions-right button {
+                        width: 100%;
+                        justify-content: center;
+                    }
+
+                    .stats-grid {
+                        grid-template-columns: 1fr;
+                        gap: 1rem;
+                    }
+
+                    .stat-card {
+                        padding: 1.25rem;
+                    }
+
+                    .table-section {
+                        margin-top: 2rem;
+                    }
+                    
+                    .table-wrapper {
+                        overflow-x: auto;
+                    }
+                    
+                    .admin-table th, .admin-table td {
+                        white-space: nowrap;
+                        padding: 1rem;
+                    }
+                }
             `}</style>
         </div>
     );
