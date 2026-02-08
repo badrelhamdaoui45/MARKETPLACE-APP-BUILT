@@ -11,6 +11,7 @@ import PaymentSettingsModal from '../components/PaymentSettingsModal';
 import ShareModal from '../components/ShareModal';
 import DashboardSetupModal from '../components/DashboardSetupModal';
 import WithdrawalModal from '../components/WithdrawalModal';
+import SkeletonPage from '../components/ui/SkeletonPage';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import '../components/ui/ui.css';
 
@@ -181,6 +182,8 @@ const PhotographerDashboard = () => {
         net: filteredSales.reduce((sum, t) => sum + (Number(t.amount || 0) - Number(t.commission_amount || 0)), 0),
         count: filteredSales.length
     };
+
+    if (loadingAlbums) return <SkeletonPage />;
 
     return (
         <div className="dashboard-container">
@@ -709,9 +712,10 @@ const PhotographerDashboard = () => {
 
             <style>{`
                 .dashboard-container {
-                    padding: 2rem;
-                    max-width: 1200px;
-                    margin: 0 auto;
+                    padding: 2rem 4rem;
+                    width: 100%;
+                    max-width: 100%;
+                    margin: 0;
                 }
 
                 .dashboard-header {

@@ -256,8 +256,8 @@ const CreateAlbum = () => {
                     )}
                 </div>
 
-                <div className="input-group checkbox-group" style={{ background: '#f0fdf4', borderColor: '#bbf7d0', marginBottom: '1.5rem' }}>
-                    <label className="checkbox-label" style={{ color: '#166534' }}>
+                <div className="input-group checkbox-group" style={{ marginBottom: '1.5rem' }}>
+                    <label className="checkbox-label">
                         <input
                             type="checkbox"
                             name="is_free"
@@ -265,8 +265,8 @@ const CreateAlbum = () => {
                             onChange={handleChange}
                         />
                         <div className="checkbox-text">
-                            <span className="checkbox-title" style={{ color: '#166534' }}>🎁 Album Gratuit (Free Album)</span>
-                            <span className="checkbox-hint" style={{ color: '#15803d' }}>Rend toutes les photos de cet album gratuites pour les Runners.</span>
+                            <span className="checkbox-title">🎁 Album Gratuit (Free Album)</span>
+                            <span className="checkbox-hint">Rend toutes les photos de cet album gratuites pour les Runners.</span>
                         </div>
                     </label>
                 </div>
@@ -300,9 +300,11 @@ const CreateAlbum = () => {
 
             <style>{`
                 .create-album-container {
-                    padding: 2rem;
-                    max-width: 700px;
-                    margin: 2rem auto;
+                    padding: 2rem 4rem;
+                    width: 100%;
+                    max-width: 100%;
+                    margin: 0;
+                    background: #ffffff;
                 }
 
                 h1 {
@@ -327,7 +329,7 @@ const CreateAlbum = () => {
                     height: 240px;
                     border-radius: var(--radius-md);
                     border: 2px dashed var(--border-subtle);
-                    background: var(--bg-tertiary);
+                    background: #ffffff;
                     display: flex;
                     align-items: center;
                     justify-content: center;
@@ -340,10 +342,10 @@ const CreateAlbum = () => {
                 }
 
                 .checkbox-group {
-                    background: #fff7ed;
+                    background: #ffffff;
                     padding: 1.25rem;
                     border-radius: var(--radius-md);
-                    border: 1px solid #ffedd5;
+                    border: 1px solid var(--border-subtle);
                     margin-bottom: 2rem;
                 }
 
@@ -369,13 +371,13 @@ const CreateAlbum = () => {
 
                 .checkbox-title {
                     font-weight: 700;
-                    color: #9a3412;
+                    color: var(--text-primary);
                     font-size: 1rem;
                 }
 
                 .checkbox-hint {
                     font-size: 0.85rem;
-                    color: #c2410c;
+                    color: var(--text-secondary);
                     margin-top: 0.25rem;
                 }
 

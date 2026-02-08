@@ -303,9 +303,10 @@ const PackageSettings = () => {
 
             <style>{`
                 .packages-settings-container {
-                    padding: 2.5rem 2rem;
-                    max-width: 1100px;
-                    margin: 0 auto;
+                    padding: 2.5rem 4rem;
+                    width: 100%;
+                    max-width: 100%;
+                    margin: 0;
                     min-height: 90vh;
                 }
 

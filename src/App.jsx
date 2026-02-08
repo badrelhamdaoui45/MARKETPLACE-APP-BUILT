@@ -14,6 +14,7 @@ import AlbumDownload from './pages/AlbumDownload';
 import PublicAlbumView from './pages/PublicAlbumView';
 import RunnerProfile from './pages/RunnerProfile';
 import AdminDashboard from './pages/AdminDashboard';
+import AdminPhotographerDetails from './pages/AdminPhotographerDetails';
 import PhotographerProfile from './pages/PhotographerProfile';
 import PhotographerSettings from './pages/PhotographerSettings';
 import Albums from './pages/Albums';
@@ -63,6 +64,7 @@ function App() {
               <Route path="/photographer/upload" element={<UploadPage />} />
 
               <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/photographer/:id" element={<AdminPhotographerDetails />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/my-purchases" element={<RunnerProfile />} />
               <Route path="/my-purchases/:albumId" element={<AlbumDownload />} />

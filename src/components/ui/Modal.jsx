@@ -75,8 +75,8 @@ const Modal = ({ isOpen, onClose, onConfirm, title, message, confirmText = 'Conf
                             }}
                             className="modal-btn-confirm"
                             style={{
-                                background: variant === 'danger' ? '#ef4444' : 'var(--accent-primary)',
-                                borderColor: variant === 'danger' ? '#ef4444' : 'var(--accent-primary)'
+                                background: variant === 'danger' ? '#ef4444' : (variant === 'orange' ? '#F5A623' : 'var(--accent-primary)'),
+                                borderColor: variant === 'danger' ? '#ef4444' : (variant === 'orange' ? '#F5A623' : 'var(--accent-primary)')
                             }}
                         >
                             {confirmText}

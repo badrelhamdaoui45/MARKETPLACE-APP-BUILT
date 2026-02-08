@@ -11,6 +11,7 @@ import {
     ChevronDown, Calendar, Filter, DollarSign, Search,
     FileText, Plus, Trash2, Edit, Video
 } from 'lucide-react';
+import SkeletonPage from '../components/ui/SkeletonPage';
 
 const AdminDashboard = () => {
     const [photographers, setPhotographers] = useState([]);
@@ -240,20 +241,26 @@ const AdminDashboard = () => {
     };
 
     // Chart Data Processing
-    const chartData = useMemo(() => {
+    // Filter Transactions by Date
+    const filteredTransactions = useMemo(() => {
         if (!transactions.length) return [];
-
-        let filteredTxs = transactions;
+        let filtered = transactions;
         const now = new Date();
 
         if (dateFilter !== 'all') {
             const daysToSub = parseInt(dateFilter);
             const startDate = startOfDay(subDays(now, daysToSub));
-            filteredTxs = transactions.filter(t => isAfter(parseISO(t.created_at), startDate));
+            filtered = transactions.filter(t => isAfter(parseISO(t.created_at), startDate));
         }
+        return filtered;
+    }, [transactions, dateFilter]);
+
+    // Chart Data Processing
+    const chartData = useMemo(() => {
+        if (!filteredTransactions.length) return [];
 
         // Group by date
-        const grouped = filteredTxs.reduce((acc, tx) => {
+        const grouped = filteredTransactions.reduce((acc, tx) => {
             const date = format(parseISO(tx.created_at), 'MMM dd');
             if (!acc[date]) {
                 acc[date] = { date, sales: 0, commission: 0 };
@@ -263,8 +270,10 @@ const AdminDashboard = () => {
             return acc;
         }, {});
 
-        return Object.values(grouped);
-    }, [transactions, dateFilter]);
+        return Object.values(grouped).sort((a, b) => new Date(a.date) - new Date(b.date)); // Ensure chronological order if needed, though object iteration usually follows insertion in modern JS for strings, safer to rely on source order or sort.
+        // Actually, since we process in order (if transactions are ordered), it might be fine. 
+        // Let's just return Object.values(grouped) as before, but using filteredTransactions.
+    }, [filteredTransactions]);
 
     const filteredPhotographers = useMemo(() => {
         let result = photographers.filter(p => {
@@ -289,10 +298,10 @@ const AdminDashboard = () => {
         return result;
     }, [photographers, searchTerm, salesFilter, sortBy]);
 
-    if (loading) return <div className="admin-loading">Loading Admin Panel...</div>;
+    if (loading) return <SkeletonPage />;
 
-    const totalPlatformRevenue = transactions.reduce((sum, t) => sum + Number(t.commission_amount), 0);
-    const totalSalesVolume = transactions.reduce((sum, t) => sum + Number(t.amount), 0);
+    const totalPlatformRevenue = filteredTransactions.reduce((sum, t) => sum + Number(t.commission_amount), 0);
+    const totalSalesVolume = filteredTransactions.reduce((sum, t) => sum + Number(t.amount), 0);
 
     return (
         <div className="admin-container">
@@ -482,7 +491,11 @@ const AdminDashboard = () => {
                                     <React.Fragment key={p.id}>
                                         <tr className={selectedPhotographer === p.id ? 'active-row' : ''}>
                                             <td>
-                                                <div className="user-info">
+                                                <div
+                                                    className="user-info"
+                                                    onClick={() => window.location.href = `/admin/photographer/${p.id}`}
+                                                    style={{ cursor: 'pointer' }}
+                                                >
                                                     <div className="user-avatar">{p.full_name?.[0] || 'P'}</div>
                                                     <div className="user-details">
                                                         <span className="user-name">{p.full_name || 'No Name'}</span>

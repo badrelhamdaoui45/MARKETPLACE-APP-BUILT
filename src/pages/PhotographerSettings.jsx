@@ -263,16 +263,16 @@ const PhotographerSettings = () => {
 
             <style>{`
                 .settings-container {
-                    padding: 4rem 2rem;
+                    padding: 4rem 4rem;
                     min-height: calc(100vh - 80px);
                     background: #f8fafc;
-                    display: flex;
-                    justify-content: center;
+                    width: 100%;
+                    max-width: 100%;
                 }
 
                 .settings-content {
-                    max-width: 800px;
                     width: 100%;
+                    margin: 0;
                 }
 
                 .settings-header {

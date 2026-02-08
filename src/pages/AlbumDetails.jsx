@@ -9,6 +9,8 @@ import { ArrowLeft, Trash2, Upload, Eye, EyeOff, Share2, Copy, Check, Hash, Edit
 import Toast from '../components/ui/Toast';
 import { detectBibs } from '../lib/gemini';
 import { slugify } from '../utils/slugify';
+import SubscribersModal from '../components/ui/SubscribersModal';
+import SkeletonPage from '../components/ui/SkeletonPage';
 
 const AlbumDetails = () => {
     const { albumTitle } = useParams();
@@ -45,6 +47,7 @@ const AlbumDetails = () => {
     const [isEditingPopup, setIsEditingPopup] = useState(false);
     const [popupLoading, setPopupLoading] = useState(false);
     const [isSelectingImage, setIsSelectingImage] = useState(false); // To open/close image selector grid
+    const [isSubscribersModalOpen, setIsSubscribersModalOpen] = useState(false);
 
     useEffect(() => {
         if (user && albumTitle) {
@@ -410,7 +413,7 @@ const AlbumDetails = () => {
         openModal({
             title: 'Start AI Detection?',
             message: `This will use AI to scan ${photos.length} photos for bib numbers. This may take a few moments.`,
-            variant: 'info',
+            variant: 'orange',
             confirmText: 'Start Scan',
             cancelText: 'Cancel',
             showCancel: true,
@@ -418,7 +421,7 @@ const AlbumDetails = () => {
         });
     };
 
-    if (loading) return <div style={{ padding: '2rem' }}>Loading...</div>;
+    if (loading) return <SkeletonPage showTable={false} />;
     if (!album) return <div style={{ padding: '2rem' }}>Album not found</div>;
 
     return (
@@ -625,14 +628,38 @@ const AlbumDetails = () => {
                                 <div className="active-popup-preview">
                                     <p className="no-packages-text">
                                         {album.pre_inscription_enabled ? (
-                                            <span style={{ color: '#ea580c', fontWeight: 700 }}>
+                                            <span style={{ color: '#ea580c', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                                 {subscriberCount > 0
                                                     ? `Actif — ${subscriberCount} personnes inscrites.`
                                                     : "Actif — Un formulaire s'affichera pour les clients."}
+
+                                                {subscriberCount > 0 && (
+                                                    <button
+                                                        onClick={() => setIsSubscribersModalOpen(true)}
+                                                        style={{
+                                                            background: 'none',
+                                                            border: 'none',
+                                                            color: 'var(--primary-blue)',
+                                                            textDecoration: 'underline',
+                                                            cursor: 'pointer',
+                                                            fontSize: '0.9rem',
+                                                            fontWeight: 600,
+                                                            padding: 0
+                                                        }}
+                                                    >
+                                                        Voir la liste
+                                                    </button>
+                                                )}
                                             </span>
                                         ) : 'Désactivé'}
                                     </p>
                                 </div>
+
+                                <SubscribersModal
+                                    isOpen={isSubscribersModalOpen}
+                                    onClose={() => setIsSubscribersModalOpen(false)}
+                                    albumId={album.id}
+                                />
 
                                 {isEditingPreInscription && (
                                     <div className="popup-editor-panel">
@@ -918,9 +945,10 @@ const AlbumDetails = () => {
 
             <style>{`
                 .album-details-container {
-                    padding: 2rem;
-                    max-width: 1200px;
-                    margin: 0 auto;
+                    padding: 2rem 4rem;
+                    width: 100%;
+                    max-width: 100%;
+                    margin: 0;
                     min-height: 80vh;
                 }
 
