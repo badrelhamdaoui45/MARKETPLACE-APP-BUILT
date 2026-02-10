@@ -14,7 +14,7 @@ const Footer = () => {
                         <Link to="/" className="footer-logo">
                             <div className="logo-text-container">
                                 <span className="logo-capture">RUN</span>
-                                <span className="logo-run">CAPTURE</span>
+                                <span className="logo-run">CAPTURES</span>
                                 <div className="logo-square"></div>
                             </div>
                         </Link>

@@ -119,11 +119,11 @@ const PublicAlbumView = () => {
                 .insert([{ album_id: album.id, email, phone }]);
 
             if (error) throw error;
-            alert('Parfait ! Vous serez notifié dès que les photos seront prêtes.');
+            alert('Perfect! You will be notified as soon as the photos are ready.');
             e.target.reset();
         } catch (err) {
             console.error('Error subscribing:', err);
-            alert('Une erreur est survenue. Veuillez réessayer.');
+            alert('An error occurred. Please try again.');
         }
     };
 
@@ -189,7 +189,7 @@ const PublicAlbumView = () => {
             navigate(`/my-purchases/${album.id}`);
         } catch (err) {
             console.error('Error claiming free album:', err);
-            alert('Une erreur est survenue lors de la récupération de l\'album.');
+            alert('An error occurred while retrieving the album.');
         } finally {
             setIsClaiming(false);
         }
@@ -255,8 +255,8 @@ const PublicAlbumView = () => {
                             </div>
 
                             <div className="pre-inscription-form-section">
-                                <h2>{album.pre_inscription_title || "Les photos arrivent bientôt ! 📸"}</h2>
-                                <p>{album.pre_inscription_description || "Inscrivez-vous pour recevoir une notification dès que l'album sera en ligne et prêt à l'achat."}</p>
+                                <h2>{album.pre_inscription_title || "Photos coming soon! 📸"}</h2>
+                                <p>{album.pre_inscription_description || "Sign up to receive a notification as soon as the album is online and ready to purchase."}</p>
 
                                 <form onSubmit={handlePreInscriptionSubmit} className="notify-form">
                                     <div className="form-group-modern">
@@ -264,14 +264,14 @@ const PublicAlbumView = () => {
                                         <input type="email" name="email" required placeholder="nom@exemple.com" />
                                     </div>
                                     <div className="form-group-modern">
-                                        <label>Votre Téléphone (Optionnel)</label>
+                                        <label>Your Phone (Optional)</label>
                                         <input type="tel" name="phone" placeholder="06 12 34 56 78" />
                                     </div>
                                     <Button type="submit" className="notify-submit-btn">
-                                        M'avertir de la sortie !
+                                        Notify me when it's out!
                                     </Button>
                                     <p className="privacy-note">
-                                        <Lock size={12} /> Vos données resterront confidentielles avec {album.profiles?.full_name}.
+                                        <Lock size={12} /> Your data will remain confidential with {album.profiles?.full_name}.
                                     </p>
                                 </form>
                             </div>
@@ -444,7 +444,7 @@ const PublicAlbumView = () => {
                                         <Gift size={20} />
                                         {isClaiming ? 'Chargement...' : 'TOUT RÉCUPÉRER GRATUITEMENT'}
                                     </Button>
-                                    <p className="free-disclaimer">Accédez à toutes les photos sans payer.</p>
+                                    <p className="free-disclaimer">Access all photos without paying.</p>
                                 </div>
                             )}
 

@@ -9,7 +9,7 @@ const CreatePackageModal = ({ isOpen, onClose, onSuccess }) => {
     const [loading, setLoading] = useState(false);
 
     const [formData, setFormData] = useState({
-        name: 'Nouveau Modèle',
+        name: 'New Template',
         type: 'digital',
         tiers: [{ quantity: 1, price: 10 }]
     });
@@ -54,7 +54,7 @@ const CreatePackageModal = ({ isOpen, onClose, onSuccess }) => {
             if (onSuccess) onSuccess(data);
             onClose();
         } catch (error) {
-            alert('Erreur lors de la création du modèle : ' + error.message);
+            alert('Error creating template: ' + error.message);
         } finally {
             setLoading(false);
         }

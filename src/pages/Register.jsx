@@ -90,27 +90,23 @@ const Register = () => {
 
                     <div className="role-selection">
                         <label className="input-label">I am a...</label>
-                        <div className="radio-group">
-                            <label className="radio-label">
-                                <input
-                                    type="radio"
-                                    name="role"
-                                    value="runner"
-                                    checked={role === 'runner'}
-                                    onChange={(e) => setRole(e.target.value)}
-                                />
-                                Runner
-                            </label>
-                            <label className="radio-label">
-                                <input
-                                    type="radio"
-                                    name="role"
-                                    value="photographer"
-                                    checked={role === 'photographer'}
-                                    onChange={(e) => setRole(e.target.value)}
-                                />
-                                Photographer
-                            </label>
+                        <div className="radio-options-list">
+                            {['Runner', 'Photographer'].map((roleOption) => (
+                                <label key={roleOption} className={`radio-option ${role === roleOption.toLowerCase() ? 'selected' : ''}`}>
+                                    <div className="radio-circle">
+                                        {role === roleOption.toLowerCase() && <div className="radio-dot" />}
+                                    </div>
+                                    <input
+                                        type="radio"
+                                        name="role"
+                                        value={roleOption.toLowerCase()}
+                                        checked={role === roleOption.toLowerCase()}
+                                        onChange={(e) => setRole(e.target.value)}
+                                        className="hidden-radio"
+                                    />
+                                    <span className="radio-text">{roleOption}</span>
+                                </label>
+                            ))}
                         </div>
                     </div>
 
@@ -161,20 +157,72 @@ const Register = () => {
                     margin-bottom: 1.5rem;
                 }
 
-                .radio-group {
+                /* Modern Radio Options List */
+                .radio-options-list {
                     display: flex;
-                    gap: 1.5rem;
-                    margin-top: 0.5rem;
+                    flex-direction: column;
+                    gap: 0.75rem;
+                    margin-top: 0.75rem;
                 }
 
-                .radio-label {
+                .radio-option {
                     display: flex;
                     align-items: center;
-                    gap: 0.5rem;
+                    gap: 1rem;
                     cursor: pointer;
-                    font-size: 0.95rem;
+                    padding: 1rem;
+                    border-radius: 8px;
+                    transition: all 0.2s;
+                    border: 2px solid #e2e8f0;
+                    background: white;
+                }
+
+                .radio-option:hover {
+                    background: #f8fafc;
+                    border-color: #cbd5e1;
+                }
+
+                .radio-option.selected {
+                    background: #f0f9ff;
+                    border-color: #0f172a;
+                }
+
+                .radio-circle {
+                    width: 24px;
+                    height: 24px;
+                    border-radius: 50%;
+                    border: 2px solid #cbd5e1;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: all 0.2s;
+                    flex-shrink: 0;
+                }
+
+                .radio-option.selected .radio-circle {
+                    border-color: #0f172a;
+                }
+
+                .radio-dot {
+                    width: 12px;
+                    height: 12px;
+                    background: #0f172a;
+                    border-radius: 50%;
+                }
+
+                .radio-text {
+                    font-size: 1rem;
+                    color: #475569;
                     font-weight: 500;
-                    color: var(--text-primary);
+                }
+
+                .radio-option.selected .radio-text {
+                    color: #0f172a;
+                    font-weight: 600;
+                }
+
+                .hidden-radio {
+                    display: none;
                 }
 
                 .auth-footer {

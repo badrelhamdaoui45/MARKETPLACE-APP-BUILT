@@ -53,13 +53,13 @@ const PaymentSettingsModal = ({ isOpen, onClose, profile, onSave }) => {
     if (!isOpen) return null;
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Options de Paiement" showFooter={false}>
+        <Modal isOpen={isOpen} onClose={onClose} title="Payment Options" showFooter={false}>
             <div className="payment-settings-content">
                 <div className="settings-section">
                     <div className="toggle-group">
                         <div className="toggle-info">
-                            <h3>Virement Bancaire (Manuel)</h3>
-                            <p>Permettre aux acheteurs de payer directement sur votre compte bancaire.</p>
+                            <h3>Bank Transfer (Manual)</h3>
+                            <p>Allow buyers to pay directly to your bank account.</p>
                         </div>
                         <label className="switch">
                             <input
@@ -76,7 +76,7 @@ const PaymentSettingsModal = ({ isOpen, onClose, profile, onSave }) => {
                     <div className="details-section fade-in">
                         <div className="input-row">
                             <div className="input-field">
-                                <label>Nom de la Banque</label>
+                                <label>Bank Name</label>
                                 <input
                                     type="text"
                                     value={bankName}
@@ -86,12 +86,12 @@ const PaymentSettingsModal = ({ isOpen, onClose, profile, onSave }) => {
                                 />
                             </div>
                             <div className="input-field">
-                                <label>Titulaire du compte</label>
+                                <label>Account Holder</label>
                                 <input
                                     type="text"
                                     value={accountHolder}
                                     onChange={(e) => setAccountHolder(e.target.value)}
-                                    placeholder="Nom complet"
+                                    placeholder="Full name"
                                     className="settings-input"
                                 />
                             </div>
@@ -99,7 +99,7 @@ const PaymentSettingsModal = ({ isOpen, onClose, profile, onSave }) => {
 
                         <div className="input-row">
                             <div className="input-field">
-                                <label>Code Banque / Sort Code</label>
+                                <label>Bank Code / Sort Code</label>
                                 <input
                                     type="text"
                                     value={bankCode}
@@ -109,7 +109,7 @@ const PaymentSettingsModal = ({ isOpen, onClose, profile, onSave }) => {
                                 />
                             </div>
                             <div className="input-field">
-                                <label>Numéro de Compte</label>
+                                <label>Account Number</label>
                                 <input
                                     type="text"
                                     value={accountNumber}
@@ -132,27 +132,27 @@ const PaymentSettingsModal = ({ isOpen, onClose, profile, onSave }) => {
                         </div>
 
                         <div className="input-field">
-                            <label>Instructions supplémentaires (optionnel)</label>
+                            <label>Additional Instructions (optional)</label>
                             <textarea
                                 value={details}
                                 onChange={(e) => setDetails(e.target.value)}
-                                placeholder="Autres instructions..."
+                                placeholder="Other instructions..."
                                 className="settings-textarea"
                                 rows={3}
                             />
                         </div>
                         <p className="hint-text">
-                            Ces informations seront affichées aux acheteurs qui choisissent ce mode de paiement.
+                            This information will be displayed to buyers who choose this payment method.
                         </p>
                     </div>
                 )}
 
                 <div className="modal-actions">
                     <Button variant="outline" onClick={onClose} disabled={loading}>
-                        Annuler
+                        Cancel
                     </Button>
                     <Button onClick={handleSave} disabled={loading} className="save-btn">
-                        {loading ? 'Sauvegarde...' : 'Enregistrer'}
+                        {loading ? 'Saving...' : 'Save'}
                     </Button>
                 </div>
             </div>

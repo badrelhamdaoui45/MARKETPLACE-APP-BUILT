@@ -149,7 +149,7 @@ const RunnerProfile = () => {
     const copyToClipboard = (text, label) => {
         if (!text) return;
         navigator.clipboard.writeText(text).then(() => {
-            setToast({ message: `${label} copié !`, type: 'success' });
+            setToast({ message: `${label} copied!`, type: 'success' });
         }).catch(err => {
             console.error('Failed to copy: ', err);
             setToast({ message: 'Erreur lors de la copie.', type: 'error' });
@@ -188,7 +188,7 @@ const RunnerProfile = () => {
                 p.id === transactionId ? { ...p, payment_proof_url: publicUrl } : p
             ));
 
-            setToast({ message: 'Preuve de paiement envoyée avec succès !', type: 'success' });
+            setToast({ message: 'Payment proof sent successfully!', type: 'success' });
 
         } catch (error) {
             console.error("Error uploading proof:", error);
@@ -264,7 +264,7 @@ const RunnerProfile = () => {
                                     </div>
                                     {tx.albums?.profiles && (
                                         <div className="pending-bank-details">
-                                            <p className="details-intro">Veuillez effectuer le virement aux coordonnées suivantes :</p>
+                                            <p className="details-intro">Please make the transfer to the following details:</p>
                                             <div className="bank-details-mini-grid">
                                                 {tx.albums.profiles.bank_name && (
                                                     <div className="mini-detail">
@@ -315,7 +315,7 @@ const RunnerProfile = () => {
                                                             <span>{tx.albums.profiles.account_number}</span>
                                                             <button
                                                                 className="mini-copy-icon"
-                                                                onClick={() => copyToClipboard(tx.albums.profiles.account_number, 'Numéro de compte')}
+                                                                onClick={() => copyToClipboard(tx.albums.profiles.account_number, 'Account Number')}
                                                             >
                                                                 <Copy size={12} />
                                                             </button>
@@ -355,7 +355,7 @@ const RunnerProfile = () => {
                                             <div className="proof-uploaded">
                                                 <div className="proof-indicator">
                                                     <Check size={14} className="check-icon" />
-                                                    <span>Preuve de paiement envoyée</span>
+                                                    <span>Payment proof sent</span>
                                                 </div>
                                                 <a href={tx.payment_proof_url} target="_blank" rel="noopener noreferrer" className="view-proof-link">
                                                     <ImageIcon size={14} />

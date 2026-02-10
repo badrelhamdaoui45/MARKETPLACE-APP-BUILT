@@ -3,13 +3,13 @@
 create extension if not exists "uuid-ossp";
 
 -- 1. PROFILES (Users)
-create type user_role as enum ('admin', 'photographer', 'buyer');
+create type user_role as enum ('admin', 'photographer', 'runner');
 
 create table public.profiles (
   id uuid references auth.users not null primary key,
   email text,
   full_name text,
-  role user_role default 'buyer',
+  role user_role default 'runner',
   stripe_account_id text, -- For photographers
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );

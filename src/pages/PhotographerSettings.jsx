@@ -36,7 +36,7 @@ const PhotographerSettings = () => {
                 whatsapp: profile.whatsapp || '',
                 website: profile.website || '',
                 bio: profile.bio || '',
-                watermark_text: profile.watermark_text || '© RUN CAPTURE',
+                watermark_text: profile.watermark_text || '© RUN CAPTURES',
                 country: profile.country || ''
             });
             setLoading(false);
@@ -160,7 +160,7 @@ const PhotographerSettings = () => {
                                         />
                                         <Button
                                             type="button"
-                                            variant="outline"
+                                            variant="orange"
                                             onClick={() => document.getElementById('logo-upload').click()}
                                             disabled={saving}
                                         >

@@ -56,7 +56,7 @@ const Navbar = () => {
                 <Link to="/" className="navbar-logo" onClick={closeMenu}>
                     <div className="logo-text-container">
                         <span className="logo-capture">RUN</span>
-                        <span className="logo-run">CAPTURE</span>
+                        <span className="logo-run">CAPTURES</span>
                         <div className="logo-square"></div>
                     </div>
                 </Link>
@@ -114,7 +114,11 @@ const Navbar = () => {
                                     onClick={() => setIsProfileOpen(!isProfileOpen)}
                                 >
                                     <div className="navbar-user-avatar">
-                                        {profile?.full_name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase()}
+                                        {profile?.logo_url ? (
+                                            <img src={profile.logo_url} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                                        ) : (
+                                            profile?.full_name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase()
+                                        )}
                                     </div>
                                 </button>
 
@@ -124,10 +128,7 @@ const Navbar = () => {
                                             <span className="profile-menu-name">{profile?.full_name || 'User'}</span>
                                             <span className="profile-menu-email">{user.email}</span>
                                             <span className="role-badge">
-                                                {profile?.provider_type ?
-                                                    `${profile.role} • ${profile.provider_type}` :
-                                                    (profile?.role || 'Client')
-                                                }
+                                                {profile?.provider_type || profile?.role || 'Client'}
                                             </span>
                                         </div>
 
@@ -193,7 +194,11 @@ const Navbar = () => {
                         {user && (
                             <div className="mobile-user-info">
                                 <div className="mobile-user-avatar">
-                                    {profile?.full_name?.charAt(0).toUpperCase() || 'U'}
+                                    {profile?.logo_url ? (
+                                        <img src={profile.logo_url} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                                    ) : (
+                                        profile?.full_name?.charAt(0).toUpperCase() || 'U'
+                                    )}
                                 </div>
                                 <div>
                                     <div className="mobile-user-name">{profile?.full_name || 'User'}</div>

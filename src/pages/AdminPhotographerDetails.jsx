@@ -127,7 +127,7 @@ const AdminPhotographerDetails = () => {
                     </div>
                 </div>
                 <div className="profile-actions-right">
-                    <Button variant="outline" onClick={() => window.location.href = `mailto:${photographer.email}`}>
+                    <Button variant="orange" onClick={() => window.location.href = `mailto:${photographer.email}`}>
                         Contact User
                     </Button>
                 </div>

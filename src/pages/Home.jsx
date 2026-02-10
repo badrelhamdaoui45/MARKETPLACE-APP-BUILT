@@ -158,8 +158,8 @@ const Home = () => {
                 </div>
 
                 <div className="home-grid">
-                    {/* Buyer Section */}
-                    <div className="home-card buyer-card">
+                    {/* Runner Section */}
+                    <div className="home-card runner-card">
                         <div className="home-card-icon">
                             <Search size={80} strokeWidth={1} />
                         </div>
@@ -167,7 +167,7 @@ const Home = () => {
                             You participated in an event and want to find your sports photos online.
                         </p>
                         <Link to="/albums" className="home-card-link">
-                            <Button className="home-btn buyer-btn">
+                            <Button className="home-btn runner-btn">
                                 I'M LOOKING FOR MY PHOTOS
                             </Button>
                         </Link>
@@ -204,7 +204,7 @@ const Home = () => {
                             <div className="col-us">
                                 <span className="brand-text-logo">
                                     <span className="brand-run">RUN</span>
-                                    <span className="brand-capture">CAPTURE</span>
+                                    <span className="brand-capture">CAPTURES</span>
                                 </span>
                             </div>
                             <div className="col-others">Other Apps</div>
@@ -1412,12 +1412,12 @@ const Home = () => {
                     border-radius: 6px !important;
                 }
 
-                .buyer-btn {
+                .runner-btn {
                     background: #ffb703 !important;
                     color: #1f2937 !important;
                 }
 
-                .buyer-btn:hover {
+                .runner-btn:hover {
                     background: #ffc300 !important;
                     transform: translateY(-2px);
                 }

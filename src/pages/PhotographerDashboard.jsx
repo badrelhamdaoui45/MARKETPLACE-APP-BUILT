@@ -43,6 +43,11 @@ const PhotographerDashboard = () => {
     const [dateFilter, setDateFilter] = useState('all'); // 'all', 'today', '7days', '30days', '90days'
     const [albumFilter, setAlbumFilter] = useState('all'); // 'all' or album_id
 
+    // Runner Details Modal State
+    const [selectedRunner, setSelectedRunner] = useState(null);
+    const [runnerPurchases, setRunnerPurchases] = useState([]);
+    const [loadingRunnerData, setLoadingRunnerData] = useState(false);
+
     useEffect(() => {
         if (user) {
             fetchAlbums();
@@ -100,6 +105,38 @@ const PhotographerDashboard = () => {
             console.error('Error fetching sales:', error);
         } finally {
             setLoadingSales(false);
+        }
+    };
+
+    const fetchRunnerPurchases = async (runnerId, runnerName, runnerEmail) => {
+        setLoadingRunnerData(true);
+        setSelectedRunner({ id: runnerId, name: runnerName, email: runnerEmail });
+
+        try {
+            const { data, error } = await supabase
+                .from('transactions')
+                .select(`
+                    *,
+                    albums:album_id (id, title, slug)
+                `)
+                .eq('buyer_id', runnerId)
+                .eq('photographer_id', user.id)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+
+            // count photos from unlocked_photo_ids array
+            const purchasesWithPhotoCounts = data.map(purchase => ({
+                ...purchase,
+                photo_count: purchase.unlocked_photo_ids?.length || 0
+            }));
+
+            setRunnerPurchases(purchasesWithPhotoCounts);
+        } catch (error) {
+            console.error('Error fetching runner purchases:', error);
+            setToast({ message: 'Failed to load runner details', type: 'error' });
+        } finally {
+            setLoadingRunnerData(false);
         }
     };
 
@@ -258,7 +295,7 @@ const PhotographerDashboard = () => {
                                                 <img src={album.cover_image_url} alt={album.title} />
                                             ) : (
                                                 <div className="no-cover-placeholder">
-                                                    <div className="placeholder-logo">RUN CAPTURE</div>
+                                                    <div className="placeholder-logo">RUN CAPTURES</div>
                                                     <span className="no-cover-badge">No Cover Image</span>
                                                 </div>
                                             )}
@@ -272,7 +309,7 @@ const PhotographerDashboard = () => {
                                         <div className="album-card-mini-body">
                                             <h3>{album.title}</h3>
                                             <p className="album-meta">
-                                                {album.is_published ? 'Published' : 'Draft'} • {album.is_free ? <span style={{ color: '#10b981', fontWeight: 800 }}>FREE</span> : `$${album.price}`}
+                                                {album.is_published ? 'Published' : 'Draft'}
                                             </p>
                                             <div style={{ display: 'flex', gap: '1rem', marginTop: 'auto' }}>
                                                 <Link to={`/photographer/albums/${encodeURIComponent(album.slug || album.title)}/edit`} style={{ flex: 1 }}>
@@ -501,7 +538,23 @@ const PhotographerDashboard = () => {
                                             <tr key={tx.id}>
                                                 <td>{new Date(tx.created_at).toLocaleDateString()}</td>
                                                 <td>{tx.albums?.title || 'Unknown Album'}</td>
-                                                <td>{tx.profiles?.full_name || 'Guest'}</td>
+                                                <td>
+                                                    <button
+                                                        onClick={() => fetchRunnerPurchases(tx.buyer_id, tx.profiles?.full_name || 'Guest', tx.profiles?.email)}
+                                                        className="runner-name-btn"
+                                                        style={{
+                                                            background: 'none',
+                                                            border: 'none',
+                                                            color: '#F5A623',
+                                                            cursor: 'pointer',
+                                                            textDecoration: 'underline',
+                                                            fontWeight: 600,
+                                                            padding: 0
+                                                        }}
+                                                    >
+                                                        {tx.profiles?.full_name || 'Guest'}
+                                                    </button>
+                                                </td>
                                                 <td style={{ textAlign: 'right', fontWeight: 700 }}>${Number(tx.amount).toFixed(2)}</td>
                                                 <td className="commission-text" style={{ textAlign: 'right' }}>-${Number(tx.commission_amount).toFixed(2)}</td>
                                                 <td className="net-text" style={{ textAlign: 'right' }}>
@@ -571,8 +624,23 @@ const PhotographerDashboard = () => {
                                             <span className="tx-value">{tx.albums?.title || 'Unknown'}</span>
                                         </div>
                                         <div className="tx-row">
-                                            <span className="tx-label">Buyer:</span>
-                                            <span className="tx-value">{tx.profiles?.full_name || 'Guest'}</span>
+                                            <span className="tx-label">Runner:</span>
+                                            <button
+                                                onClick={() => fetchRunnerPurchases(tx.buyer_id, tx.profiles?.full_name || 'Guest', tx.profiles?.email)}
+                                                className="runner-name-btn"
+                                                style={{
+                                                    background: 'none',
+                                                    border: 'none',
+                                                    color: '#F5A623',
+                                                    cursor: 'pointer',
+                                                    textDecoration: 'underline',
+                                                    fontWeight: 600,
+                                                    padding: 0,
+                                                    fontSize: 'inherit'
+                                                }}
+                                            >
+                                                {tx.profiles?.full_name || 'Guest'}
+                                            </button>
                                         </div>
                                         <div className="tx-footer">
                                             <div className="tx-amount-group">
@@ -1621,6 +1689,184 @@ const PhotographerDashboard = () => {
                     padding: 4px;
                     letter-spacing: 0.05em;
                 }
+
+                /* Runner Modal Styles */
+                .runner-modal-overlay {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0, 0, 0, 0.5);
+                    backdrop-filter: blur(4px);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 1000;
+                    padding: 1rem;
+                }
+
+                .runner-modal {
+                    background: white;
+                    border-radius: 16px;
+                    width: 100%;
+                    max-width: 600px;
+                    max-height: 90vh;
+                    display: flex;
+                    flex-direction: column;
+                    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+                    animation: modalAppear 0.3s ease-out;
+                }
+
+                @keyframes modalAppear {
+                    from { opacity: 0; transform: translateY(20px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+
+                .runner-modal-header {
+                    padding: 1.5rem;
+                    border-bottom: 1px solid var(--border-subtle);
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-start;
+                }
+
+                .runner-modal-header h2 {
+                    margin: 0;
+                    font-size: 1.5rem;
+                    font-weight: 800;
+                    color: var(--text-primary);
+                }
+
+                .runner-email {
+                    margin: 0.25rem 0 0;
+                    color: var(--text-secondary);
+                    font-size: 0.9rem;
+                }
+
+                .modal-close-btn {
+                    background: none;
+                    border: none;
+                    font-size: 2rem;
+                    line-height: 1;
+                    color: var(--text-tertiary);
+                    cursor: pointer;
+                    padding: 0;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 8px;
+                    transition: all 0.2s;
+                }
+
+                .modal-close-btn:hover {
+                    background: var(--bg-secondary);
+                    color: var(--text-primary);
+                }
+
+                .runner-modal-body {
+                    padding: 1.5rem;
+                    overflow-y: auto;
+                    flex: 1;
+                }
+
+                .purchases-list h3 {
+                    font-size: 1.1rem;
+                    font-weight: 700;
+                    margin-bottom: 1rem;
+                    color: var(--text-primary);
+                }
+
+                .purchase-card {
+                    background: var(--bg-secondary);
+                    border-radius: 12px;
+                    padding: 1rem;
+                    margin-bottom: 1rem;
+                    border: 1px solid var(--border-subtle);
+                }
+
+                .purchase-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-start;
+                    margin-bottom: 0.75rem;
+                }
+
+                .album-link {
+                    color: var(--primary-color);
+                    font-weight: 700;
+                    text-decoration: none;
+                    font-size: 1rem;
+                }
+
+                .album-link:hover {
+                    text-decoration: underline;
+                }
+
+                .purchase-status {
+                    font-size: 0.7rem;
+                    font-weight: 800;
+                    padding: 2px 8px;
+                    border-radius: 6px;
+                }
+
+                .purchase-status.paid { background: #dcfce7; color: #166534; }
+                .purchase-status.manual_pending { background: #fef9c3; color: #854d0e; }
+
+                .purchase-details {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+                    gap: 0.75rem;
+                }
+
+                .detail-row {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.125rem;
+                }
+
+                .detail-label {
+                    font-size: 0.75rem;
+                    color: var(--text-tertiary);
+                    text-transform: uppercase;
+                    letter-spacing: 0.025em;
+                }
+
+                .detail-value {
+                    font-size: 0.9rem;
+                    font-weight: 600;
+                    color: var(--text-secondary);
+                }
+
+                .detail-value.amount {
+                    color: var(--text-primary);
+                    font-weight: 700;
+                }
+
+                .loading-state, .empty-state {
+                    text-align: center;
+                    padding: 3rem 0;
+                    color: var(--text-tertiary);
+                }
+
+                @media (max-width: 640px) {
+                    .runner-modal {
+                        max-height: 100vh;
+                        height: 100%;
+                        border-radius: 0;
+                    }
+                    .runner-modal-header {
+                        padding: 1rem;
+                    }
+                    .runner-modal-body {
+                        padding: 1rem;
+                    }
+                    .purchase-details {
+                        grid-template-columns: 1fr 1fr;
+                    }
+                }
             `}</style>
             {
                 toast && (
@@ -1631,6 +1877,71 @@ const PhotographerDashboard = () => {
                     />
                 )
             }
+            {/* Runner Details Modal */}
+            {selectedRunner && (
+                <div className="runner-modal-overlay" onClick={() => setSelectedRunner(null)}>
+                    <div className="runner-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="runner-modal-header">
+                            <div>
+                                <h2>{selectedRunner.name}</h2>
+                                <p className="runner-email">{selectedRunner.email}</p>
+                            </div>
+                            <button className="modal-close-btn" onClick={() => setSelectedRunner(null)}>
+                                ×
+                            </button>
+                        </div>
+
+                        <div className="runner-modal-body">
+                            {loadingRunnerData ? (
+                                <div className="loading-state">
+                                    <p>Loading purchase history...</p>
+                                </div>
+                            ) : runnerPurchases.length === 0 ? (
+                                <p className="empty-state">No purchases found for this runner.</p>
+                            ) : (
+                                <div className="purchases-list">
+                                    <h3>Purchase History ({runnerPurchases.length})</h3>
+                                    {runnerPurchases.map((purchase) => (
+                                        <div key={purchase.id} className="purchase-card">
+                                            <div className="purchase-header">
+                                                <Link
+                                                    to={`/photographer/albums/${encodeURIComponent(purchase.albums?.slug || purchase.albums?.title)}/edit`}
+                                                    className="album-link"
+                                                >
+                                                    {purchase.albums?.title || 'Unknown Album'}
+                                                </Link>
+                                                <span className={`purchase-status ${purchase.status}`}>
+                                                    {purchase.status?.toUpperCase()}
+                                                </span>
+                                            </div>
+                                            <div className="purchase-details">
+                                                <div className="detail-row">
+                                                    <span className="detail-label">Date:</span>
+                                                    <span className="detail-value">{new Date(purchase.created_at).toLocaleDateString()}</span>
+                                                </div>
+                                                <div className="detail-row">
+                                                    <span className="detail-label">Photos:</span>
+                                                    <span className="detail-value">{purchase.photo_count} photo{purchase.photo_count !== 1 ? 's' : ''}</span>
+                                                </div>
+                                                <div className="detail-row">
+                                                    <span className="detail-label">Amount:</span>
+                                                    <span className="detail-value amount">${Number(purchase.amount).toFixed(2)}</span>
+                                                </div>
+                                                {purchase.payment_method === 'bank_transfer' && (
+                                                    <div className="detail-row">
+                                                        <span className="detail-label">Method:</span>
+                                                        <span className="detail-value">Bank Transfer</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div >
     );
 };

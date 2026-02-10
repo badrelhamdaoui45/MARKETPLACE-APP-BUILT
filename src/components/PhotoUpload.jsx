@@ -26,7 +26,7 @@ const PhotoUpload = ({ albumId, onUploadComplete }) => {
         let successCount = 0;
 
         // Fetch user's custom watermark text
-        let customWatermarkText = "© RUN CAPTURE"; // Default
+        let customWatermarkText = "© RUN CAPTURES"; // Default
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {

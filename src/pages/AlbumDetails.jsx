@@ -100,8 +100,8 @@ const AlbumDetails = () => {
             } else {
                 // Set defaults if none exists
                 setAlbumPopup({
-                    title: `Bienvenue dans ${albumData.title} `,
-                    message: 'Découvrez vos photos et profitez de nos offres.',
+                    title: `Welcome to ${albumData.title}`,
+                    message: 'Discover your photos and enjoy our offers.',
                     image_url: '',
                     coupon_code: '',
                     is_active: true
@@ -154,10 +154,10 @@ const AlbumDetails = () => {
 
             if (error) throw error;
             setAlbum({ ...album, pre_inscription_enabled: enabled });
-            setToast({ message: enabled ? 'Pré-inscription activée !' : 'Pré-inscription désactivée !', type: 'success' });
+            setToast({ message: enabled ? 'Pre-registration enabled!' : 'Pre-registration disabled!', type: 'success' });
         } catch (error) {
             console.error('Error updating pre-inscription:', error);
-            setToast({ message: 'Erreur lors de la mise à jour.', type: 'error' });
+            setToast({ message: 'Error during update.', type: 'error' });
         }
     };
 
@@ -174,7 +174,7 @@ const AlbumDetails = () => {
                 .eq('id', album.id);
 
             if (error) throw error;
-            setToast({ message: 'Contenu pré-inscription enregistré !', type: 'success' });
+            setToast({ message: 'Pre-registration content saved!', type: 'success' });
             setIsEditingPreInscription(false);
         } catch (error) {
             console.error('Error saving pre-inscription content:', error);
@@ -193,10 +193,10 @@ const AlbumDetails = () => {
 
             if (error) throw error;
             setAlbum({ ...album, pricing_package_ids: newPackageIds });
-            setToast({ message: 'Modèles de prix mis à jour !', type: 'success' });
+            setToast({ message: 'Price templates updated!', type: 'success' });
         } catch (error) {
             console.error('Error updating packages:', error);
-            setToast({ message: 'Erreur lors de la mise à jour.', type: 'error' });
+            setToast({ message: 'Error during update.', type: 'error' });
         }
     };
 
@@ -239,7 +239,7 @@ const AlbumDetails = () => {
                 navigate(`/photographer/albums/${encodeURIComponent(newSlug)}/edit`, { replace: true });
             }
 
-            setToast({ message: 'Album mis à jour !', type: 'success' });
+            setToast({ message: 'Album updated!', type: 'success' });
             setIsEditingMainDetails(false);
 
             // If title changed, we need to update the URL to match the route /photographer/albums/:albumTitle/edit
@@ -248,7 +248,7 @@ const AlbumDetails = () => {
             }
         } catch (error) {
             console.error('Error saving main details:', error);
-            setToast({ message: 'Erreur lors de la mise à jour.', type: 'error' });
+            setToast({ message: 'Error during update.', type: 'error' });
         } finally {
             setSavingMainDetails(false);
         }
@@ -292,7 +292,7 @@ const AlbumDetails = () => {
             if (error) throw error;
             setAlbumPopup(data);
             setIsEditingPopup(false);
-            setToast({ message: 'Popup de bienvenue mis à jour !', type: 'success' });
+            setToast({ message: 'Welcome popup updated!', type: 'success' });
         } catch (error) {
             console.error('Error saving popup:', error);
             setToast({ message: 'Erreur lors de la sauvegarde du popup.', type: 'error' });
@@ -314,7 +314,7 @@ const AlbumDetails = () => {
                 }, { onConflict: 'album_id' });
 
             if (error) throw error;
-            setToast({ message: isActive ? 'Popup activé !' : 'Popup désactivé !', type: 'success' });
+            setToast({ message: isActive ? 'Popup enabled!' : 'Popup disabled!', type: 'success' });
         } catch (error) {
             console.error('Error toggling popup:', error);
             setToast({ message: 'Erreur lors du changement de statut.', type: 'error' });
@@ -345,7 +345,7 @@ const AlbumDetails = () => {
 
         navigator.clipboard.writeText(shareUrl).then(() => {
             setCopied(true);
-            setToast({ message: 'Lien copié avec succès !', type: 'success' });
+            setToast({ message: 'Link copied successfully!', type: 'success' });
             setTimeout(() => setCopied(false), 2000);
         });
     };
@@ -442,7 +442,7 @@ const AlbumDetails = () => {
                     <div className="header-info">
                         <div className="album-info-card">
                             <div className="info-card-header">
-                                <label className="modern-label">INFORMATIONS GÉNÉRALES</label>
+                                <label className="modern-label">GENERAL INFORMATION</label>
                                 <button
                                     className="edit-details-btn"
                                     onClick={() => {
@@ -494,12 +494,12 @@ const AlbumDetails = () => {
                             ) : (
                                 <div className="main-details-editor">
                                     <div className="popup-field-group">
-                                        <label>Nom de l'album</label>
+                                        <label>Album Name</label>
                                         <input
                                             type="text"
                                             value={mainDetailsForm.title}
                                             onChange={(e) => setMainDetailsForm({ ...mainDetailsForm, title: e.target.value })}
-                                            placeholder="Titre de l'album"
+                                            placeholder="Album Title"
                                         />
                                     </div>
                                     <div className="popup-field-group">
@@ -507,11 +507,11 @@ const AlbumDetails = () => {
                                         <textarea
                                             value={mainDetailsForm.description}
                                             onChange={(e) => setMainDetailsForm({ ...mainDetailsForm, description: e.target.value })}
-                                            placeholder="Description de l'album"
+                                            placeholder="Album Description"
                                         />
                                     </div>
                                     <div className="popup-field-group">
-                                        <label>Prix par défaut ($)</label>
+                                        <label>Default Price ($)</label>
                                         <input
                                             type="number"
                                             step="0.01"
@@ -546,18 +546,18 @@ const AlbumDetails = () => {
 
                             <div className="album-packages-section">
                                 <div className="packages-header-row">
-                                    <label className="modern-label">MODÈLES DE PRIX ACTIFS</label>
+                                    <label className="modern-label">ACTIVE PRICE TEMPLATES</label>
                                     <button
                                         className="edit-packages-toggle"
                                         onClick={() => setIsEditingPackages(!isEditingPackages)}
                                     >
-                                        {isEditingPackages ? 'Terminer' : 'Gérer'}
+                                        {isEditingPackages ? 'Done' : 'Manage'}
                                     </button>
                                 </div>
 
                                 <div className="active-packages-list">
                                     {(album.pricing_package_ids || []).length === 0 ? (
-                                        <p className="no-packages-text">Aucun modèle lié. Prix fixe: ${album.price}</p>
+                                        <p className="no-packages-text">No template linked. Fixed price: ${album.price}</p>
                                     ) : (
                                         <div className="package-tags-flow">
                                             {album.pricing_package_ids.map(id => {
@@ -599,7 +599,7 @@ const AlbumDetails = () => {
                                             })}
                                         </div>
                                         <div className="editor-footer">
-                                            <p>Sélectionnez les modèles à proposer aux Runners.</p>
+                                            <p>Select templates to offer to Runners.</p>
                                         </div>
                                     </div>
                                 )}
@@ -651,7 +651,7 @@ const AlbumDetails = () => {
                                                     </button>
                                                 )}
                                             </span>
-                                        ) : 'Désactivé'}
+                                        ) : 'Disabled'}
                                     </p>
                                 </div>
 
@@ -669,7 +669,7 @@ const AlbumDetails = () => {
                                                 type="text"
                                                 value={album.pre_inscription_title || ''}
                                                 onChange={(e) => setAlbum({ ...album, pre_inscription_title: e.target.value })}
-                                                placeholder="ex: Les photos arrivent bientôt ! 📸"
+                                                placeholder="ex: Photos coming soon! 📸"
                                             />
                                         </div>
 
@@ -678,7 +678,7 @@ const AlbumDetails = () => {
                                             <textarea
                                                 value={album.pre_inscription_description || ''}
                                                 onChange={(e) => setAlbum({ ...album, pre_inscription_description: e.target.value })}
-                                                placeholder="ex: Inscrivez-vous pour être notifié..."
+                                                placeholder="ex: Sign up to be notified..."
                                             />
                                         </div>
 
@@ -698,7 +698,7 @@ const AlbumDetails = () => {
                             <div className="album-popup-management-section">
                                 <div className="packages-header-row">
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                        <label className="modern-label" style={{ margin: 0 }}>POPUP DE BIENVENUE</label>
+                                        <label className="modern-label" style={{ margin: 0 }}>WELCOME POPUP</label>
                                         <label className="switch-toggle">
                                             <input
                                                 type="checkbox"
@@ -723,7 +723,7 @@ const AlbumDetails = () => {
 
                                 <div className="active-popup-preview">
                                     <p className="no-packages-text">
-                                        {albumPopup.is_active ? 'Activé' : 'Désactivé'} — "{albumPopup.title}"
+                                        {albumPopup.is_active ? 'Enabled' : 'Disabled'} — "{albumPopup.title}"
                                     </p>
                                 </div>
 
@@ -735,7 +735,7 @@ const AlbumDetails = () => {
                                                 type="text"
                                                 value={albumPopup.title}
                                                 onChange={(e) => setAlbumPopup({ ...albumPopup, title: e.target.value })}
-                                                placeholder="ex: Bienvenue à l'Événement!"
+                                                placeholder="ex: Welcome to the Event!"
                                             />
                                         </div>
 
@@ -744,7 +744,7 @@ const AlbumDetails = () => {
                                             <textarea
                                                 value={albumPopup.message}
                                                 onChange={(e) => setAlbumPopup({ ...albumPopup, message: e.target.value })}
-                                                placeholder="ex: Profitez de 10% de réduction..."
+                                                placeholder="ex: Enjoy 10% discount..."
                                             />
                                         </div>
 
@@ -771,7 +771,7 @@ const AlbumDetails = () => {
                                                         className="select-from-album-btn"
                                                         onClick={() => setIsSelectingImage(!isSelectingImage)}
                                                     >
-                                                        {isSelectingImage ? 'Fermer' : 'Sélectionner Photo'}
+                                                        {isSelectingImage ? 'Close' : 'Select Photo'}
                                                     </button>
                                                 </div>
                                             </div>
@@ -779,7 +779,7 @@ const AlbumDetails = () => {
 
                                         {isSelectingImage && (
                                             <div className="album-image-picker">
-                                                <p className="picker-title">Choisir une photo de l'album :</p>
+                                                <p className="picker-title">Choose a photo from the album:</p>
                                                 <div className="picker-grid">
                                                     {photos.map(photo => (
                                                         <div

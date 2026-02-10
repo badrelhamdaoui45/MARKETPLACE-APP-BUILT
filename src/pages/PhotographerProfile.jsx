@@ -138,7 +138,11 @@ const PhotographerProfile = () => {
                 <div className="header-bg-gradient"></div>
                 <div className="header-content">
                     <div className="photographer-avatar-large">
-                        {photographer.full_name?.charAt(0).toUpperCase() || 'P'}
+                        {photographer.logo_url ? (
+                            <img src={photographer.logo_url} alt={photographer.full_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                            photographer.full_name?.charAt(0).toUpperCase() || 'P'
+                        )}
                     </div>
                     <div className="photographer-main-info">
                         <h1 className="photographer-name">{photographer.full_name}</h1>
@@ -213,15 +217,7 @@ const PhotographerProfile = () => {
                                         ) : (
                                             <div className="no-cover"><Camera size={48} strokeWidth={1} /></div>
                                         )}
-                                        <div className="album-price-overlay">
-                                            {album.is_free ? (
-                                                <span className="price-badge" style={{ background: '#10b981', color: 'white' }}>GRATUIT</span>
-                                            ) : (
-                                                !album.pricing_package_id && (
-                                                    <span className="price-badge">${album.price}</span>
-                                                )
-                                            )}
-                                        </div>
+
                                         {album.pre_inscription_enabled && (
                                             <div style={{
                                                 position: 'absolute',
@@ -267,11 +263,11 @@ const PhotographerProfile = () => {
 
             <style>{`
                 .profile-container {
-                    padding: var(--spacing-xl);
-                    max-width: 1400px;
+                    padding: 0 4rem;
+                    max-width: 1800px;
                     margin: 0 auto;
                     width: 100%;
-                    text-align: left; /* Force left alignment against any global centering */
+                    text-align: left;
                 }
 
                 .profile-header-card {
@@ -318,6 +314,7 @@ const PhotographerProfile = () => {
                     margin-bottom: var(--spacing-lg);
                     z-index: 5;
                     position: relative;
+                    overflow: hidden;
                 }
 
                 .photographer-main-info {
@@ -465,10 +462,10 @@ const PhotographerProfile = () => {
                 }
 
                 .profile-albums-grid {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-                    gap: 1.5rem;
-                    align-items: start;
+                    column-count: 4;
+                    column-gap: 1.5rem;
+                    margin-top: 2rem;
+                    width: 100%;
                 }
 
                 .album-card-link {
@@ -483,8 +480,10 @@ const PhotographerProfile = () => {
                     overflow: hidden;
                     border: 1px solid var(--border-light);
                     transition: all 0.3s ease;
-                    display: flex;
-                    flex-direction: column;
+                    display: inline-block; /* Essential for column-count masonry */
+                    width: 100%;
+                    margin-bottom: 1.5rem;
+                    break-inside: avoid;
                 }
 
                 .profile-album-card:hover {
@@ -494,13 +493,11 @@ const PhotographerProfile = () => {
                 }
 
                 .album-card-image {
-                    /* Removed fixed height for original ratio */
-                    position: relative;
                     background: var(--bg-tertiary);
+                    position: relative;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    min-height: 200px; /* Min height for no-cover */
                 }
 
                 .album-card-image img {
@@ -515,19 +512,7 @@ const PhotographerProfile = () => {
                     right: var(--spacing-md);
                 }
 
-                .price-badge, .pkg-badge {
-                    padding: var(--spacing-xs) var(--spacing-md);
-                    background: rgba(255, 255, 255, 0.95);
-                    backdrop-filter: blur(4px);
-                    border-radius: var(--radius-full);
-                    font-weight: 800;
-                    color: var(--primary-blue);
-                    box-shadow: var(--shadow-md);
-                }
 
-                .pkg-badge {
-                    color: var(--secondary-cyan);
-                }
 
                 .album-card-info {
                     padding: var(--spacing-lg);
@@ -595,12 +580,24 @@ const PhotographerProfile = () => {
                     align-items: center;
                     justify-content: center;
                     width: 100%;
-                    height: 200px;
+                    padding: 3rem 0;
+                }
+
+                @media (max-width: 1280px) {
+                     .profile-albums-grid {
+                        column-count: 3;
+                    }
+                }
+
+                @media (max-width: 1024px) {
+                    .profile-albums-grid {
+                        column-count: 2;
+                    }
                 }
 
                 @media (max-width: 768px) {
                     .profile-container {
-                        padding: var(--spacing-md);
+                        padding: 0 1rem;
                     }
                     .header-content {
                         padding: 0 var(--spacing-md) var(--spacing-xl);
@@ -610,8 +607,9 @@ const PhotographerProfile = () => {
                         gap: var(--spacing-lg);
                     }
                     .profile-albums-grid {
-                        grid-template-columns: 1fr;
-                        gap: var(--spacing-md);
+                        column-count: 1;
+                        column-gap: 0;
+                        margin-top: 1.5rem;
                     }
                 }
             `}</style>

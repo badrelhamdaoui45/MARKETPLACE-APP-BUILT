@@ -54,8 +54,17 @@ const AdminDashboard = () => {
         image_url: ''
     });
 
+    // Settings Tab State
+    const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'popups', 'blog', 'settings'
+    const [loopsApiKey, setLoopsApiKey] = useState('');
+    const [loopsStatus, setLoopsStatus] = useState('disconnected'); // 'disconnected', 'connected', 'testing'
+    const [savingLoops, setSavingLoops] = useState(false);
+    const [showToast, setShowToast] = useState(false);
+    const [toastMessage, setToastMessage] = useState('');
+
     useEffect(() => {
         fetchAllData();
+        fetchLoopsSettings();
     }, []);
 
     const fetchAllData = async () => {
@@ -121,6 +130,48 @@ const AdminDashboard = () => {
             console.error(error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchLoopsSettings = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('platform_settings')
+                .select('*')
+                .eq('id', 'loops_api_key')
+                .maybeSingle();
+
+            if (!error && data) {
+                setLoopsApiKey(data.value || '');
+                setLoopsStatus(data.value ? 'connected' : 'disconnected');
+            }
+        } catch (error) {
+            console.error('Error fetching Loops settings:', error);
+        }
+    };
+
+    const handleSaveLoopsKey = async () => {
+        setSavingLoops(true);
+        try {
+            const { error } = await supabase
+                .from('platform_settings')
+                .upsert({
+                    id: 'loops_api_key',
+                    value: loopsApiKey,
+                    description: 'Loops.so API Key for email marketing',
+                    updated_at: new Date().toISOString()
+                });
+
+            if (error) throw error;
+            setLoopsStatus('connected');
+            setToastMessage('Loops.so API Key saved successfully!');
+            setShowToast(true);
+            setTimeout(() => setShowToast(false), 3000);
+        } catch (error) {
+            console.error('Error saving Loops API key:', error);
+            alert('Failed to save API key. Please try again.');
+        } finally {
+            setSavingLoops(false);
         }
     };
 
@@ -326,551 +377,685 @@ const AdminDashboard = () => {
                 </div>
             </header>
 
-            {/* Top Stats */}
-            <div className="stats-grid">
-                <div className="stat-card">
-                    <div className="stat-icon revenue"><DollarSign size={20} /></div>
-                    <div className="stat-info">
-                        <span className="stat-label">Total Volume</span>
-                        <h2 className="stat-value">${totalSalesVolume.toLocaleString()}</h2>
-                    </div>
-                </div>
-                <div className="stat-card">
-                    <div className="stat-icon commission"><TrendingUp size={20} /></div>
-                    <div className="stat-info">
-                        <span className="stat-label">Platform Fees</span>
-                        <h2 className="stat-value">${totalPlatformRevenue.toLocaleString()}</h2>
-                    </div>
-                </div>
-                <div className="stat-card">
-                    <div className="stat-icon members"><Users size={20} /></div>
-                    <div className="stat-info">
-                        <span className="stat-label">Photographers</span>
-                        <h2 className="stat-value">{photographers.length}</h2>
-                    </div>
-                </div>
-                <div className="stat-card">
-                    <div className="stat-icon active-albs"><ImageIcon size={20} /></div>
-                    <div className="stat-info">
-                        <span className="stat-label">Total Albums</span>
-                        <h2 className="stat-value">{albums.length}</h2>
-                    </div>
-                </div>
+            {/* Tab Navigation */}
+            <div className="admin-tabs">
+                <button
+                    className={`admin-tab ${activeTab === 'overview' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('overview')}
+                >
+                    Overview
+                </button>
+                <button
+                    className={`admin-tab ${activeTab === 'popups' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('popups')}
+                >
+                    Site Popups
+                </button>
+                <button
+                    className={`admin-tab ${activeTab === 'blog' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('blog')}
+                >
+                    Blog Posts
+                </button>
+                <button
+                    className={`admin-tab ${activeTab === 'settings' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('settings')}
+                >
+                    Settings
+                </button>
             </div>
 
-            {/* Analytics Section */}
-            <div className="analytics-section">
-                <div className="chart-card">
-                    <div className="chart-header">
-                        <h3 className="chart-title">Revenue Analytics</h3>
-                        <div className="chart-legend">
-                            <span className="legend-item sales">Sales</span>
-                            <span className="legend-item fees">Fees</span>
+            {/* Overview Tab */}
+            {activeTab === 'overview' && (
+                <>
+                    {/* Top Stats */}
+                    <div className="stats-grid">
+                        <div className="stat-card">
+                            <div className="stat-icon revenue"><DollarSign size={20} /></div>
+                            <div className="stat-info">
+                                <span className="stat-label">Total Volume</span>
+                                <h2 className="stat-value">${totalSalesVolume.toLocaleString()}</h2>
+                            </div>
+                        </div>
+                        <div className="stat-card">
+                            <div className="stat-icon commission"><TrendingUp size={20} /></div>
+                            <div className="stat-info">
+                                <span className="stat-label">Platform Fees</span>
+                                <h2 className="stat-value">${totalPlatformRevenue.toLocaleString()}</h2>
+                            </div>
+                        </div>
+                        <div className="stat-card">
+                            <div className="stat-icon members"><Users size={20} /></div>
+                            <div className="stat-info">
+                                <span className="stat-label">Photographers</span>
+                                <h2 className="stat-value">{photographers.length}</h2>
+                            </div>
+                        </div>
+                        <div className="stat-card">
+                            <div className="stat-icon active-albs"><ImageIcon size={20} /></div>
+                            <div className="stat-info">
+                                <span className="stat-label">Total Albums</span>
+                                <h2 className="stat-value">{albums.length}</h2>
+                            </div>
                         </div>
                     </div>
-                    <div className="chart-container">
-                        <ResponsiveContainer width="100%" height={350}>
-                            <AreaChart data={chartData}>
-                                <defs>
-                                    <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="var(--primary-blue)" stopOpacity={0.1} />
-                                        <stop offset="95%" stopColor="var(--primary-blue)" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                <XAxis
-                                    dataKey="date"
-                                    axisLine={false}
-                                    tickLine={false}
-                                    tick={{ fontSize: 12, fill: '#94a3b8' }}
-                                    dy={10}
-                                />
-                                <YAxis
-                                    axisLine={false}
-                                    tickLine={false}
-                                    tick={{ fontSize: 12, fill: '#94a3b8' }}
-                                    tickFormatter={(val) => `$${val}`}
-                                />
-                                <Tooltip
-                                    contentStyle={{
-                                        borderRadius: '12px',
-                                        border: 'none',
-                                        boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'
-                                    }}
-                                />
-                                <Area
-                                    type="monotone"
-                                    dataKey="sales"
-                                    stroke="var(--primary-blue)"
-                                    strokeWidth={3}
-                                    fillOpacity={1}
-                                    fill="url(#colorSales)"
-                                    animationDuration={1500}
-                                />
-                                <Area
-                                    type="monotone"
-                                    dataKey="commission"
-                                    stroke="#10b981"
-                                    strokeWidth={2}
-                                    fill="transparent"
-                                />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-            </div>
 
-            {/* Photographers List */}
-            <div className="table-section">
-                <div className="table-header photographers-table-header">
-                    <div className="table-title-group">
-                        <h2 className="table-title">Photographer Management</h2>
-                        <span className="results-count">{filteredPhotographers.length} photographers</span>
-                    </div>
-
-                    <div className="table-controls">
-                        <div className="search-box-admin">
-                            <Search size={18} />
-                            <input
-                                type="text"
-                                placeholder="Search by name or email..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
+                    {/* Analytics Section */}
+                    <div className="analytics-section">
+                        <div className="chart-card">
+                            <div className="chart-header">
+                                <h3 className="chart-title">Revenue Analytics</h3>
+                                <div className="chart-legend">
+                                    <span className="legend-item sales">Sales</span>
+                                    <span className="legend-item fees">Fees</span>
+                                </div>
+                            </div>
+                            <div className="chart-container">
+                                <ResponsiveContainer width="100%" height={350}>
+                                    <AreaChart data={chartData}>
+                                        <defs>
+                                            <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="var(--primary-blue)" stopOpacity={0.1} />
+                                                <stop offset="95%" stopColor="var(--primary-blue)" stopOpacity={0} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                        <XAxis
+                                            dataKey="date"
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fontSize: 12, fill: '#94a3b8' }}
+                                            dy={10}
+                                        />
+                                        <YAxis
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fontSize: 12, fill: '#94a3b8' }}
+                                            tickFormatter={(val) => `$${val}`}
+                                        />
+                                        <Tooltip
+                                            contentStyle={{
+                                                borderRadius: '12px',
+                                                border: 'none',
+                                                boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'
+                                            }}
+                                        />
+                                        <Area
+                                            type="monotone"
+                                            dataKey="sales"
+                                            stroke="var(--primary-blue)"
+                                            strokeWidth={3}
+                                            fillOpacity={1}
+                                            fill="url(#colorSales)"
+                                            animationDuration={1500}
+                                        />
+                                        <Area
+                                            type="monotone"
+                                            dataKey="commission"
+                                            stroke="#10b981"
+                                            strokeWidth={2}
+                                            fill="transparent"
+                                        />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </div>
                         </div>
-
-                        <div className="filter-select-group">
-                            <Filter size={16} />
-                            <select
-                                value={salesFilter}
-                                onChange={(e) => setSalesFilter(e.target.value)}
-                            >
-                                <option value="all">All Status</option>
-                                <option value="with-sales">With Sales</option>
-                                <option value="no-sales">No Sales</option>
-                            </select>
-                        </div>
-
-                        <div className="filter-select-group">
-                            <ChevronDown size={16} />
-                            <select
-                                value={sortBy}
-                                onChange={(e) => setSortBy(e.target.value)}
-                            >
-                                <option value="name">Sort by Name</option>
-                                <option value="revenue-desc">Revenue (High to Low)</option>
-                                <option value="revenue-asc">Revenue (Low to High)</option>
-                            </select>
-                        </div>
-
-                        <Button variant="secondary" onClick={fetchAllData} className="refresh-btn">Refresh</Button>
                     </div>
-                </div>
-                <div className="table-wrapper">
-                    <table className="admin-table">
-                        <thead>
-                            <tr>
-                                <th>PHOTOGRAPHER</th>
-                                <th>STRIPE STATUS</th>
-                                <th>ALBUMS</th>
-                                <th>SALES</th>
-                                <th>PLATFORM FEES</th>
-                                <th>NET</th>
-                                <th>ACTIONS</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredPhotographers.length === 0 ? (
-                                <tr>
-                                    <td colSpan="7" className="empty-results">
-                                        No photographers found matching your filters.
-                                    </td>
-                                </tr>
-                            ) : (
-                                filteredPhotographers.map(p => (
-                                    <React.Fragment key={p.id}>
-                                        <tr className={selectedPhotographer === p.id ? 'active-row' : ''}>
-                                            <td>
-                                                <div
-                                                    className="user-info"
-                                                    onClick={() => window.location.href = `/admin/photographer/${p.id}`}
-                                                    style={{ cursor: 'pointer' }}
-                                                >
-                                                    <div className="user-avatar">{p.full_name?.[0] || 'P'}</div>
-                                                    <div className="user-details">
-                                                        <span className="user-name">{p.full_name || 'No Name'}</span>
-                                                        <span className="user-email">{p.email}</span>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <span className={`status-chip ${p.stripe_account_id ? 'linked' : 'pending'}`}>
-                                                    {p.stripe_account_id ? 'Verified' : 'Unlinked'}
-                                                </span>
-                                            </td>
-                                            <td>{p.albumCount}</td>
-                                            <td>${p.totalRevenue.toFixed(2)}</td>
-                                            <td>${p.platformFees.toFixed(2)}</td>
-                                            <td className="net-earning">${p.netEarnings.toFixed(2)}</td>
-                                            <td>
-                                                <button
-                                                    className="view-btn"
-                                                    onClick={() => setSelectedPhotographer(selectedPhotographer === p.id ? null : p.id)}
-                                                >
-                                                    {selectedPhotographer === p.id ? 'Hide' : 'Inspect'}
-                                                </button>
+
+                    {/* Photographers List */}
+                    <div className="table-section">
+                        <div className="table-header photographers-table-header">
+                            <div className="table-title-group">
+                                <h2 className="table-title">Photographer Management</h2>
+                                <span className="results-count">{filteredPhotographers.length} photographers</span>
+                            </div>
+
+                            <div className="table-controls">
+                                <div className="search-box-admin">
+                                    <Search size={18} />
+                                    <input
+                                        type="text"
+                                        placeholder="Search by name or email..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                    />
+                                </div>
+
+                                <div className="filter-select-group">
+                                    <Filter size={16} />
+                                    <select
+                                        value={salesFilter}
+                                        onChange={(e) => setSalesFilter(e.target.value)}
+                                    >
+                                        <option value="all">All Status</option>
+                                        <option value="with-sales">With Sales</option>
+                                        <option value="no-sales">No Sales</option>
+                                    </select>
+                                </div>
+
+                                <div className="filter-select-group">
+                                    <ChevronDown size={16} />
+                                    <select
+                                        value={sortBy}
+                                        onChange={(e) => setSortBy(e.target.value)}
+                                    >
+                                        <option value="name">Sort by Name</option>
+                                        <option value="revenue-desc">Revenue (High to Low)</option>
+                                        <option value="revenue-asc">Revenue (Low to High)</option>
+                                    </select>
+                                </div>
+
+                                <Button variant="secondary" onClick={fetchAllData} className="refresh-btn">Refresh</Button>
+                            </div>
+                        </div>
+                        <div className="table-wrapper">
+                            <table className="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>PHOTOGRAPHER</th>
+                                        <th>STRIPE STATUS</th>
+                                        <th>ALBUMS</th>
+                                        <th>SALES</th>
+                                        <th>PLATFORM FEES</th>
+                                        <th>NET</th>
+                                        <th>ACTIONS</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredPhotographers.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="7" className="empty-results">
+                                                No photographers found matching your filters.
                                             </td>
                                         </tr>
-                                        {selectedPhotographer === p.id && (
-                                            <tr className="detail-row">
-                                                <td colSpan="7">
-                                                    <div className="inspected-details">
-                                                        <div className="detail-grid">
-                                                            <div className="detail-col">
-                                                                <h4>Recent Albums</h4>
-                                                                <div className="mini-list">
-                                                                    {albums.filter(a => a.photographer_id === p.id).slice(0, 3).map(a => (
-                                                                        <div key={a.id} className="mini-item">
-                                                                            <span>{a.title}</span>
-                                                                            <span className="mini-tag">{a.is_published ? 'Live' : 'Draft'}</span>
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            </div>
-                                                            <div className="detail-col">
-                                                                <h4>Contact Stats</h4>
-                                                                <div className="stat-pill">WhatsApp: {p.whatsapp || 'N/A'}</div>
-                                                                <div className="stat-pill">Web: {p.website || 'N/A'}</div>
+                                    ) : (
+                                        filteredPhotographers.map(p => (
+                                            <React.Fragment key={p.id}>
+                                                <tr className={selectedPhotographer === p.id ? 'active-row' : ''}>
+                                                    <td>
+                                                        <div
+                                                            className="user-info"
+                                                            onClick={() => window.location.href = `/admin/photographer/${p.id}`}
+                                                            style={{ cursor: 'pointer' }}
+                                                        >
+                                                            <div className="user-avatar">{p.full_name?.[0] || 'P'}</div>
+                                                            <div className="user-details">
+                                                                <span className="user-name">{p.full_name || 'No Name'}</span>
+                                                                <span className="user-email">{p.email}</span>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </React.Fragment>
-                                )))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            {/* Site Popups Management */}
-            <div className="table-section" style={{ marginTop: '3rem' }}>
-                <div className="table-header">
-                    <div>
-                        <h2 className="table-title">Site Popups</h2>
-                        <p style={{ fontSize: '0.875rem', color: '#64748b', margin: '0.25rem 0 0' }}>Manage global announcements and platform messages</p>
-                    </div>
-                    <Button
-                        variant="orange"
-                        onClick={() => {
-                            resetPopupForm();
-                            setCurrentPopup(null);
-                            setIsEditingPopup(true);
-                        }}
-                    >
-                        Create Global Popup
-                    </Button>
-                </div>
-
-                <div className="popups-grid">
-                    {popups.length === 0 ? (
-                        <div className="empty-popups">No global popups configured.</div>
-                    ) : (
-                        popups.map(p => (
-                            <div key={p.id} className={`popup-admin-card ${p.is_active ? 'active' : 'inactive'}`}>
-                                <div className="p-card-header">
-                                    <span className={`p-type-badge ${p.type}`}>{p.type}</span>
-                                    <div className="p-status-toggle">
-                                        <span className={`p-status-dot ${p.is_active ? 'on' : 'off'}`}></span>
-                                        {p.is_active ? 'Active' : 'Inactive'}
-                                    </div>
-                                </div>
-                                <div className="p-card-body">
-                                    <h4>{p.title}</h4>
-                                    <p>{p.message.length > 100 ? p.message.substring(0, 100) + '...' : p.message}</p>
-                                </div>
-                                <div className="p-card-footer">
-                                    <button
-                                        className="p-action-btn edit"
-                                        onClick={() => {
-                                            setCurrentPopup(p);
-                                            setPopupForm(p);
-                                            setIsEditingPopup(true);
-                                        }}
-                                    >
-                                        Edit
-                                    </button>
-                                    <button
-                                        className="p-action-btn delete"
-                                        onClick={() => handleDeletePopup(p.id)}
-                                    >
-                                        Delete
-                                    </button>
-                                </div>
-                            </div>
-                        ))
-                    )}
-                </div>
-
-                {isEditingPopup && (
-                    <div className="popup-overlay-admin">
-                        <div className="popup-modal-admin">
-                            <div className="modal-header-admin">
-                                <h3>{currentPopup ? 'Edit Site Popup' : 'New Site Popup'}</h3>
-                                <button className="close-modal-admin" onClick={() => setIsEditingPopup(false)}>&times;</button>
-                            </div>
-                            <div className="modal-body-admin">
-                                <div className="form-row-admin">
-                                    <div className="form-group-admin">
-                                        <label>Title</label>
-                                        <input
-                                            type="text"
-                                            value={popupForm.title}
-                                            onChange={(e) => setPopupForm({ ...popupForm, title: e.target.value })}
-                                            placeholder="Catchy title..."
-                                        />
-                                    </div>
-                                    <div className="form-group-admin">
-                                        <label>Type</label>
-                                        <select
-                                            value={popupForm.type}
-                                            onChange={(e) => setPopupForm({ ...popupForm, type: e.target.value })}
-                                        >
-                                            <option value="announcement">Announcement</option>
-                                            <option value="album_welcome">Default Welcome</option>
-                                            <option value="discount">Promotion</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div className="form-group-admin">
-                                    <label>Message</label>
-                                    <textarea
-                                        value={popupForm.message}
-                                        onChange={(e) => setPopupForm({ ...popupForm, message: e.target.value })}
-                                        placeholder="Detailed content..."
-                                    />
-                                </div>
-                                <div className="form-row-admin">
-                                    <div className="form-group-admin">
-                                        <label>Button Text</label>
-                                        <input
-                                            type="text"
-                                            value={popupForm.button_text}
-                                            onChange={(e) => setPopupForm({ ...popupForm, button_text: e.target.value })}
-                                        />
-                                    </div>
-                                    <div className="form-group-admin">
-                                        <label>Button Link (URL)</label>
-                                        <input
-                                            type="text"
-                                            value={popupForm.button_link}
-                                            onChange={(e) => setPopupForm({ ...popupForm, button_link: e.target.value })}
-                                            placeholder="https://..."
-                                        />
-                                    </div>
-                                </div>
-                                <div className="form-group-admin">
-                                    <label>Image URL (Optional)</label>
-                                    <input
-                                        type="text"
-                                        value={popupForm.image_url || ''}
-                                        onChange={(e) => setPopupForm({ ...popupForm, image_url: e.target.value })}
-                                        placeholder="https://images.unsplash.com/..."
-                                    />
-                                </div>
-                                <div className="form-group-admin checkbox">
-                                    <label>
-                                        <input
-                                            type="checkbox"
-                                            checked={popupForm.is_active}
-                                            onChange={(e) => setPopupForm({ ...popupForm, is_active: e.target.checked })}
-                                        />
-                                        <span>Show this popup on the site</span>
-                                    </label>
-                                </div>
-                            </div>
-                            <div className="modal-footer-admin">
-                                <Button variant="secondary" onClick={() => setIsEditingPopup(false)}>Cancel</Button>
-                                <Button variant="orange" onClick={handleSavePopup}>Save Popup</Button>
-                            </div>
+                                                    </td>
+                                                    <td>
+                                                        <span className={`status-chip ${p.stripe_account_id ? 'linked' : 'pending'}`}>
+                                                            {p.stripe_account_id ? 'Verified' : 'Unlinked'}
+                                                        </span>
+                                                    </td>
+                                                    <td>{p.albumCount}</td>
+                                                    <td>${p.totalRevenue.toFixed(2)}</td>
+                                                    <td>${p.platformFees.toFixed(2)}</td>
+                                                    <td className="net-earning">${p.netEarnings.toFixed(2)}</td>
+                                                    <td>
+                                                        <button
+                                                            className="view-btn"
+                                                            onClick={() => setSelectedPhotographer(selectedPhotographer === p.id ? null : p.id)}
+                                                        >
+                                                            {selectedPhotographer === p.id ? 'Hide' : 'Inspect'}
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                {selectedPhotographer === p.id && (
+                                                    <tr className="detail-row">
+                                                        <td colSpan="7">
+                                                            <div className="inspected-details">
+                                                                <div className="detail-grid">
+                                                                    <div className="detail-col">
+                                                                        <h4>Recent Albums</h4>
+                                                                        <div className="mini-list">
+                                                                            {albums.filter(a => a.photographer_id === p.id).slice(0, 3).map(a => (
+                                                                                <div key={a.id} className="mini-item">
+                                                                                    <span>{a.title}</span>
+                                                                                    <span className="mini-tag">{a.is_published ? 'Live' : 'Draft'}</span>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="detail-col">
+                                                                        <h4>Contact Info</h4>
+                                                                        <div className="stat-pill">WhatsApp: {p.whatsapp || 'N/A'}</div>
+                                                                        <div className="stat-pill">Web: {p.website || 'N/A'}</div>
+                                                                        <Button
+                                                                            variant="orange"
+                                                                            size="sm"
+                                                                            onClick={() => window.location.href = `mailto:${p.email}`}
+                                                                            style={{ marginTop: '0.75rem', padding: '0.4rem 0.8rem', fontSize: '0.75rem', height: 'auto', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                                                        >
+                                                                            <Mail size={14} /> Contact User
+                                                                        </Button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </React.Fragment>
+                                        )))}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
-                )}
-            </div>
+                </>
+            )}
 
-            {/* Blog Management Section */}
-            <div className="table-section" style={{ marginTop: '3rem' }}>
-                <div className="table-header">
-                    <div>
-                        <h2 className="table-title">Blog Management</h2>
-                        <p style={{ fontSize: '0.875rem', color: '#64748b', margin: '0.25rem 0 0' }}>Write and publish SEO optimized articles</p>
-                    </div>
-                    <Button
-                        variant="orange"
-                        onClick={() => {
-                            resetBlogForm();
-                            setIsEditingBlog(true);
-                        }}
-                    >
-                        <Plus size={18} style={{ marginRight: '8px' }} />
-                        New Blog Post
-                    </Button>
-                </div>
-
-                <div className="popups-grid">
-                    {blogPosts.length === 0 ? (
-                        <div className="empty-popups">No blog posts found. Start writing!</div>
-                    ) : (
-                        blogPosts.map(post => (
-                            <div key={post.id} className="popup-admin-card">
-                                <div className="p-card-header">
-                                    <span className={`p-type-badge ${post.is_published ? 'announcement' : 'album_welcome'}`}>
-                                        {post.is_published ? 'Published' : 'Draft'}
-                                    </span>
-                                    {post.video_url && <Video size={16} color="#64748b" />}
-                                </div>
-                                <div className="p-card-body">
-                                    <h4>{post.title}</h4>
-                                    <p>{post.excerpt || (post.content.length > 80 ? post.content.substring(0, 80) + '...' : post.content)}</p>
-                                    <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#94a3b8' }}>
-                                        Slug: {post.slug}
-                                    </div>
-                                </div>
-                                <div className="p-card-footer">
-                                    <button
-                                        className="p-action-btn edit"
-                                        onClick={() => {
-                                            setCurrentBlogPost(post);
-                                            setBlogForm(post);
-                                            setIsEditingBlog(true);
-                                        }}
-                                    >
-                                        <Edit size={14} style={{ marginRight: '4px' }} />
-                                        Edit
-                                    </button>
-                                    <button
-                                        className="p-action-btn delete"
-                                        onClick={() => handleDeleteBlog(post.id)}
-                                    >
-                                        <Trash2 size={14} style={{ marginRight: '4px' }} />
-                                        Delete
-                                    </button>
-                                </div>
+            {/* Popups Tab */}
+            {activeTab === 'popups' && (
+                <>
+                    {/* Site Popups Management */}
+                    <div className="table-section" style={{ marginTop: '3rem' }}>
+                        <div className="table-header">
+                            <div>
+                                <h2 className="table-title">Site Popups</h2>
+                                <p style={{ fontSize: '0.875rem', color: '#64748b', margin: '0.25rem 0 0' }}>Manage global announcements and platform messages</p>
                             </div>
-                        ))
-                    )}
-                </div>
+                            <Button
+                                variant="orange"
+                                onClick={() => {
+                                    resetPopupForm();
+                                    setCurrentPopup(null);
+                                    setIsEditingPopup(true);
+                                }}
+                            >
+                                Create Global Popup
+                            </Button>
+                        </div>
 
-                {/* Blog Editor Modal */}
-                {isEditingBlog && (
-                    <div className="popup-overlay-admin" onClick={(e) => e.target === e.currentTarget && setIsEditingBlog(false)}>
-                        <div className="popup-modal-admin" style={{ maxWidth: '800px' }}>
-                            <div className="modal-header-admin">
-                                <h3>{currentBlogPost ? 'Edit Blog Post' : 'Create New Blog Post'}</h3>
-                                <button className="close-modal-admin" onClick={() => setIsEditingBlog(false)}>&times;</button>
-                            </div>
-                            <div className="modal-body-admin">
-                                <div className="form-group-admin">
-                                    <label>Post Title</label>
-                                    <input
-                                        type="text"
-                                        value={blogForm.title}
-                                        onChange={(e) => {
-                                            const title = e.target.value;
-                                            setBlogForm(prev => ({
-                                                ...prev,
-                                                title,
-                                                slug: prev.slug === generateSlug(prev.title) ? generateSlug(title) : prev.slug
-                                            }));
-                                        }}
-                                        placeholder="Enter an engaging title"
-                                    />
-                                </div>
-
-                                <div className="form-row-admin">
-                                    <div className="form-group-admin">
-                                        <label>SEO Slug (URL Segment)</label>
-                                        <input
-                                            type="text"
-                                            value={blogForm.slug}
-                                            onChange={(e) => setBlogForm({ ...blogForm, slug: e.target.value })}
-                                            placeholder="my-cool-post"
-                                        />
+                        <div className="popups-grid">
+                            {popups.length === 0 ? (
+                                <div className="empty-popups">No global popups configured.</div>
+                            ) : (
+                                popups.map(p => (
+                                    <div key={p.id} className={`popup-admin-card ${p.is_active ? 'active' : 'inactive'}`}>
+                                        <div className="p-card-header">
+                                            <span className={`p-type-badge ${p.type}`}>{p.type}</span>
+                                            <div className="p-status-toggle">
+                                                <span className={`p-status-dot ${p.is_active ? 'on' : 'off'}`}></span>
+                                                {p.is_active ? 'Active' : 'Inactive'}
+                                            </div>
+                                        </div>
+                                        <div className="p-card-body">
+                                            <h4>{p.title}</h4>
+                                            <p>{p.message.length > 100 ? p.message.substring(0, 100) + '...' : p.message}</p>
+                                        </div>
+                                        <div className="p-card-footer">
+                                            <button
+                                                className="p-action-btn edit"
+                                                onClick={() => {
+                                                    setCurrentPopup(p);
+                                                    setPopupForm(p);
+                                                    setIsEditingPopup(true);
+                                                }}
+                                            >
+                                                Edit
+                                            </button>
+                                            <button
+                                                className="p-action-btn delete"
+                                                onClick={() => handleDeletePopup(p.id)}
+                                            >
+                                                Delete
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div className="form-group-admin">
-                                        <label>Video URL (YouTube/Vimeo)</label>
-                                        <input
-                                            type="text"
-                                            value={blogForm.video_url || ''}
-                                            onChange={(e) => setBlogForm({ ...blogForm, video_url: e.target.value })}
-                                            placeholder="https://youtube.com/..."
-                                        />
+                                ))
+                            )}
+                        </div>
+
+                        {isEditingPopup && (
+                            <div className="popup-overlay-admin">
+                                <div className="popup-modal-admin">
+                                    <div className="modal-header-admin">
+                                        <h3>{currentPopup ? 'Edit Site Popup' : 'New Site Popup'}</h3>
+                                        <button className="close-modal-admin" onClick={() => setIsEditingPopup(false)}>&times;</button>
                                     </div>
-                                </div>
-
-                                <div className="form-group-admin">
-                                    <label>Featured Image URL</label>
-                                    <input
-                                        type="text"
-                                        value={blogForm.featured_image || ''}
-                                        onChange={(e) => setBlogForm({ ...blogForm, featured_image: e.target.value })}
-                                        placeholder="https://images.unsplash.com/..."
-                                    />
-                                </div>
-
-                                <div className="form-group-admin">
-                                    <label>Content (supports HTML/Markdown style layout)</label>
-                                    <textarea
-                                        value={blogForm.content}
-                                        onChange={(e) => setBlogForm({ ...blogForm, content: e.target.value })}
-                                        placeholder="Write your story here..."
-                                        style={{ minHeight: '300px' }}
-                                    />
-                                </div>
-
-                                <div className="form-group-admin">
-                                    <label>Excerpt (SEO Meta Description)</label>
-                                    <textarea
-                                        value={blogForm.excerpt || ''}
-                                        onChange={(e) => setBlogForm({ ...blogForm, excerpt: e.target.value })}
-                                        placeholder="Short summary for search results..."
-                                        style={{ minHeight: '80px' }}
-                                    />
-                                </div>
-
-                                <div className="form-row-admin">
-                                    <div className="form-group-admin">
-                                        <label>SEO Meta Title</label>
-                                        <input
-                                            type="text"
-                                            value={blogForm.meta_title || ''}
-                                            onChange={(e) => setBlogForm({ ...blogForm, meta_title: e.target.value })}
-                                            placeholder="Custom title for Google"
-                                        />
-                                    </div>
-                                    <div className="form-group-admin checkbox">
-                                        <label>
-                                            <input
-                                                type="checkbox"
-                                                checked={blogForm.is_published}
-                                                onChange={(e) => setBlogForm({ ...blogForm, is_published: e.target.checked })}
+                                    <div className="modal-body-admin">
+                                        <div className="form-row-admin">
+                                            <div className="form-group-admin">
+                                                <label>Title</label>
+                                                <input
+                                                    type="text"
+                                                    value={popupForm.title}
+                                                    onChange={(e) => setPopupForm({ ...popupForm, title: e.target.value })}
+                                                    placeholder="Catchy title..."
+                                                />
+                                            </div>
+                                            <div className="form-group-admin">
+                                                <label>Type</label>
+                                                <select
+                                                    value={popupForm.type}
+                                                    onChange={(e) => setPopupForm({ ...popupForm, type: e.target.value })}
+                                                >
+                                                    <option value="announcement">Announcement</option>
+                                                    <option value="album_welcome">Default Welcome</option>
+                                                    <option value="discount">Promotion</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div className="form-group-admin">
+                                            <label>Message</label>
+                                            <textarea
+                                                value={popupForm.message}
+                                                onChange={(e) => setPopupForm({ ...popupForm, message: e.target.value })}
+                                                placeholder="Detailed content..."
                                             />
-                                            <span>Publish this post immediately</span>
-                                        </label>
+                                        </div>
+                                        <div className="form-row-admin">
+                                            <div className="form-group-admin">
+                                                <label>Button Text</label>
+                                                <input
+                                                    type="text"
+                                                    value={popupForm.button_text}
+                                                    onChange={(e) => setPopupForm({ ...popupForm, button_text: e.target.value })}
+                                                />
+                                            </div>
+                                            <div className="form-group-admin">
+                                                <label>Button Link (URL)</label>
+                                                <input
+                                                    type="text"
+                                                    value={popupForm.button_link}
+                                                    onChange={(e) => setPopupForm({ ...popupForm, button_link: e.target.value })}
+                                                    placeholder="https://..."
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="form-group-admin">
+                                            <label>Image URL (Optional)</label>
+                                            <input
+                                                type="text"
+                                                value={popupForm.image_url || ''}
+                                                onChange={(e) => setPopupForm({ ...popupForm, image_url: e.target.value })}
+                                                placeholder="https://images.unsplash.com/..."
+                                            />
+                                        </div>
+                                        <div className="form-group-admin checkbox">
+                                            <label>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={popupForm.is_active}
+                                                    onChange={(e) => setPopupForm({ ...popupForm, is_active: e.target.checked })}
+                                                />
+                                                <span>Show this popup on the site</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div className="modal-footer-admin">
+                                        <Button variant="secondary" onClick={() => setIsEditingPopup(false)}>Cancel</Button>
+                                        <Button variant="orange" onClick={handleSavePopup}>Save Popup</Button>
                                     </div>
                                 </div>
                             </div>
-                            <div className="modal-footer-admin">
-                                <Button variant="secondary" onClick={() => setIsEditingBlog(false)}>Cancel</Button>
-                                <Button variant="orange" onClick={handleSaveBlog}>
-                                    {currentBlogPost ? 'Update Post' : 'Publish Blog Post'}
+                        )}
+                    </div>
+                </>
+            )
+            }
+
+            {/* Blog Tab */}
+            {
+                activeTab === 'blog' && (
+                    <>
+                        {/* Blog Management Section */}
+                        <div className="table-section" style={{ marginTop: '3rem' }}>
+                            <div className="table-header">
+                                <div>
+                                    <h2 className="table-title">Blog Management</h2>
+                                    <p style={{ fontSize: '0.875rem', color: '#64748b', margin: '0.25rem 0 0' }}>Write and publish SEO optimized articles</p>
+                                </div>
+                                <Button
+                                    variant="orange"
+                                    onClick={() => {
+                                        resetBlogForm();
+                                        setIsEditingBlog(true);
+                                    }}
+                                >
+                                    <Plus size={18} style={{ marginRight: '8px' }} />
+                                    New Blog Post
                                 </Button>
                             </div>
+
+                            <div className="popups-grid">
+                                {blogPosts.length === 0 ? (
+                                    <div className="empty-popups">No blog posts found. Start writing!</div>
+                                ) : (
+                                    blogPosts.map(post => (
+                                        <div key={post.id} className="popup-admin-card">
+                                            <div className="p-card-header">
+                                                <span className={`p-type-badge ${post.is_published ? 'announcement' : 'album_welcome'}`}>
+                                                    {post.is_published ? 'Published' : 'Draft'}
+                                                </span>
+                                                {post.video_url && <Video size={16} color="#64748b" />}
+                                            </div>
+                                            <div className="p-card-body">
+                                                <h4>{post.title}</h4>
+                                                <p>{post.excerpt || (post.content.length > 80 ? post.content.substring(0, 80) + '...' : post.content)}</p>
+                                                <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#94a3b8' }}>
+                                                    Slug: {post.slug}
+                                                </div>
+                                            </div>
+                                            <div className="p-card-footer">
+                                                <button
+                                                    className="p-action-btn edit"
+                                                    onClick={() => {
+                                                        setCurrentBlogPost(post);
+                                                        setBlogForm(post);
+                                                        setIsEditingBlog(true);
+                                                    }}
+                                                >
+                                                    <Edit size={14} style={{ marginRight: '4px' }} />
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    className="p-action-btn delete"
+                                                    onClick={() => handleDeleteBlog(post.id)}
+                                                >
+                                                    <Trash2 size={14} style={{ marginRight: '4px' }} />
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+
+                            {/* Blog Editor Modal */}
+                            {isEditingBlog && (
+                                <div className="popup-overlay-admin" onClick={(e) => e.target === e.currentTarget && setIsEditingBlog(false)}>
+                                    <div className="popup-modal-admin" style={{ maxWidth: '800px' }}>
+                                        <div className="modal-header-admin">
+                                            <h3>{currentBlogPost ? 'Edit Blog Post' : 'Create New Blog Post'}</h3>
+                                            <button className="close-modal-admin" onClick={() => setIsEditingBlog(false)}>&times;</button>
+                                        </div>
+                                        <div className="modal-body-admin">
+                                            <div className="form-group-admin">
+                                                <label>Post Title</label>
+                                                <input
+                                                    type="text"
+                                                    value={blogForm.title}
+                                                    onChange={(e) => {
+                                                        const title = e.target.value;
+                                                        setBlogForm(prev => ({
+                                                            ...prev,
+                                                            title,
+                                                            slug: prev.slug === generateSlug(prev.title) ? generateSlug(title) : prev.slug
+                                                        }));
+                                                    }}
+                                                    placeholder="Enter an engaging title"
+                                                />
+                                            </div>
+
+                                            <div className="form-row-admin">
+                                                <div className="form-group-admin">
+                                                    <label>SEO Slug (URL Segment)</label>
+                                                    <input
+                                                        type="text"
+                                                        value={blogForm.slug}
+                                                        onChange={(e) => setBlogForm({ ...blogForm, slug: e.target.value })}
+                                                        placeholder="my-cool-post"
+                                                    />
+                                                </div>
+                                                <div className="form-group-admin">
+                                                    <label>Video URL (YouTube/Vimeo)</label>
+                                                    <input
+                                                        type="text"
+                                                        value={blogForm.video_url || ''}
+                                                        onChange={(e) => setBlogForm({ ...blogForm, video_url: e.target.value })}
+                                                        placeholder="https://youtube.com/..."
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="form-group-admin">
+                                                <label>Featured Image URL</label>
+                                                <input
+                                                    type="text"
+                                                    value={blogForm.featured_image || ''}
+                                                    onChange={(e) => setBlogForm({ ...blogForm, featured_image: e.target.value })}
+                                                    placeholder="https://images.unsplash.com/..."
+                                                />
+                                            </div>
+
+                                            <div className="form-group-admin">
+                                                <label>Content (supports HTML/Markdown style layout)</label>
+                                                <textarea
+                                                    value={blogForm.content}
+                                                    onChange={(e) => setBlogForm({ ...blogForm, content: e.target.value })}
+                                                    placeholder="Write your story here..."
+                                                    style={{ minHeight: '300px' }}
+                                                />
+                                            </div>
+
+                                            <div className="form-group-admin">
+                                                <label>Excerpt (SEO Meta Description)</label>
+                                                <textarea
+                                                    value={blogForm.excerpt || ''}
+                                                    onChange={(e) => setBlogForm({ ...blogForm, excerpt: e.target.value })}
+                                                    placeholder="Short summary for search results..."
+                                                    style={{ minHeight: '80px' }}
+                                                />
+                                            </div>
+
+                                            <div className="form-row-admin">
+                                                <div className="form-group-admin">
+                                                    <label>SEO Meta Title</label>
+                                                    <input
+                                                        type="text"
+                                                        value={blogForm.meta_title || ''}
+                                                        onChange={(e) => setBlogForm({ ...blogForm, meta_title: e.target.value })}
+                                                        placeholder="Custom title for Google"
+                                                    />
+                                                </div>
+                                                <div className="form-group-admin checkbox">
+                                                    <label>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={blogForm.is_published}
+                                                            onChange={(e) => setBlogForm({ ...blogForm, is_published: e.target.checked })}
+                                                        />
+                                                        <span>Publish this post immediately</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="modal-footer-admin">
+                                            <Button variant="secondary" onClick={() => setIsEditingBlog(false)}>Cancel</Button>
+                                            <Button variant="orange" onClick={handleSaveBlog}>
+                                                {currentBlogPost ? 'Update Post' : 'Publish Blog Post'}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </>
+                )
+            }
+
+            {/* Settings Tab */}
+            {
+                activeTab === 'settings' && (
+                    <div className="table-section" style={{ marginTop: '3rem' }}>
+                        <div className="table-header">
+                            <div>
+                                <h2 className="table-title">Platform Settings</h2>
+                                <p style={{ fontSize: '0.875rem', color: '#64748b', margin: '0.25rem 0 0' }}>Configure integrations and platform-wide settings</p>
+                            </div>
+                        </div>
+
+                        <div style={{ padding: '2rem' }}>
+                            {/* Loops.so Integration Card */}
+                            <div className="integration-card">
+                                <div className="integration-header">
+                                    <div>
+                                        <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.25rem', fontWeight: '700', color: '#0f172a' }}>
+                                            Loops.so Email Marketing
+                                        </h3>
+                                        <p style={{ margin: 0, fontSize: '0.875rem', color: '#64748b' }}>
+                                            Connect your Loops.so account to sync contacts and send automated emails
+                                        </p>
+                                    </div>
+                                    <div className="integration-status">
+                                        <div className={`status-dot ${loopsStatus === 'connected' ? 'connected' : 'disconnected'}`}></div>
+                                        <span style={{ fontSize: '0.875rem', fontWeight: '600', color: loopsStatus === 'connected' ? '#10b981' : '#64748b' }}>
+                                            {loopsStatus === 'connected' ? 'Connected' : 'Not Connected'}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="integration-body">
+                                    <div className="form-group-admin">
+                                        <label>API Key</label>
+                                        <input
+                                            type="password"
+                                            value={loopsApiKey}
+                                            onChange={(e) => setLoopsApiKey(e.target.value)}
+                                            placeholder="Enter your Loops.so API key"
+                                            style={{ fontFamily: 'monospace' }}
+                                        />
+                                        <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0.5rem 0 0' }}>
+                                            Get your API key from <a href="https://app.loops.so/settings?page=api" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary-blue)' }}>Loops.so Settings</a>
+                                        </p>
+                                    </div>
+
+                                    <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+                                        <Button
+                                            variant="orange"
+                                            onClick={handleSaveLoopsKey}
+                                            disabled={savingLoops || !loopsApiKey}
+                                        >
+                                            {savingLoops ? 'Saving...' : 'Save API Key'}
+                                        </Button>
+                                        {loopsStatus === 'connected' && (
+                                            <Button variant="secondary">
+                                                Test Connection
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                )}
-            </div>
+                )
+            }
+
+            {/* Toast Notification */}
+            {showToast && (
+                <div className="toast-notification">
+                    <div className="toast-content">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ flexShrink: 0 }}>
+                            <circle cx="10" cy="10" r="10" fill="#10b981" />
+                            <path d="M6 10L9 13L14 7" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        <span>{toastMessage}</span>
+                    </div>
+                </div>
+            )}
 
             <style>{`
                 .admin-container {
@@ -891,7 +1076,77 @@ const AdminDashboard = () => {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    margin-bottom: 3rem;
+                    margin-bottom: 2rem;
+                }
+
+                .admin-tabs {
+                    display: flex;
+                    gap: 0.5rem;
+                    margin-bottom: 2rem;
+                    border-bottom: 2px solid #f1f5f9;
+                    padding-bottom: 0;
+                }
+
+                .admin-tab {
+                    padding: 0.75rem 1.5rem;
+                    background: none;
+                    border: none;
+                    font-size: 0.9375rem;
+                    font-weight: 600;
+                    color: #64748b;
+                    cursor: pointer;
+                    border-bottom: 2px solid transparent;
+                    margin-bottom: -2px;
+                    transition: all 0.2s;
+                }
+
+                .admin-tab:hover {
+                    color: var(--primary-blue);
+                }
+
+                .admin-tab.active {
+                    color: var(--primary-blue);
+                    border-bottom-color: var(--primary-blue);
+                }
+
+                .integration-card {
+                    background: white;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 16px;
+                    overflow: hidden;
+                }
+
+                .integration-header {
+                    padding: 1.5rem 2rem;
+                    border-bottom: 1px solid #f1f5f9;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+
+                .integration-status {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                }
+
+                .status-dot {
+                    width: 10px;
+                    height: 10px;
+                    border-radius: 50%;
+                }
+
+                .status-dot.connected {
+                    background: #10b981;
+                    box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+                }
+
+                .status-dot.disconnected {
+                    background: #94a3b8;
+                }
+
+                .integration-body {
+                    padding: 2rem;
                 }
 
                 .admin-title {
@@ -1619,8 +1874,42 @@ const AdminDashboard = () => {
                     justify-content: flex-end;
                     gap: 1rem;
                 }
+
+                /* Toast Notification */
+                .toast-notification {
+                    position: fixed;
+                    top: 2rem;
+                    right: 2rem;
+                    z-index: 9999;
+                    animation: slideIn 0.3s ease-out;
+                }
+
+                .toast-content {
+                    background: white;
+                    padding: 1rem 1.5rem;
+                    border-radius: 12px;
+                    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                    border: 1px solid #e2e8f0;
+                    font-size: 0.9375rem;
+                    font-weight: 500;
+                    color: #0f172a;
+                }
+
+                @keyframes slideIn {
+                    from {
+                        transform: translateX(400px);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translateX(0);
+                        opacity: 1;
+                    }
+                }
             `}</style>
-        </div>
+        </div >
     );
 };
 

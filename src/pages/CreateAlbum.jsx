@@ -47,7 +47,7 @@ const CreateAlbum = () => {
             ...prev,
             pricing_package_ids: [...prev.pricing_package_ids, newPackage.id]
         }));
-        setToast({ message: 'Modèle de prix créé avec succès !', type: 'success' });
+        setToast({ message: 'Price template created successfully!', type: 'success' });
     };
 
     const handleChange = (e) => {
@@ -124,18 +124,18 @@ const CreateAlbum = () => {
         <div className="create-album-container">
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-            <h1>Créer un nouvel album</h1>
+            <h1>Create a New Album</h1>
 
             <form onSubmit={handleSubmit} className="card form-card">
                 {/* Cover Image Upload */}
                 <div className="input-group">
-                    <label className="input-label">Image de couverture</label>
+                    <label className="input-label">Cover Image</label>
                     <div className="cover-upload-section">
                         <div className="cover-preview-box">
                             {coverPreview ? (
-                                <img src={coverPreview} alt="Aperçu" />
+                                <img src={coverPreview} alt="Preview" />
                             ) : (
-                                <span className="no-image-text">Aucune image</span>
+                                <span className="no-image-text">No image</span>
                             )}
                         </div>
                         <div>
@@ -152,14 +152,14 @@ const CreateAlbum = () => {
                                 className="action-btn"
                                 onClick={() => document.getElementById('cover-upload').click()}
                             >
-                                {coverPreview ? 'Changer l\'image' : 'Télécharger une image'}
+                                {coverPreview ? 'Change Image' : 'Upload Image'}
                             </Button>
                         </div>
                     </div>
                 </div>
 
                 <Input
-                    label="Titre de l'album"
+                    label="Album Title"
                     name="title"
                     value={formData.title}
                     onChange={handleChange}
@@ -175,7 +175,7 @@ const CreateAlbum = () => {
                         value={formData.description}
                         onChange={handleChange}
                         rows="4"
-                        placeholder="Dites-nous en plus sur cette collection..."
+                        placeholder="Tell us more about this collection..."
                     />
                 </div>
 
@@ -188,21 +188,21 @@ const CreateAlbum = () => {
                             onChange={handleChange}
                         />
                         <div className="checkbox-text">
-                            <span className="checkbox-title">Activer la pré-inscription</span>
-                            <span className="checkbox-hint">Permet aux clients de s'inscrire pour être notifiés quand les photos seront prêtes.</span>
+                            <span className="checkbox-title">Enable Pre-Registration</span>
+                            <span className="checkbox-hint">Allows clients to sign up to be notified when photos are ready.</span>
                         </div>
                     </label>
                 </div>
 
                 <div className="input-group">
                     <div className="package-select-header">
-                        <label className="input-label">Modèles de prix</label>
+                        <label className="input-label">Price Templates</label>
                         <button
                             type="button"
                             onClick={() => setIsPackageModalOpen(true)}
                             className="new-package-btn"
                         >
-                            + Nouveau modèle
+                            + New Template
                         </button>
                     </div>
 
@@ -218,10 +218,10 @@ const CreateAlbum = () => {
                                         setFormData({ ...formData, pricing_package_ids: newIds });
                                     }}
                                 >
-                                    <option value="">-- Sélectionner un modèle --</option>
+                                    <option value="">-- Select a Template --</option>
                                     {packages.map(pkg => (
                                         <option key={pkg.id} value={pkg.id} disabled={formData.pricing_package_ids.includes(pkg.id) && selectedId !== pkg.id}>
-                                            {pkg.name} ({pkg.package_type === 'digital' ? 'Numérique' : 'Physique'})
+                                            {pkg.name} ({pkg.package_type === 'digital' ? 'Digital' : 'Physical'})
                                         </option>
                                     ))}
                                 </select>
@@ -247,12 +247,12 @@ const CreateAlbum = () => {
                                 pricing_package_ids: [...formData.pricing_package_ids, '']
                             })}
                         >
-                            + Ajouter un autre modèle
+                            + Add Another Template
                         </Button>
                     </div>
 
                     {formData.pricing_package_ids.length === 0 && (
-                        <p className="no-packages-hint">Aucun modèle sélectionné. L'album utilisera un prix fixe simple.</p>
+                        <p className="no-packages-hint">No template selected. Album will use simple fixed pricing.</p>
                     )}
                 </div>
 
@@ -273,7 +273,7 @@ const CreateAlbum = () => {
 
                 {formData.pricing_package_ids.length === 0 && !formData.is_free && (
                     <Input
-                        label="Prix fixe (€)"
+                        label="Fixed Price (€)"
                         name="price"
                         type="number"
                         min="0"
@@ -287,7 +287,7 @@ const CreateAlbum = () => {
                 <div className="form-actions">
                     <Button type="button" variant="outline" className="action-btn" onClick={() => navigate(-1)}>Annuler</Button>
                     <Button type="submit" className="action-btn" disabled={loading}>
-                        {loading ? 'Création...' : 'Créer l\'album'}
+                        {loading ? 'Creating...' : 'Create Album'}
                     </Button>
                 </div>
             </form>
