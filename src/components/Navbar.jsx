@@ -43,6 +43,18 @@ const Navbar = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [isProfileOpen]);
 
+    // Lock body scroll when mobile menu is open
+    useEffect(() => {
+        if (isMenuOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, [isMenuOpen]);
+
     const navigateToDashboard = () => {
         if (profile?.role === 'admin') navigate('/admin');
         else if (isProvider(profile?.role)) navigate('/photographer/dashboard');
@@ -53,6 +65,17 @@ const Navbar = () => {
     return (
         <nav className="navbar">
             <div className="navbar-container">
+                {/* Mobile Left Hamburger */}
+                {!isMenuOpen && (
+                    <button
+                        className="hamburger-menu"
+                        onClick={() => setIsMenuOpen(true)}
+                        aria-label="Toggle menu"
+                    >
+                        <Menu size={24} />
+                    </button>
+                )}
+
                 <Link to="/" className="navbar-logo" onClick={closeMenu}>
                     <div className="logo-text-container">
                         <span className="logo-capture">RUN</span>
@@ -72,16 +95,6 @@ const Navbar = () => {
                             <span>
                                 {profile?.role === 'admin' ? 'ADMIN CONSOLE' : isProvider(profile?.role) ? 'DASHBOARD' : 'PURCHASES'}
                             </span>
-                        </button>
-                    )}
-
-                    {!isMenuOpen && (
-                        <button
-                            className="hamburger-menu"
-                            onClick={() => setIsMenuOpen(true)}
-                            aria-label="Toggle menu"
-                        >
-                            <Menu size={24} />
                         </button>
                     )}
                 </div>
@@ -128,7 +141,7 @@ const Navbar = () => {
                                             <span className="profile-menu-name">{profile?.full_name || 'User'}</span>
                                             <span className="profile-menu-email">{user.email}</span>
                                             <span className="role-badge">
-                                                {profile?.provider_type || profile?.role || 'Client'}
+                                                {profile?.role === 'admin' ? 'ADMIN' : (isProvider(profile?.role) ? (profile?.provider_type || profile?.role) : 'RUNNER')}
                                             </span>
                                         </div>
 
@@ -185,8 +198,8 @@ const Navbar = () => {
                 {/* Mobile Slide-out Menu */}
                 <div className={`mobile-menu ${isMenuOpen ? 'open' : ''}`}>
                     <div className="mobile-menu-header">
-                        <span className="mobile-menu-title">Menu</span>
                         <button onClick={closeMenu} className="close-menu"><X size={24} /></button>
+                        <span className="mobile-menu-title">Menu</span>
                     </div>
 
                     <div className="mobile-menu-content">
@@ -202,7 +215,7 @@ const Navbar = () => {
                                 </div>
                                 <div>
                                     <div className="mobile-user-name">{profile?.full_name || 'User'}</div>
-                                    <div className="mobile-user-role">{profile?.role || 'Guest'}</div>
+                                    <div className="mobile-user-role">{profile?.role === 'admin' ? 'ADMIN' : (isProvider(profile?.role) ? (profile?.provider_type || profile?.role) : 'RUNNER')}</div>
                                 </div>
                             </div>
                         )}
@@ -257,7 +270,7 @@ const Navbar = () => {
                     </div>
                 </div>
             </div>
-        </nav>
+        </nav >
     );
 
 };
