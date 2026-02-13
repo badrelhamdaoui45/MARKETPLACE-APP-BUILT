@@ -7,6 +7,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { ShoppingCart, Check, Plus, Lock, X, ZoomIn, ChevronLeft, ChevronRight, Gift } from 'lucide-react';
 import DynamicPopup from '../components/DynamicPopup';
+import SkeletonAlbumView from '../components/ui/SkeletonAlbumView';
 
 const PublicAlbumView = () => {
     const { photographerName, albumTitle } = useParams();
@@ -208,7 +209,7 @@ const PublicAlbumView = () => {
         updateCartPackage(album.id, pkg);
     };
 
-    if (loading) return <div style={{ padding: '2rem' }}>Loading...</div>;
+    if (loading) return <SkeletonAlbumView />;
     if (!album) return <div style={{ padding: '2rem' }}>Album not found or not published.</div>;
 
     const currentAlbumSelection = getSelectionForThisAlbum();
@@ -250,7 +251,7 @@ const PublicAlbumView = () => {
                                     </div>
                                 )}
                                 <div className="pre-inscription-badge-overlay">
-                                    PRÉ-INSCRIPTION
+                                    PRE-REGISTRATION
                                 </div>
                             </div>
 
@@ -260,7 +261,7 @@ const PublicAlbumView = () => {
 
                                 <form onSubmit={handlePreInscriptionSubmit} className="notify-form">
                                     <div className="form-group-modern">
-                                        <label>Votre Email *</label>
+                                        <label>Your Email *</label>
                                         <input type="email" name="email" required placeholder="nom@exemple.com" />
                                     </div>
                                     <div className="form-group-modern">
@@ -304,7 +305,7 @@ const PublicAlbumView = () => {
                                 <div className="free-album-banner">
                                     <div className="banner-content">
                                         <Gift size={18} />
-                                        <span>CET ALBUM EST ENTIÈREMENT <strong>GRATUIT</strong></span>
+                                        <span>THIS ALBUM IS COMPLETELY <strong>FREE</strong></span>
                                     </div>
                                 </div>
                             )}
@@ -373,7 +374,7 @@ const PublicAlbumView = () => {
 
                             {packages.length > 1 && (
                                 <div className="package-selector-section">
-                                    <p className="selector-label">SÉLECTIONNEZ UN MODÈLE</p>
+                                    <p className="selector-label">SELECT A PACKAGE</p>
                                     <div className="package-options-grid">
                                         {packages.map(pkg => (
                                             <button
@@ -434,7 +435,7 @@ const PublicAlbumView = () => {
                             {album.is_free && (
                                 <div className="free-claim-wrapper">
                                     <div className="claim-divider">
-                                        <span>OU</span>
+                                        <span>OR</span>
                                     </div>
                                     <Button
                                         className="free-claim-btn"
@@ -442,7 +443,7 @@ const PublicAlbumView = () => {
                                         disabled={isClaiming}
                                     >
                                         <Gift size={20} />
-                                        {isClaiming ? 'Chargement...' : 'TOUT RÉCUPÉRER GRATUITEMENT'}
+                                        {isClaiming ? 'Loading...' : 'CLAIM EVERYTHING FOR FREE'}
                                     </Button>
                                     <p className="free-disclaimer">Access all photos without paying.</p>
                                 </div>

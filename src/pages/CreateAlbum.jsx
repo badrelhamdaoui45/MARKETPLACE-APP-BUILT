@@ -240,7 +240,7 @@ const CreateAlbum = () => {
 
                         <Button
                             type="button"
-                            variant="outline"
+                            variant="orange"
                             className="add-package-dropdown-btn"
                             onClick={() => setFormData({
                                 ...formData,
@@ -286,7 +286,7 @@ const CreateAlbum = () => {
 
                 <div className="form-actions">
                     <Button type="button" variant="outline" className="action-btn" onClick={() => navigate(-1)}>Annuler</Button>
-                    <Button type="submit" className="action-btn" disabled={loading}>
+                    <Button type="submit" variant="orange" className="action-btn" disabled={loading}>
                         {loading ? 'Creating...' : 'Create Album'}
                     </Button>
                 </div>
@@ -447,9 +447,10 @@ const CreateAlbum = () => {
                 }
 
                 .add-package-dropdown-btn {
-                    border-style: dashed !important;
                     font-size: 0.85rem !important;
                     height: 42px !important;
+                    text-transform: uppercase;
+                    font-weight: 700;
                 }
 
                 .no-packages-hint {

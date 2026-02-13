@@ -1,59 +1,54 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { supabase } from "./supabase";
 
-// Access your API key as an environment variable (ensure it's in your .env or similar)
-// In Vite projects, use import.meta.env.VITE_GEMINI_API_KEY
-
-const fileToGenerativePart = async (arrayBuffer, mimeType) => {
-    const base64 = await new Promise((resolve) => {
-        const blob = new Blob([arrayBuffer], { type: mimeType });
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result.split(',')[1]);
-        reader.readAsDataURL(blob);
-    });
-    return {
-        inlineData: {
-            data: base64,
-            mimeType
-        },
-    };
-};
-
+/**
+ * Detects bib numbers in an image using a secure Supabase Edge Function.
+ * This ensures the Gemini API key is never exposed to the client.
+ */
 export const detectBibs = async (imageUrl) => {
     try {
-        const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-        if (!apiKey || apiKey === "your_gemini_api_key_here") {
-            console.error("VITE_GEMINI_API_KEY is not defined or is placeholder");
-            return [];
-        }
+        if (!imageUrl) return [];
 
-        // Initialize SDK inside the function to ensure it uses the latest env variable state
-        const genAI = new GoogleGenerativeAI(apiKey);
+        const { data, error } = await supabase.functions.invoke('gemini-ai', {
+            body: {
+                action: 'detect-bibs',
+                payload: { imageUrl }
+            }
+        });
 
-        // For generative-ai, we need to fetch the image and convert it to base64 if not providing a URL directly
-        // However, Gemini 1.5 Pro/Flash supports multimodal inputs.
-        // We can use a simple fetch for the publicly accessible watermarked image.
-
-        const response = await fetch(imageUrl);
-        const buffer = await response.arrayBuffer();
-
-        // Try the latest flash model
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-        const prompt = `Identify all athlete bib numbers (race numbers) visible in this image. Return ONLY a comma-separated list of numbers found. If no numbers are found or it's unclear, return "none". Avoid any other text. Examples of good output: "123, 456" or "789" or "none".`;
-
-        const imagePart = await fileToGenerativePart(buffer, "image/jpeg");
-
-        const result = await model.generateContent([prompt, imagePart]);
-        const text = result.response.text().trim();
-
-        if (text.toLowerCase() === "none") return [];
-
-        // Clean up and parse comma separated values
-        return text.split(',')
-            .map(s => s.trim())
-            .filter(s => s.length > 0 && !isNaN(s));
+        if (error) throw error;
+        return data.bibs || [];
     } catch (error) {
         console.error("Error in Gemini Bib Detection:", error);
         return [];
+    }
+};
+
+/**
+ * Tests the Gemini API connection via a secure Supabase Edge Function.
+ */
+export const testGeminiAPI = async () => {
+    try {
+        const { data, error } = await supabase.functions.invoke('gemini-ai', {
+            body: {
+                action: 'test-connection',
+                payload: {}
+            }
+        });
+
+        if (error) throw error;
+        return { success: true, message: data.message };
+    } catch (error) {
+        console.error("Gemini Test Error:", error);
+
+        let message = error.message || "Failed to connect to Gemini via Edge Function";
+        if (error?.context?.json) {
+            try {
+                const body = await error.context.json();
+                console.error("Gemini Error Body:", body);
+                message = body.error || message;
+            } catch (e) { /* ignore */ }
+        }
+
+        return { success: false, message };
     }
 };

@@ -35,12 +35,33 @@ export const AuthProvider = ({ children }) => {
         try {
             const { data, error } = await supabase
                 .from('profiles')
-                .select('*')
+                .select(`
+                    *,
+                    photographer_private_data(
+                        stripe_account_id,
+                        bank_details,
+                        bank_transfer_enabled,
+                        bank_name,
+                        account_holder,
+                        bank_code,
+                        account_number,
+                        rib
+                    )
+                `)
                 .eq('id', userId)
                 .single();
 
-            if (error) console.error('Error fetching profile:', error);
-            else setProfile(data);
+            if (error) {
+                console.error('Error fetching profile:', error);
+            } else {
+                // Flatten private data into the main profile object for backward compatibility
+                const flattenedData = { ...data };
+                if (data.photographer_private_data) {
+                    Object.assign(flattenedData, data.photographer_private_data);
+                    delete flattenedData.photographer_private_data;
+                }
+                setProfile(flattenedData);
+            }
         } catch (err) {
             console.error(err);
         } finally {

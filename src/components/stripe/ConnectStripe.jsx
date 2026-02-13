@@ -9,6 +9,7 @@ const ConnectStripe = () => {
     const [loading, setLoading] = useState(false);
     const [accountStatus, setAccountStatus] = useState(null);
     const [loadingStatus, setLoadingStatus] = useState(false);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
         if (profile?.stripe_account_id) {
@@ -18,11 +19,19 @@ const ConnectStripe = () => {
 
     const checkStatus = async () => {
         setLoadingStatus(true);
+        setError(null);
         try {
             const account = await getAccountStatus(profile.stripe_account_id);
+            if (account.error) throw new Error(account.error);
             setAccountStatus(account);
         } catch (error) {
-            console.error(error);
+            console.error('Stripe Status Check Error:', error);
+            // Try to extract a more descriptive message if it exists in the body
+            let msg = error.message;
+            if (error.context && error.context.error) {
+                msg = error.context.error;
+            }
+            setError(msg);
         } finally {
             setLoadingStatus(false);
         }
@@ -62,6 +71,20 @@ const ConnectStripe = () => {
 
     // Render Logic based on Status
     const renderStatus = () => {
+        if (error) {
+            return (
+                <div style={{ padding: '1.25rem', background: '#fef2f2', borderRadius: 'var(--radius-md)', border: '1px solid #ef4444', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                        <strong style={{ color: '#b91c1c', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <AlertTriangle size={18} /> Connection Error
+                        </strong>
+                        <p style={{ fontSize: '0.9rem', color: '#991b1b', marginTop: '0.25rem' }}>{error}</p>
+                    </div>
+                    <Button onClick={checkStatus} variant="outline" size="sm">Retry</Button>
+                </div>
+            );
+        }
+
         if (!accountStatus) return null;
 
         const { charges_enabled, payouts_enabled, requirements } = accountStatus;
@@ -99,15 +122,18 @@ const ConnectStripe = () => {
                     {hasDueItems && (
                         <div style={{ background: 'rgba(217, 119, 6, 0.1)', padding: '1rem', borderRadius: '6px', marginTop: '1rem', marginLeft: '26px' }}>
                             <p style={{ fontWeight: '600', color: '#d97706', fontSize: '0.85rem', marginBottom: '0.5rem' }}>
-                                Required information:
+                                Missing steps:
                             </p>
-                            <ul style={{ paddingLeft: '1.2rem', margin: '0' }}>
-                                {currentlyDue.map(req => (
-                                    <li key={req} style={{ fontSize: '0.85rem', color: '#b45309', marginBottom: '0.25rem', textTransform: 'capitalize' }}>
-                                        {req.replace(/\./g, ' ')}
-                                    </li>
-                                ))}
-                            </ul>
+                            <p style={{ fontSize: '0.85rem', color: '#b45309', margin: '0' }}>
+                                {[...new Set(currentlyDue.map(req => {
+                                    if (req.startsWith('representative') || req.startsWith('person') || req.startsWith('individual')) return 'Identity Verification';
+                                    if (req.startsWith('external_account') || req.startsWith('bank_account')) return 'Bank Account Details';
+                                    if (req.startsWith('business_profile') || req.startsWith('business_type')) return 'Business Information';
+                                    if (req.startsWith('tos_acceptance')) return 'Terms of Service Agreement';
+                                    if (req.includes('statement_descriptor')) return 'Business Branding';
+                                    return req.replace(/\./g, ' ');
+                                }))].join(', ')}
+                            </p>
                         </div>
                     )}
                 </div>
@@ -137,6 +163,8 @@ const ConnectStripe = () => {
     };
 
     if (loadingStatus) return <div style={{ padding: '1rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)' }}>Checking Stripe status...</div>;
+
+    if (!profile) return null;
 
     if (profile?.stripe_account_id) {
         return (

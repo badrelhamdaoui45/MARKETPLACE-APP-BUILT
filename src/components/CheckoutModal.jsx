@@ -9,7 +9,7 @@ import { useAuth } from '../context/AuthContext';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
-const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, photographerId }) => {
+const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, photographerId, isFree }) => {
     const { user, signIn, signUp } = useAuth();
     const [step, setStep] = useState(1);
     const [authMode, setAuthMode] = useState('signup'); // 'login' or 'signup'
@@ -26,6 +26,8 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
     const [copied, setCopied] = useState(false);
     const [confirmedTransfer, setConfirmedTransfer] = useState(false);
 
+    const effectivelyFree = isFree || parseFloat(totalAmount) === 0;
+
     useEffect(() => {
         if (user) {
             setFormData(prev => ({
@@ -41,11 +43,12 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
 
     const fetchPhotographerSettings = async () => {
         try {
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('bank_transfer_enabled, bank_details, bank_name, account_holder, bank_code, account_number, rib')
-                .eq('id', photographerId)
-                .single();
+            const { data, error } = await supabase.functions.invoke('stripe-service', {
+                body: {
+                    action: 'get-bank-details',
+                    payload: { photographerId }
+                }
+            });
 
             if (error) throw error;
             setPhotographerSettings(data);
@@ -88,8 +91,13 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
                 }
             }
 
-            // Move to Step 2
-            setStep(2);
+            // Move to Step 2 (or Final if Free)
+            if (effectivelyFree) {
+                setPaymentMethod('free');
+                setStep(3); // Skip Step 2 entirely
+            } else {
+                setStep(2);
+            }
 
         } catch (error) {
             console.error("Authentication Error:", error);
@@ -123,7 +131,6 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
 
     const handleManualConfirm = async () => {
         setInitializingPayment(true);
-        setIsLoading(true);
         try {
             const result = await onConfirm({
                 fullName: formData.fullName,
@@ -135,7 +142,6 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
             setAuthError(error.message);
         } finally {
             setInitializingPayment(false);
-            setIsLoading(false);
         }
     };
 
@@ -189,9 +195,10 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
                             <h3 className="step-title">
                                 {user ? `Welcome back, ${formData.fullName || 'User'}` : (authMode === 'login' ? 'Log in to continue' : 'Create your account')}
                             </h3>
-                            <p className="step-desc">
+                            <div className="step-desc">
                                 {user ? 'Confirm your details to proceed.' : 'You need an account to access your photos securely.'}
-                            </p>
+                                {effectivelyFree && <div style={{ color: '#10b981', fontWeight: '700', marginTop: '0.5rem' }}>This album is 100% Free!</div>}
+                            </div>
 
                             {authError && <div className="error-message">{authError}</div>}
 
@@ -295,6 +302,16 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
                                             <EmbeddedCheckout />
                                         </EmbeddedCheckoutProvider>
                                     )}
+                                </div>
+                            ) : paymentMethod === 'free' ? (
+                                <div className="free-checkout-finish" style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+                                    <div className="success-icon" style={{ color: '#10b981', marginBottom: '1.5rem' }}>
+                                        <CheckCircle size={64} strokeWidth={1.5} />
+                                    </div>
+                                    <h3 className="step-title">Your Photos are Ready!</h3>
+                                    <p className="step-desc">
+                                        Since this album is free, you can unlock these photos instantly and add them to your collection.
+                                    </p>
                                 </div>
                             ) : (
                                 <div className="bank-transfer-instructions">
@@ -404,7 +421,7 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
                         >
                             {initializingPayment ? 'Processing...' : (
                                 <>
-                                    {user ? 'Continue to Payment' : (authMode === 'login' ? 'Login & Continue' : 'Create Account & Continue')}
+                                    {effectivelyFree ? 'Unlock Free Photos' : (user ? 'Continue to Payment' : (authMode === 'login' ? 'Login & Continue' : 'Create Account & Continue'))}
                                     <ArrowRight size={18} style={{ marginLeft: '8px' }} />
                                 </>
                             )}
@@ -436,6 +453,14 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
                                     onClick={() => handleManualConfirm()} // Call the new manual confirm
                                 >
                                     {(isLoading || initializingPayment) ? 'Processing...' : 'I HAVE SENT THE PAYMENT'}
+                                </Button>
+                            ) : paymentMethod === 'free' ? (
+                                <Button
+                                    className="w-100 orange-btn"
+                                    disabled={initializingPayment || isLoading}
+                                    onClick={() => handleManualConfirm()}
+                                >
+                                    {(isLoading || initializingPayment) ? 'Processing...' : 'CONFIRM & UNLOCK PHOTOS'}
                                 </Button>
                             ) : (
                                 <button className="back-btn" onClick={() => setStep(2)}>change method</button>
@@ -631,19 +656,23 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
 
                 .input-icon {
                     position: absolute;
-                    left: 1.25rem;
+                    left: 1.5rem;
                     top: 50%;
                     transform: translateY(-50%);
                     color: var(--text-tertiary);
                 }
 
                 .checkout-input {
-                    width: 100%;
-                    padding: 1rem 1rem 1rem 3.5rem;
+                    width: 100% !important;
+                    padding-left: 4.2rem !important; /* Force space from icon */
+                    padding-top: 0.8rem !important;
+                    padding-bottom: 0.8rem !important;
+                    padding-right: 1rem !important;
                     border: 1px solid #e2e8f0;
                     border-radius: 10px;
                     font-size: 1rem;
                     transition: all 0.2s;
+                    display: block !important;
                 }
 
                 .checkout-input:focus {
@@ -898,7 +927,6 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
                 }
 
                 @media (max-width: 640px) {
-                @media (max-width: 640px) {
                     .checkout-modal-container {
                         max-height: 85vh;
                         height: auto;
@@ -927,7 +955,7 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
                     /* Prevent zoom on iOS inputs */
                     .checkout-input {
                         font-size: 16px !important; 
-                        padding: 0.8rem 0.8rem 0.8rem 3rem; /* Optimize padding */
+                        padding: 0.8rem 0.8rem 0.8rem 3.5rem; /* Increase from 3rem to 3.5rem for more space from icon */
                     }
 
                     .checkout-header {
@@ -968,7 +996,7 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
                     }
                 }
             `}</style>
-        </div>
+        </div >
     );
 };
 

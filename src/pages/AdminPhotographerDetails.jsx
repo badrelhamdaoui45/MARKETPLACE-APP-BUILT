@@ -26,14 +26,21 @@ const AdminPhotographerDetails = () => {
 
     const fetchPhotographerData = async () => {
         try {
-            // 1. Fetch Profile
+            // 1. Fetch Profile with Private Data
             const { data: profile, error: profileError } = await supabase
                 .from('profiles')
-                .select('*')
+                .select('*, photographer_private_data(*)')
                 .eq('id', id)
                 .single();
 
             if (profileError) throw profileError;
+
+            // Flatten private data for consistency
+            const flattenedProfile = { ...profile };
+            if (profile.photographer_private_data) {
+                Object.assign(flattenedProfile, profile.photographer_private_data);
+            }
+            setPhotographer(flattenedProfile);
 
             // 2. Fetch Albums
             const { data: userAlbums, error: albumError } = await supabase
@@ -123,7 +130,13 @@ const AdminPhotographerDetails = () => {
                         <div className="meta-item"><Mail size={14} /> {photographer.email}</div>
                         <div className="meta-item"><Phone size={14} /> {photographer.whatsapp || 'No WhatsApp'}</div>
                         <div className="meta-item"><Globe size={14} /> {photographer.website || 'No Website'}</div>
+                        <div className="meta-item"><Globe size={14} /> {photographer.website || 'No Website'}</div>
                         <div className="meta-item"><Calendar size={14} /> Joined {format(parseISO(photographer.created_at), 'MMM yyyy')}</div>
+                        {photographer.stripe_account_id && (
+                            <div className="meta-item" style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#64748b' }}>
+                                <CheckCircle size={14} /> {photographer.stripe_account_id}
+                            </div>
+                        )}
                     </div>
                 </div>
                 <div className="profile-actions-right">

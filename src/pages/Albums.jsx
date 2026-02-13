@@ -150,10 +150,10 @@ const Albums = () => {
                 }
 
                 .albums-header {
-                    margin-bottom: 3rem;
+                    margin-bottom: 2.5rem;
                     text-align: center;
-                    padding: 6rem 1rem 8rem;
-                    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+                    padding: 3rem 1rem 4.5rem;
+                    background: linear-gradient(135deg, #0f172a 0%, #f97316 100%);
                     position: relative;
                     overflow: visible; /* Allow search bar to float out */
                     border-radius: 0 0 40px 40px;
@@ -188,16 +188,16 @@ const Albums = () => {
                 }
 
                 .albums-hero-title {
-                    font-size: 2.75rem;
+                    font-size: 1.75rem;
                     font-weight: 800;
                     color: #ffffff;
-                    margin-bottom: 1rem;
+                    margin-bottom: 0.75rem;
                     letter-spacing: -0.02em;
                 }
 
                 .albums-hero-subtitle {
-                    font-size: 1.15rem;
-                    color: #94a3b8;
+                    font-size: 0.9rem;
+                    color: rgba(255, 255, 255, 0.85);
                     max-width: 600px;
                     margin: 0 auto;
                     font-weight: 400;

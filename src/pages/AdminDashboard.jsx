@@ -9,9 +9,11 @@ import { format, subDays, isAfter, startOfDay, parseISO } from 'date-fns';
 import {
     TrendingUp, Users, Image as ImageIcon, Briefcase,
     ChevronDown, Calendar, Filter, DollarSign, Search,
-    FileText, Plus, Trash2, Edit, Video
+    FileText, Plus, Trash2, Edit, Video, Mail, ShieldCheck, Sparkles, CreditCard
 } from 'lucide-react';
 import SkeletonPage from '../components/ui/SkeletonPage';
+import { testGeminiAPI } from '../lib/gemini';
+import { pingStripe } from '../lib/stripe/service';
 
 const AdminDashboard = () => {
     const [photographers, setPhotographers] = useState([]);
@@ -56,22 +58,28 @@ const AdminDashboard = () => {
 
     // Settings Tab State
     const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'popups', 'blog', 'settings'
-    const [loopsApiKey, setLoopsApiKey] = useState('');
     const [loopsStatus, setLoopsStatus] = useState('disconnected'); // 'disconnected', 'connected', 'testing'
     const [savingLoops, setSavingLoops] = useState(false);
+    const [loopsTestResult, setLoopsTestResult] = useState(null);
     const [showToast, setShowToast] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
+    const [geminiStatus, setGeminiStatus] = useState('disconnected'); // 'disconnected', 'connected', 'testing'
+    const [testingGemini, setTestingGemini] = useState(false);
+    const [geminiTestResult, setGeminiTestResult] = useState(null);
+    const [testingStripe, setTestingStripe] = useState(false);
+    const [stripeTestResult, setStripeTestResult] = useState(null);
 
     useEffect(() => {
         fetchAllData();
         fetchLoopsSettings();
+        fetchGeminiSettings();
     }, []);
 
     const fetchAllData = async () => {
         try {
             const { data: pros, error: prosError } = await supabase
                 .from('profiles')
-                .select('*')
+                .select('*, photographer_private_data(*)')
                 .eq('role', 'photographer');
 
             if (prosError) throw prosError;
@@ -92,13 +100,20 @@ const AdminDashboard = () => {
             setAlbums(albs);
 
             const prosWithStats = pros.map(p => {
+                // Flatten private data
+                const flattenedPros = { ...p };
+                if (p.photographer_private_data) {
+                    Object.assign(flattenedPros, p.photographer_private_data);
+                    // No need to delete yet if we want to keep it clean later
+                }
+
                 const myAlbs = albs.filter(a => a.photographer_id === p.id);
                 const mySales = txs.filter(t => t.photographer_id === p.id);
                 const totalSalesAmount = mySales.reduce((sum, t) => sum + Number(t.amount), 0);
                 const totalCommission = mySales.reduce((sum, t) => sum + Number(t.commission_amount), 0);
 
                 return {
-                    ...p,
+                    ...flattenedPros,
                     albumCount: myAlbs.length,
                     salesCount: mySales.length,
                     totalRevenue: totalSalesAmount,
@@ -135,43 +150,83 @@ const AdminDashboard = () => {
 
     const fetchLoopsSettings = async () => {
         try {
-            const { data, error } = await supabase
-                .from('platform_settings')
-                .select('*')
-                .eq('id', 'loops_api_key')
-                .maybeSingle();
+            const { data, error } = await supabase.functions.invoke('sync-to-loops', {
+                body: { action: 'test-connection', payload: {} }
+            });
 
-            if (!error && data) {
-                setLoopsApiKey(data.value || '');
-                setLoopsStatus(data.value ? 'connected' : 'disconnected');
+            if (!error && data?.success) {
+                setLoopsStatus('connected');
+            } else {
+                setLoopsStatus('disconnected');
             }
         } catch (error) {
-            console.error('Error fetching Loops settings:', error);
+            console.error('Error checking Loops status:', error);
+            setLoopsStatus('disconnected');
         }
     };
 
-    const handleSaveLoopsKey = async () => {
+    const handleTestLoops = async () => {
         setSavingLoops(true);
+        setLoopsTestResult(null);
         try {
-            const { error } = await supabase
-                .from('platform_settings')
-                .upsert({
-                    id: 'loops_api_key',
-                    value: loopsApiKey,
-                    description: 'Loops.so API Key for email marketing',
-                    updated_at: new Date().toISOString()
-                });
+            const { data, error } = await supabase.functions.invoke('sync-to-loops', {
+                body: { action: 'test-connection', payload: {} }
+            });
 
             if (error) throw error;
+            setLoopsTestResult({ success: true, message: data.message || 'Loops.so Connection Test Successful!' });
             setLoopsStatus('connected');
-            setToastMessage('Loops.so API Key saved successfully!');
-            setShowToast(true);
-            setTimeout(() => setShowToast(false), 3000);
         } catch (error) {
-            console.error('Error saving Loops API key:', error);
-            alert('Failed to save API key. Please try again.');
+            console.error('Loops Test Error:', error);
+            setLoopsStatus('disconnected');
+            setLoopsTestResult({ success: false, message: `Failed: ${error.message}` });
         } finally {
             setSavingLoops(false);
+        }
+    };
+
+    const fetchGeminiSettings = async () => {
+        try {
+            const { data, error } = await supabase.functions.invoke('gemini-ai', {
+                body: { action: 'test-connection', payload: {} }
+            });
+
+            if (!error && data?.success) {
+                setGeminiStatus('connected');
+            } else {
+                setGeminiStatus('disconnected');
+            }
+        } catch (error) {
+            console.error('Error checking Gemini status:', error);
+            setGeminiStatus('disconnected');
+        }
+    };
+
+    const handleTestGemini = async () => {
+        setTestingGemini(true);
+        setGeminiTestResult(null);
+        try {
+            const result = await testGeminiAPI();
+            setGeminiTestResult(result);
+        } catch (error) {
+            console.error('Error testing Gemini:', error);
+            setGeminiTestResult({ success: false, message: 'Failed to test connection' });
+        } finally {
+            setTestingGemini(false);
+        }
+    };
+
+    const handleTestStripe = async () => {
+        setTestingStripe(true);
+        setStripeTestResult(null);
+        try {
+            const result = await pingStripe();
+            setStripeTestResult({ success: true, message: `Backend Connected! Server time: ${result.timestamp}` });
+        } catch (error) {
+            console.error('Error testing Stripe:', error);
+            setStripeTestResult({ success: false, message: `Failed: ${error.message}` });
+        } finally {
+            setTestingStripe(false);
         }
     };
 
@@ -298,7 +353,10 @@ const AdminDashboard = () => {
         let filtered = transactions;
         const now = new Date();
 
-        if (dateFilter !== 'all') {
+        if (dateFilter === 'today') {
+            const startDate = startOfDay(now);
+            filtered = transactions.filter(t => isAfter(parseISO(t.created_at), startDate));
+        } else if (dateFilter !== 'all') {
             const daysToSub = parseInt(dateFilter);
             const startDate = startOfDay(subDays(now, daysToSub));
             filtered = transactions.filter(t => isAfter(parseISO(t.created_at), startDate));
@@ -321,9 +379,7 @@ const AdminDashboard = () => {
             return acc;
         }, {});
 
-        return Object.values(grouped).sort((a, b) => new Date(a.date) - new Date(b.date)); // Ensure chronological order if needed, though object iteration usually follows insertion in modern JS for strings, safer to rely on source order or sort.
-        // Actually, since we process in order (if transactions are ordered), it might be fine. 
-        // Let's just return Object.values(grouped) as before, but using filteredTransactions.
+        return Object.values(grouped).sort((a, b) => new Date(a.date) - new Date(b.date));
     }, [filteredTransactions]);
 
     const filteredPhotographers = useMemo(() => {
@@ -369,6 +425,7 @@ const AdminDashboard = () => {
                             onChange={(e) => setDateFilter(e.target.value)}
                             className="date-select"
                         >
+                            <option value="today">Today</option>
                             <option value="7">Last 7 Days</option>
                             <option value="30">Last 30 Days</option>
                             <option value="all">All Time</option>
@@ -992,13 +1049,18 @@ const AdminDashboard = () => {
                             {/* Loops.so Integration Card */}
                             <div className="integration-card">
                                 <div className="integration-header">
-                                    <div>
-                                        <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.25rem', fontWeight: '700', color: '#0f172a' }}>
-                                            Loops.so Email Marketing
-                                        </h3>
-                                        <p style={{ margin: 0, fontSize: '0.875rem', color: '#64748b' }}>
-                                            Connect your Loops.so account to sync contacts and send automated emails
-                                        </p>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                        <div style={{ width: '40px', height: '40px', background: '#eff6ff', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-blue)' }}>
+                                            <Mail size={20} />
+                                        </div>
+                                        <div>
+                                            <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '700', color: '#0f172a' }}>
+                                                Loops.so Email Marketing
+                                            </h3>
+                                            <p style={{ margin: 0, fontSize: '0.875rem', color: '#64748b' }}>
+                                                Connect your Loops.so account to sync contacts and send automated emails
+                                            </p>
+                                        </div>
                                     </div>
                                     <div className="integration-status">
                                         <div className={`status-dot ${loopsStatus === 'connected' ? 'connected' : 'disconnected'}`}></div>
@@ -1009,33 +1071,184 @@ const AdminDashboard = () => {
                                 </div>
 
                                 <div className="integration-body">
-                                    <div className="form-group-admin">
-                                        <label>API Key</label>
-                                        <input
-                                            type="password"
-                                            value={loopsApiKey}
-                                            onChange={(e) => setLoopsApiKey(e.target.value)}
-                                            placeholder="Enter your Loops.so API key"
-                                            style={{ fontFamily: 'monospace' }}
-                                        />
-                                        <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0.5rem 0 0' }}>
-                                            Get your API key from <a href="https://app.loops.so/settings?page=api" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary-blue)' }}>Loops.so Settings</a>
+                                    <div className="form-group-admin" style={{ marginBottom: '1.5rem' }}>
+                                        <label>Status</label>
+                                        <div className="input-info-box">
+                                            <ShieldCheck size={18} />
+                                            <span>Managed securely via Supabase Secrets</span>
+                                        </div>
+                                        <p className="helper-text">
+                                            To update your API key, use the Supabase Dashboard or CLI:
+                                            <code>supabase secrets set LOOPS_API_KEY=your_key</code>
                                         </p>
                                     </div>
 
-                                    <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+                                    {loopsTestResult && (
+                                        <div style={{
+                                            marginBottom: '1.5rem',
+                                            padding: '1rem',
+                                            borderRadius: '8px',
+                                            backgroundColor: loopsTestResult.success ? '#f0fdf4' : '#fef2f2',
+                                            border: `1px solid ${loopsTestResult.success ? '#bbf7d0' : '#fecaca'}`,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.75rem'
+                                        }}>
+                                            <div style={{
+                                                width: '8px',
+                                                height: '8px',
+                                                borderRadius: '50%',
+                                                backgroundColor: loopsTestResult.success ? '#22c55e' : '#ef4444'
+                                            }}></div>
+                                            <div style={{ fontSize: '0.875rem', color: loopsTestResult.success ? '#166534' : '#991b1b' }}>
+                                                <strong>{loopsTestResult.success ? 'Success: ' : 'Error: '}</strong>
+                                                {loopsTestResult.message}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div style={{ display: 'flex', gap: '1rem' }}>
                                         <Button
                                             variant="orange"
-                                            onClick={handleSaveLoopsKey}
-                                            disabled={savingLoops || !loopsApiKey}
+                                            onClick={handleTestLoops}
+                                            disabled={savingLoops}
                                         >
-                                            {savingLoops ? 'Saving...' : 'Save API Key'}
+                                            {savingLoops ? 'Testing...' : 'Test Connection'}
                                         </Button>
-                                        {loopsStatus === 'connected' && (
-                                            <Button variant="secondary">
-                                                Test Connection
-                                            </Button>
-                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Gemini AI Integration Card */}
+                            <div className="integration-card" style={{ marginTop: '2rem' }}>
+                                <div className="integration-header">
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                        <div style={{ width: '40px', height: '40px', background: '#f5f3ff', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8b5cf6' }}>
+                                            <Sparkles size={20} />
+                                        </div>
+                                        <div>
+                                            <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '700', color: '#0f172a' }}>
+                                                Gemini AI Integration
+                                            </h3>
+                                            <p style={{ margin: 0, fontSize: '0.875rem', color: '#64748b' }}>
+                                                Configure Google Gemini for automatic race number detection and photo analysis
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="integration-status">
+                                        <div className={`status-dot ${geminiStatus === 'connected' ? 'connected' : 'disconnected'}`}></div>
+                                        <span style={{ fontSize: '0.875rem', fontWeight: '600', color: geminiStatus === 'connected' ? '#10b981' : '#64748b' }}>
+                                            {geminiStatus === 'connected' ? 'Connected' : 'Not Connected'}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="integration-body">
+                                    <div className="form-group-admin" style={{ marginBottom: '1.5rem' }}>
+                                        <label>Status</label>
+                                        <div className="input-info-box">
+                                            <ShieldCheck size={18} />
+                                            <span>Managed securely via Supabase Secrets</span>
+                                        </div>
+                                        <p className="helper-text">
+                                            To update your API key, use the Supabase Dashboard or CLI:
+                                            <code>supabase secrets set GEMINI_API_KEY=your_key</code>
+                                        </p>
+                                    </div>
+
+                                    {geminiTestResult && (
+                                        <div style={{
+                                            marginBottom: '1.5rem',
+                                            padding: '1rem',
+                                            borderRadius: '8px',
+                                            backgroundColor: geminiTestResult.success ? '#f0fdf4' : '#fef2f2',
+                                            border: `1px solid ${geminiTestResult.success ? '#bbf7d0' : '#fecaca'}`,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.75rem'
+                                        }}>
+                                            <div style={{
+                                                width: '8px',
+                                                height: '8px',
+                                                borderRadius: '50%',
+                                                backgroundColor: geminiTestResult.success ? '#22c55e' : '#ef4444'
+                                            }}></div>
+                                            <div style={{ fontSize: '0.875rem', color: geminiTestResult.success ? '#166534' : '#991b1b' }}>
+                                                <strong>{geminiTestResult.success ? 'Success: ' : 'Error: '}</strong>
+                                                {geminiTestResult.message}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div style={{ display: 'flex', gap: '1rem' }}>
+                                        <Button
+                                            variant="orange"
+                                            onClick={handleTestGemini}
+                                            disabled={testingGemini}
+                                        >
+                                            {testingGemini ? 'Testing Connection...' : 'Test Connection'}
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Stripe Connectivity Card */}
+                            <div className="integration-card" style={{ marginTop: '2rem' }}>
+                                <div className="integration-header">
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                        <div style={{ width: '40px', height: '40px', background: '#ecfdf5', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981' }}>
+                                            <CreditCard size={20} />
+                                        </div>
+                                        <div>
+                                            <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '700', color: '#0f172a' }}>
+                                                Stripe Connectivity
+                                            </h3>
+                                            <p style={{ margin: 0, fontSize: '0.875rem', color: '#64748b' }}>
+                                                Test the secure backend connection to the Stripe Edge Function
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="integration-status">
+                                        <div className={`status-dot ${stripeTestResult?.success ? 'connected' : 'disconnected'}`}></div>
+                                        <span style={{ fontSize: '0.875rem', fontWeight: '600', color: stripeTestResult?.success ? '#10b981' : '#64748b' }}>
+                                            {stripeTestResult?.success ? 'Connected' : 'Not Tested'}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="integration-body">
+                                    {stripeTestResult && (
+                                        <div style={{
+                                            marginBottom: '1.5rem',
+                                            padding: '1rem',
+                                            borderRadius: '8px',
+                                            backgroundColor: stripeTestResult.success ? '#f0fdf4' : '#fef2f2',
+                                            border: `1px solid ${stripeTestResult.success ? '#bbf7d0' : '#fecaca'}`,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.75rem'
+                                        }}>
+                                            <div style={{
+                                                width: '8px',
+                                                height: '8px',
+                                                borderRadius: '50%',
+                                                backgroundColor: stripeTestResult.success ? '#22c55e' : '#ef4444'
+                                            }}></div>
+                                            <div style={{ fontSize: '0.875rem', color: stripeTestResult.success ? '#166534' : '#991b1b' }}>
+                                                <strong>{stripeTestResult.success ? 'Success: ' : 'Error: '}</strong>
+                                                {stripeTestResult.message}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div style={{ display: 'flex', gap: '1rem' }}>
+                                        <Button
+                                            variant="orange"
+                                            onClick={handleTestStripe}
+                                            disabled={testingStripe}
+                                        >
+                                            {testingStripe ? 'Testing Backend...' : 'Ping Stripe Edge Function'}
+                                        </Button>
                                     </div>
                                 </div>
                             </div>
@@ -1043,7 +1256,6 @@ const AdminDashboard = () => {
                     </div>
                 )
             }
-
             {/* Toast Notification */}
             {showToast && (
                 <div className="toast-notification">
@@ -1112,8 +1324,14 @@ const AdminDashboard = () => {
                 .integration-card {
                     background: white;
                     border: 1px solid #e2e8f0;
-                    border-radius: 16px;
+                    border-radius: 20px;
                     overflow: hidden;
+                    transition: all 0.3s ease;
+                }
+
+                .integration-card:hover {
+                    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);
+                    border-color: #cbd5e1;
                 }
 
                 .integration-header {

@@ -19,76 +19,26 @@ const AlbumDownload = () => {
 
     const fetchData = async (sessionId = null) => {
         try {
-            // 1. Fetch Album Info
-            const { data: albumData } = await supabase.from('albums').select('*').eq('id', albumId).single();
+            // 1. Fetch Album Info (Basic info is public)
+            const { data: albumData } = await supabase.from('albums').select('title, id').eq('id', albumId).single();
             setAlbum(albumData);
 
-            // 2. Fetch Transaction to check for unlocked_photo_ids
-            // Note: User might have purchased same album multiple times, get the most recent
-            let txQuery = supabase
-                .from('transactions')
-                .select('unlocked_photo_ids, status')
-                .eq('album_id', albumId)
-                .eq('status', 'paid');
+            // 2. Fetch Secure Downloads via Edge Function
+            // This verifies the purchase (either by user ID or sessionId) on the backend
+            const { data, error } = await supabase.functions.invoke('stripe-service', {
+                body: {
+                    action: 'get-download-urls',
+                    payload: { albumId, sessionId }
+                }
+            });
 
-            if (user) {
-                txQuery = txQuery.eq('buyer_id', user.id);
-            } else if (sessionId) {
-                txQuery = txQuery.eq('stripe_payment_intent_id', sessionId);
-            }
-
-            const { data: transactions, error: txError } = await txQuery
-                .order('created_at', { ascending: false });
-
-            console.log("Transaction data:", transactions);
-            console.log("Transaction error:", txError);
-
-            // Merge all unlocked photo IDs from all purchases
-            let unlockedIds = [];
-            if (transactions && transactions.length > 0) {
-                transactions.forEach(tx => {
-                    if (tx.unlocked_photo_ids && tx.unlocked_photo_ids.length > 0) {
-                        unlockedIds = [...new Set([...unlockedIds, ...tx.unlocked_photo_ids])];
-                    }
-                });
-            }
-
-            console.log("Unlocked photo IDs (merged from all purchases):", unlockedIds);
-
-            // 3. Fetch Photos Metadata
-            let query = supabase.from('photos').select('*').eq('album_id', albumId);
-
-            // If unlockedIds exists (partial purchase), filter the query. 
-            // If it's null, we assume full album purchase (legacy compatibility).
-            if (unlockedIds && unlockedIds.length > 0) {
-                console.log("Filtering photos to unlocked IDs:", unlockedIds);
-                query = query.in('id', unlockedIds);
-            } else {
-                console.log("No photo filtering - showing all photos (full album purchase or legacy)");
-            }
-
-            const { data: photosData, error } = await query;
             if (error) throw error;
 
-            console.log("Photos fetched:", photosData?.length, "photos");
-
-            // 4. Generate Signed URLs for each photo
-            const photosWithUrls = await Promise.all(photosData.map(async (photo) => {
-                const { data, error } = await supabase.storage
-                    .from('original-photos')
-                    .createSignedUrl(photo.original_url, 3600); // 1 hour expiry
-
-                return {
-                    ...photo,
-                    downloadUrl: data?.signedUrl || null,
-                    error: error
-                };
-            }));
-
-            setPhotos(photosWithUrls);
+            console.log("Secure photos fetched:", data?.photos?.length, "photos");
+            setPhotos(data?.photos || []);
 
         } catch (error) {
-            console.error(error);
+            console.error("Error fetching downloads:", error);
         } finally {
             setLoading(false);
         }
@@ -140,9 +90,9 @@ const AlbumDownload = () => {
                                 </div>
                                 <div className="card-info">
                                     {/* photo title hidden as requested */}
-                                    {photo.downloadUrl ? (
+                                    {photo.signedUrl ? (
                                         <a
-                                            href={photo.downloadUrl}
+                                            href={photo.signedUrl}
                                             download={photo.title || `photo-${photo.id}.jpg`}
                                             target="_blank"
                                             rel="noopener noreferrer"

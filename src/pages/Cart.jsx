@@ -144,6 +144,7 @@ const Cart = () => {
                 photographer_name: item.photographer_name,
                 pricing_package: item.pricing_package,
                 album_price: item.album_price,
+                is_free: item.is_free,
                 items: []
             };
         }
@@ -166,29 +167,39 @@ const Cart = () => {
 
             // Calculate price for THIS group
             let groupPrice = 0;
-            const count = group.items.length;
-            if (group.pricing_package && group.pricing_package.tiers) {
-                const tiers = [...group.pricing_package.tiers].sort((a, b) => b.quantity - a.quantity);
-                const activeTier = tiers.find(tier => count >= tier.quantity);
-                const unitPrice = activeTier ? activeTier.price : (tiers[tiers.length - 1]?.price || 0);
-                groupPrice = count * unitPrice;
+            if (activeGroup.is_free) {
+                groupPrice = 0;
             } else {
-                groupPrice = group.album_price;
+                const count = group.items.length;
+                if (group.pricing_package && group.pricing_package.tiers) {
+                    const tiers = [...group.pricing_package.tiers].sort((a, b) => b.quantity - a.quantity);
+                    const activeTier = tiers.find(tier => count >= tier.quantity);
+                    const unitPrice = activeTier ? activeTier.price : (tiers[tiers.length - 1]?.price || 0);
+                    groupPrice = count * unitPrice;
+                } else {
+                    groupPrice = group.album_price;
+                }
             }
 
             const commission = calculateCommission(groupPrice);
             const photoIdsArray = group.items.map(i => i.id);
 
-            if (paymentMethod === 'bank_transfer') {
-                // MANUAL FLOW
+            // SAFETY NET: If amount is 0, force 'free' flow regardless of method selected
+            let finalPaymentMethod = paymentMethod;
+            if (groupPrice === 0) {
+                finalPaymentMethod = 'free';
+            }
+
+            if (finalPaymentMethod === 'bank_transfer' || finalPaymentMethod === 'free') {
+                // MANUAL OR FREE FLOW
                 const { error: txError } = await supabase.from('transactions').insert({
                     buyer_id: user?.id || null,
                     photographer_id: group.photographer_id,
                     album_id: albumId,
                     amount: groupPrice,
                     commission_amount: commission,
-                    status: 'manual_pending',
-                    payment_method: 'bank_transfer',
+                    status: finalPaymentMethod === 'free' ? 'paid' : 'manual_pending',
+                    payment_method: finalPaymentMethod,
                     unlocked_photo_ids: photoIdsArray
                 });
 
@@ -212,23 +223,7 @@ const Cart = () => {
             }
 
             // STRIPE FLOW (paymentMethod === 'stripe')
-            // 1. Get Photographer Stripe ID
-            const { data: photographer, error } = await supabase
-                .from('profiles')
-                .select('stripe_account_id')
-                .eq('id', group.photographer_id)
-                .single();
-
-            if (error || !photographer.stripe_account_id) {
-                alert("This photographer has not set up payments yet.");
-                setPurchasing(false);
-                setIsCheckoutOpen(false);
-                return;
-            }
-
-
-
-            // 2. Create Session (Mode: Embedded)
+            // 1. Create Session (Mode: Embedded)
             const { createCheckoutSession } = await import('../lib/stripe/service');
 
             // Use the passed email from modal, or user's email as fallback
@@ -237,13 +232,12 @@ const Cart = () => {
             const session = await createCheckoutSession(
                 albumId,
                 groupPrice,
-                photographer.stripe_account_id,
+                group.photographer_id, // Pass the internal User ID securely
                 commission,
                 photoIdsArray,
                 null,
                 customerEmail,
-                'embedded',
-                group.photographer_id // <--- Correct Supabase UUID
+                'embedded'
             );
 
             setPurchasing(false);
@@ -831,9 +825,11 @@ const Cart = () => {
                 onClose={() => setIsCheckoutOpen(false)}
                 onConfirm={handleConfirmCheckout}
                 photographerId={activeGroup?.photographer_id}
+                isFree={activeGroup?.is_free}
                 totalAmount={(function () {
                     // Calculate total for just this group
                     if (!activeGroup) return 0;
+                    if (activeGroup.is_free) return "0.00";
                     const count = activeGroup.items.length;
                     if (activeGroup.pricing_package && activeGroup.pricing_package.tiers) {
                         const tiers = [...activeGroup.pricing_package.tiers].sort((a, b) => b.quantity - a.quantity);

@@ -283,7 +283,7 @@ const PhotographerDashboard = () => {
                             <div className="empty-dashboard-state">
                                 <p>You haven't created any albums yet.</p>
                                 <Link to="/photographer/albums/new">
-                                    <Button variant="outline">Create your first album</Button>
+                                    <Button variant="orange">Create your first album</Button>
                                 </Link>
                             </div>
                         ) : (

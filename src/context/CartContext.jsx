@@ -42,7 +42,8 @@ export const CartProvider = ({ children }) => {
                 photographer_id: album.photographer_id,
                 photographer_name: album.profiles?.full_name || 'Photographer',
                 pricing_package: album.selected_package || album.pricing_packages,
-                album_price: album.price
+                album_price: album.price,
+                is_free: album.is_free
             };
 
             return [...prev, newItem];

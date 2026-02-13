@@ -1,39 +1,56 @@
-
 import { loadStripe } from '@stripe/stripe-js';
 import { supabase } from '../supabase';
 
 const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
-const STRIPE_SECRET_KEY = import.meta.env.VITE_STRIPE_SECRET_KEY;
+
+
+/**
+ * Helper to invoke Edge Functions with explicit Auth Header
+ */
+const invokeHelper = async (functionName, options) => {
+    // Force session refresh check
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+    if (sessionError) {
+        console.error("invokeHelper Session Error:", sessionError);
+    }
+
+    const headers = options.headers || {};
+
+    // Explicitly add the Authorization header from the current session
+    if (session?.access_token) {
+        console.log(`invokeHelper: Attaching token ${session.access_token.substring(0, 10)}...`);
+        headers.Authorization = `Bearer ${session.access_token}`;
+    } else {
+        console.warn("invokeHelper: No active session found!");
+    }
+
+    return await supabase.functions.invoke(functionName, {
+        ...options,
+        headers
+    });
+};
 
 export const stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY);
 
 /**
- * SIMULATED BACKEND FUNCTION: Create Stripe Express Account
- * In production, this MUST run on the server/edge function to protect the secret key.
+ * INVOKE SECURE BACKEND: Create Stripe Express Account
  */
 export const createConnectedAccount = async (userId) => {
     try {
-        const response = await fetch('https://api.stripe.com/v1/accounts', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${STRIPE_SECRET_KEY}`,
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams({
-                'type': 'express',
-                'capabilities[card_payments][requested]': 'true',
-                'capabilities[transfers][requested]': 'true',
-                'metadata[user_id]': userId,
-            }),
+        const { data, error } = await invokeHelper('stripe-service', {
+            body: {
+                action: 'create-connected-account',
+                payload: { userId }
+            }
         });
 
-        const account = await response.json();
-        if (account.error) throw new Error(account.error.message);
+        if (error) throw error;
 
         // Save account ID to profile
-        await supabase.from('profiles').update({ stripe_account_id: account.id }).eq('id', userId);
+        await supabase.from('profiles').update({ stripe_account_id: data.id }).eq('id', userId);
 
-        return account;
+        return data;
     } catch (error) {
         console.error('Error creating linked account:', error);
         throw error;
@@ -41,28 +58,23 @@ export const createConnectedAccount = async (userId) => {
 };
 
 /**
- * SIMULATED BACKEND FUNCTION: Create Account Link (for onboarding flow)
+ * INVOKE SECURE BACKEND: Create Account Link
  */
 export const createAccountLink = async (accountId) => {
     try {
-        const response = await fetch('https://api.stripe.com/v1/account_links', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${STRIPE_SECRET_KEY}`,
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams({
-                'account': accountId,
-                'refresh_url': `${window.location.origin}/photographer/dashboard`,
-                'return_url': `${window.location.origin}/photographer/dashboard?onboarding=complete`,
-                'type': 'account_onboarding',
-            }),
+        const { data, error } = await invokeHelper('stripe-service', {
+            body: {
+                action: 'create-account-link',
+                payload: {
+                    accountId,
+                    refreshUrl: `${window.location.origin}/photographer/dashboard`,
+                    returnUrl: `${window.location.origin}/photographer/dashboard?onboarding=complete`
+                }
+            }
         });
 
-        const link = await response.json();
-        if (link.error) throw new Error(link.error.message);
-
-        return link.url;
+        if (error) throw error;
+        return data.url;
     } catch (error) {
         console.error('Error creating account link:', error);
         throw error;
@@ -70,55 +82,48 @@ export const createAccountLink = async (accountId) => {
 };
 
 /**
- * SIMULATED BACKEND FUNCTION: Create Checkout Session
- * In production, this MUST run on the server/edge function.
+ * INVOKE SECURE BACKEND: Create Checkout Session
  */
-export const createCheckoutSession = async (albumId, price, photographerStripeId, commissionAmount, photoIds = [], cancelUrl = null, customerEmail = null, uiMode = 'hosted', photographerProfileId = null) => {
+export const createCheckoutSession = async (albumId, price, photographerId, commissionAmount, photoIds = [], cancelUrl = null, customerEmail = null, uiMode = 'hosted') => {
     try {
-        // ...
         const photosParam = (photoIds && photoIds.length > 0) ? `&photos=${encodeURIComponent(JSON.stringify(photoIds))}` : '';
+        const successUrl = `${window.location.origin}/cart?success=true&session_id={CHECKOUT_SESSION_ID}&album_id=${albumId}&amount=${price}&photographer_id=${photographerId}${photosParam}`;
 
-        // Modified for embedded flow return - INCLUDE METADATA
-        // IMPORTANT: We pass the Supabase photographerProfileId and explicitly include the Stripe Session ID template
-        const pId = photographerProfileId || photographerStripeId;
-        const successUrl = `${window.location.origin}/cart?success=true&session_id={CHECKOUT_SESSION_ID}&album_id=${albumId}&amount=${price}&photographer_id=${pId}${photosParam}`;
-
-        const sessionParams = {
-            'mode': 'payment',
-            'line_items[0][price_data][currency]': 'usd',
-            'line_items[0][price_data][product_data][name]': 'Photo Album Access',
-            'line_items[0][price_data][unit_amount]': Math.round(price * 100),
-            'line_items[0][quantity]': '1',
-            'payment_intent_data[application_fee_amount]': Math.round(commissionAmount * 100),
-            'payment_intent_data[transfer_data][destination]': photographerStripeId,
-        };
-
-        if (uiMode === 'embedded') {
-            sessionParams['ui_mode'] = 'embedded';
-            sessionParams['return_url'] = successUrl;
-        } else {
-            sessionParams['success_url'] = successUrl;
-            sessionParams['cancel_url'] = cancelUrl || `${window.location.origin}/cart`;
-        }
-
-        if (customerEmail) {
-            sessionParams['customer_email'] = customerEmail;
-        }
-
-        // Simulate Stripe API call
-        const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${STRIPE_SECRET_KEY}`,
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams(sessionParams),
+        const { data, error } = await invokeHelper('stripe-service', {
+            body: {
+                action: 'create-checkout-session',
+                payload: {
+                    albumId,
+                    price,
+                    photographerId, // Now passing the USER ID, which the backend will use to lookup the Stripe ID
+                    commissionAmount,
+                    successUrl,
+                    cancelUrl: cancelUrl || `${window.location.origin}/cart`,
+                    customerEmail,
+                    uiMode
+                }
+            }
         });
 
-        const session = await response.json();
-        if (session.error) throw new Error(session.error.message);
+        if (error) {
+            console.error('Stripe Invoke Error:', error);
 
-        return session;
+            let message = 'Unknown error occurred';
+
+            if (error?.context?.json) {
+                try {
+                    const body = await error.context.json();
+                    message = body.error || body.message || JSON.stringify(body);
+                } catch (e) {
+                    message = error.message || JSON.stringify(error);
+                }
+            } else {
+                message = error.message || error.error || JSON.stringify(error);
+            }
+
+            throw new Error(typeof message === 'object' ? JSON.stringify(message) : message);
+        }
+        return data;
     } catch (error) {
         console.error('Error creating checkout session:', error);
         throw error;
@@ -126,21 +131,29 @@ export const createCheckoutSession = async (albumId, price, photographerStripeId
 };
 
 /**
- * SIMULATED BACKEND FUNCTION: Get Account Status
+ * INVOKE SECURE BACKEND: Get Account Status
  */
 export const getAccountStatus = async (accountId) => {
     try {
-        const response = await fetch(`https://api.stripe.com/v1/accounts/${accountId}`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${STRIPE_SECRET_KEY}`,
-            },
+        const { data, error } = await invokeHelper('stripe-service', {
+            body: { action: 'get-account-status', payload: { accountId } }
         });
 
-        const account = await response.json();
-        if (account.error) throw new Error(account.error.message);
+        if (error) {
+            console.error('Stripe Invoke Error:', error);
 
-        return account;
+            let message = error.message;
+            if (error?.context?.json) {
+                try {
+                    const body = await error.context.json();
+                    message = body.error || body.message || JSON.stringify(body);
+                } catch (e) {
+                    message = error.message || JSON.stringify(error);
+                }
+            }
+            throw new Error(message);
+        }
+        return data;
     } catch (error) {
         console.error('Error fetching account status:', error);
         throw error;
@@ -148,21 +161,16 @@ export const getAccountStatus = async (accountId) => {
 };
 
 /**
- * SIMULATED BACKEND FUNCTION: Create Login Link (for Express Dashboard)
+ * INVOKE SECURE BACKEND: Create Login Link
  */
 export const createLoginLink = async (accountId) => {
     try {
-        const response = await fetch(`https://api.stripe.com/v1/accounts/${accountId}/login_links`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${STRIPE_SECRET_KEY}`,
-            },
+        const { data, error } = await invokeHelper('stripe-service', {
+            body: { action: 'create-login-link', payload: { accountId } }
         });
 
-        const link = await response.json();
-        if (link.error) throw new Error(link.error.message);
-
-        return link.url;
+        if (error) throw error;
+        return data.url;
     } catch (error) {
         console.error('Error creating login link:', error);
         throw error;
@@ -170,23 +178,16 @@ export const createLoginLink = async (accountId) => {
 };
 
 /**
- * SIMULATED BACKEND FUNCTION: Get Account Balance
- * Retrieves the available and pending balance for a connected account
+ * INVOKE SECURE BACKEND: Get Account Balance
  */
 export const getAccountBalance = async (accountId) => {
     try {
-        const response = await fetch(`https://api.stripe.com/v1/balance`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${STRIPE_SECRET_KEY}`,
-                'Stripe-Account': accountId,
-            },
+        const { data, error } = await invokeHelper('stripe-service', {
+            body: { action: 'get-account-balance', payload: { accountId } }
         });
 
-        const balance = await response.json();
-        if (balance.error) throw new Error(balance.error.message);
-
-        return balance;
+        if (error) throw error;
+        return data;
     } catch (error) {
         console.error('Error fetching account balance:', error);
         throw error;
@@ -194,28 +195,16 @@ export const getAccountBalance = async (accountId) => {
 };
 
 /**
- * SIMULATED BACKEND FUNCTION: Create Payout
- * Creates a payout to transfer funds to the photographer's bank account
+ * INVOKE SECURE BACKEND: Create Payout
  */
 export const createPayout = async (accountId, amount, currency = 'usd') => {
     try {
-        const response = await fetch('https://api.stripe.com/v1/payouts', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${STRIPE_SECRET_KEY}`,
-                'Stripe-Account': accountId,
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams({
-                'amount': Math.round(amount * 100), // Convert to cents
-                'currency': currency,
-            }),
+        const { data, error } = await invokeHelper('stripe-service', {
+            body: { action: 'create-payout', payload: { accountId, amount, currency } }
         });
 
-        const payout = await response.json();
-        if (payout.error) throw new Error(payout.error.message);
-
-        return payout;
+        if (error) throw error;
+        return data;
     } catch (error) {
         console.error('Error creating payout:', error);
         throw error;
@@ -223,25 +212,47 @@ export const createPayout = async (accountId, amount, currency = 'usd') => {
 };
 
 /**
- * SIMULATED BACKEND FUNCTION: Get Payout History
- * Retrieves the payout history for a connected account
+ * INVOKE SECURE BACKEND: Get Payout History
  */
 export const getPayoutHistory = async (accountId, limit = 10) => {
     try {
-        const response = await fetch(`https://api.stripe.com/v1/payouts?limit=${limit}`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${STRIPE_SECRET_KEY}`,
-                'Stripe-Account': accountId,
-            },
+        const { data, error } = await invokeHelper('stripe-service', {
+            body: { action: 'get-payout-history', payload: { accountId, limit } }
         });
 
-        const payouts = await response.json();
-        if (payouts.error) throw new Error(payouts.error.message);
-
-        return payouts.data;
+        if (error) throw error;
+        return data;
     } catch (error) {
         console.error('Error fetching payout history:', error);
+        throw error;
+    }
+};
+
+/**
+ * INVOKE SECURE BACKEND: Ping (Connectivity Test)
+ */
+export const pingStripe = async () => {
+    try {
+        const { data, error: invokeError } = await invokeHelper('stripe-service', {
+            body: { action: 'ping', payload: {} }
+        });
+
+        if (invokeError) {
+            console.error('Stripe Ping Invoke Error Details:', invokeError);
+            let message = invokeError.message;
+            try {
+                const body = await invokeError.context?.json();
+                if (body) {
+                    console.error('Stripe Ping Error Body:', body);
+                    if (body.error) message = body.error;
+                    if (body.debug) console.log('Backend Debug Info:', body.debug);
+                }
+            } catch (e) { /* ignore */ }
+            throw new Error(message);
+        }
+        return data;
+    } catch (error) {
+        console.error('Stripe Ping Error:', error);
         throw error;
     }
 };
