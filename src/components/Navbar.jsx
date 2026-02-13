@@ -228,29 +228,42 @@ const Navbar = () => {
                             <Link to="/albums" className="mobile-nav-link" onClick={closeMenu}>
                                 <span className="mobile-nav-icon"><Image size={20} /></span> ALBUMS
                             </Link>
-                            <a href="/#how-it-works" className="mobile-nav-link" onClick={closeMenu}>
-                                <span className="mobile-nav-icon"><HelpCircle size={20} /></span> HOW IT WORKS
-                            </a>
-                            <a href="/#pricing" className="mobile-nav-link" onClick={closeMenu}>
-                                <span className="mobile-nav-icon"><HelpCircle size={20} /></span> PRICING
-                            </a>
 
-                            {user && (
-                                <button className="mobile-nav-link" onClick={navigateToDashboard} style={{ background: 'none', border: 'none', textAlign: 'left', font: 'inherit', padding: '1rem', width: '100%' }}>
-                                    <span className="mobile-nav-icon"><LayoutDashboard size={20} /></span> {profile?.role === 'admin' ? 'ADMIN CONSOLE' : 'DASHBOARD'}
-                                </button>
+                            {!user ? (
+                                <>
+                                    <a href="/#how-it-works" className="mobile-nav-link" onClick={closeMenu}>
+                                        <span className="mobile-nav-icon"><HelpCircle size={20} /></span> HOW IT WORKS
+                                    </a>
+                                    <a href="/#pricing" className="mobile-nav-link" onClick={closeMenu}>
+                                        <span className="mobile-nav-icon"><HelpCircle size={20} /></span> PRICING
+                                    </a>
+                                    <Link to="/cart" className="mobile-nav-link" onClick={closeMenu}>
+                                        <span className="mobile-nav-icon"><ShoppingCart size={20} /></span> CART {cartCount > 0 && <span className="cart-badge-mobile">{cartCount}</span>}
+                                    </Link>
+                                </>
+                            ) : (profile?.role === 'admin' || isProvider(profile?.role)) ? (
+                                <>
+                                    <button className="mobile-nav-link" onClick={navigateToDashboard} style={{ background: 'none', border: 'none', textAlign: 'left', font: 'inherit', padding: '1rem', width: '100%' }}>
+                                        <span className="mobile-nav-icon"><LayoutDashboard size={20} /></span> {profile?.role === 'admin' ? 'ADMIN CONSOLE' : 'DASHBOARD'}
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <Link to="/cart" className="mobile-nav-link" onClick={closeMenu}>
+                                        <span className="mobile-nav-icon"><ShoppingCart size={20} /></span> CART {cartCount > 0 && <span className="cart-badge-mobile">{cartCount}</span>}
+                                    </Link>
+                                    <button className="mobile-nav-link" onClick={navigateToDashboard} style={{ background: 'none', border: 'none', textAlign: 'left', font: 'inherit', padding: '1rem', width: '100%' }}>
+                                        <span className="mobile-nav-icon"><LayoutDashboard size={20} /></span> MY PURCHASES
+                                    </button>
+                                </>
                             )}
-
-                            <Link to="/cart" className="mobile-nav-link" onClick={closeMenu}>
-                                <span className="mobile-nav-icon"><ShoppingCart size={20} /></span> CART {cartCount > 0 && <span className="cart-badge-mobile">{cartCount}</span>}
-                            </Link>
                         </div>
 
                         {/* Auth Buttons */}
                         <div className="mobile-auth-section">
                             {user ? (
                                 <Button
-                                    variant="outline"
+                                    variant="orange"
                                     onClick={handleLogout}
                                     style={{ width: '100%', justifyContent: 'center' }}
                                 >
