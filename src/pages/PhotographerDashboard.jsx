@@ -225,7 +225,7 @@ const PhotographerDashboard = () => {
     return (
         <div className="dashboard-container">
             <header className="dashboard-header">
-                <h1>{profile?.role === 'admin' ? 'Admin Console' : 'Photographer Dashboard'}</h1>
+                <h1>{profile?.role === 'admin' ? 'Photographer Dashboard (Admin Mode)' : 'Photographer Dashboard'}</h1>
                 <div className="dashboard-actions">
                     <Button
                         variant="secondary"

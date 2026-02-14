@@ -7,6 +7,116 @@ import { calculateCommission } from '../config/platform';
 import { ShoppingBag, Camera, Download, Check, Landmark, Copy, Upload, MessageSquare, Image as ImageIcon, Loader } from 'lucide-react';
 import Toast from '../components/ui/Toast';
 
+const BankDetails = ({ photogId }) => {
+    const [details, setDetails] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [copied, setCopied] = useState(false);
+
+    useEffect(() => {
+        const fetchDetails = async () => {
+            try {
+                const { data, error } = await supabase.functions.invoke('stripe-service', {
+                    body: {
+                        action: 'get-bank-details',
+                        payload: { photographerId: photogId }
+                    }
+                });
+                if (error) throw error;
+                setDetails(data);
+            } catch (err) {
+                console.error("Error fetching bank details:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchDetails();
+    }, [photogId]);
+
+    const handleCopy = (text, field) => {
+        navigator.clipboard.writeText(text);
+        setCopied(field);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    if (loading) return <div className="mini-loader">Loading bank info...</div>;
+    if (!details) return null;
+
+    return (
+        <div className="pending-bank-details">
+            <p className="details-intro">Please make the transfer to the following details:</p>
+            <div className="bank-details-mini-grid">
+                {details.bank_name && (
+                    <div className="mini-detail">
+                        <label>Banque</label>
+                        <div className="copyable-row">
+                            <span>{details.bank_name}</span>
+                            <button className="mini-copy-icon" onClick={() => handleCopy(details.bank_name, 'bn')}>
+                                {copied === 'bn' ? <Check size={12} /> : <Copy size={12} />}
+                            </button>
+                        </div>
+                    </div>
+                )}
+                {details.account_holder && (
+                    <div className="mini-detail">
+                        <label>Titulaire</label>
+                        <div className="copyable-row">
+                            <span>{details.account_holder}</span>
+                            <button className="mini-copy-icon" onClick={() => handleCopy(details.account_holder, 'ah')}>
+                                {copied === 'ah' ? <Check size={12} /> : <Copy size={12} />}
+                            </button>
+                        </div>
+                    </div>
+                )}
+                {details.bank_code && (
+                    <div className="mini-detail">
+                        <label>Code Banque</label>
+                        <div className="copyable-row">
+                            <span>{details.bank_code}</span>
+                            <button className="mini-copy-icon" onClick={() => handleCopy(details.bank_code, 'bc')}>
+                                {copied === 'bc' ? <Check size={12} /> : <Copy size={12} />}
+                            </button>
+                        </div>
+                    </div>
+                )}
+                {details.account_number && (
+                    <div className="mini-detail">
+                        <label>N° Compte</label>
+                        <div className="copyable-row">
+                            <span>{details.account_number}</span>
+                            <button className="mini-copy-icon" onClick={() => handleCopy(details.account_number, 'an')}>
+                                {copied === 'an' ? <Check size={12} /> : <Copy size={12} />}
+                            </button>
+                        </div>
+                    </div>
+                )}
+                {details.rib && (
+                    <div className="mini-detail full">
+                        <label>IBAN / RIB</label>
+                        <div className="copyable-row">
+                            <span>{details.rib}</span>
+                            <button className="mini-copy-icon" onClick={() => handleCopy(details.rib, 'rib')}>
+                                {copied === 'rib' ? <Check size={12} /> : <Copy size={12} />}
+                            </button>
+                        </div>
+                    </div>
+                )}
+                {details.bank_details && (
+                    <div className="mini-detail full">
+                        <label>Instructions</label>
+                        <div className="copyable-row">
+                            <pre style={{ fontSize: '0.75rem', margin: 0 }}>{details.bank_details}</pre>
+                            <button className="mini-copy-icon" onClick={() => handleCopy(details.bank_details, 'desc')}>
+                                {copied === 'desc' ? <Check size={12} /> : <Copy size={12} />}
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+            <style>{`.mini-loader { font-size: 0.8rem; color: #94a3b8; padding: 1rem; text-align: center; }`}</style>
+        </div>
+    );
+};
+
 const RunnerProfile = () => {
     const { user } = useAuth();
     const [purchases, setPurchases] = useState([]);
@@ -88,7 +198,7 @@ const RunnerProfile = () => {
                     *,
                     albums:album_id (
                         *,
-                        profiles:photographer_id(full_name, bank_name, account_holder, bank_code, account_number, rib, bank_details)
+                        profiles:photographer_id(full_name)
                     )
                 `)
                 .eq('id', txId);
@@ -110,7 +220,7 @@ const RunnerProfile = () => {
                     *,
                     albums:album_id (
                         *,
-                        profiles:photographer_id(full_name, bank_name, account_holder, bank_code, account_number, rib, bank_details)
+                        profiles:photographer_id(full_name)
                     )
                 `)
                 .eq('stripe_payment_intent_id', sessionId);
@@ -131,7 +241,7 @@ const RunnerProfile = () => {
                   *,
                   albums:album_id (
                     *,
-                    profiles:photographer_id(full_name, bank_name, account_holder, bank_code, account_number, rib, bank_details)
+                    profiles:photographer_id(full_name)
                   )
                 `)
                 .eq('buyer_id', userId)
@@ -262,82 +372,8 @@ const RunnerProfile = () => {
                                             ⌛ <strong>Waiting for photographer to check payment status.</strong> Your photos will be revealed once confirmed.
                                         </p>
                                     </div>
-                                    {tx.albums?.profiles && (
-                                        <div className="pending-bank-details">
-                                            <p className="details-intro">Please make the transfer to the following details:</p>
-                                            <div className="bank-details-mini-grid">
-                                                {tx.albums.profiles.bank_name && (
-                                                    <div className="mini-detail">
-                                                        <label>Banque</label>
-                                                        <div className="copyable-row">
-                                                            <span>{tx.albums.profiles.bank_name}</span>
-                                                            <button
-                                                                className="mini-copy-icon"
-                                                                onClick={() => copyToClipboard(tx.albums.profiles.bank_name, 'Nom de la banque')}
-                                                            >
-                                                                <Copy size={12} />
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                                {tx.albums.profiles.account_holder && (
-                                                    <div className="mini-detail">
-                                                        <label>Titulaire</label>
-                                                        <div className="copyable-row">
-                                                            <span>{tx.albums.profiles.account_holder}</span>
-                                                            <button
-                                                                className="mini-copy-icon"
-                                                                onClick={() => copyToClipboard(tx.albums.profiles.account_holder, 'Titulaire')}
-                                                            >
-                                                                <Copy size={12} />
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                                {tx.albums.profiles.bank_code && (
-                                                    <div className="mini-detail">
-                                                        <label>Code Banque</label>
-                                                        <div className="copyable-row">
-                                                            <span>{tx.albums.profiles.bank_code}</span>
-                                                            <button
-                                                                className="mini-copy-icon"
-                                                                onClick={() => copyToClipboard(tx.albums.profiles.bank_code, 'Code banque')}
-                                                            >
-                                                                <Copy size={12} />
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                                {tx.albums.profiles.account_number && (
-                                                    <div className="mini-detail">
-                                                        <label>N° Compte</label>
-                                                        <div className="copyable-row">
-                                                            <span>{tx.albums.profiles.account_number}</span>
-                                                            <button
-                                                                className="mini-copy-icon"
-                                                                onClick={() => copyToClipboard(tx.albums.profiles.account_number, 'Account Number')}
-                                                            >
-                                                                <Copy size={12} />
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                                {tx.albums.profiles.rib && (
-                                                    <div className="mini-detail full">
-                                                        <label>IBAN / RIB</label>
-                                                        <div className="copyable-row">
-                                                            <span>{tx.albums.profiles.rib}</span>
-                                                            <button
-                                                                className="mini-copy-icon"
-                                                                onClick={() => copyToClipboard(tx.albums.profiles.rib, 'IBAN / RIB')}
-                                                            >
-                                                                <Copy size={12} />
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
+                                    {tx.albums?.profiles && tx.status === 'manual_pending' && (
+                                        <BankDetails photogId={tx.albums.photographer_id} />
                                     )}
 
                                     {tx.photographer_message && (
@@ -418,7 +454,8 @@ const RunnerProfile = () => {
                         </div>
                     ))}
                 </div>
-            )}
+            )
+            }
 
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
@@ -834,7 +871,7 @@ const RunnerProfile = () => {
                     }
                 }
             `}</style>
-        </div>
+        </div >
     );
 };
 

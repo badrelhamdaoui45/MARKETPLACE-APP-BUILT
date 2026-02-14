@@ -33,7 +33,7 @@ import FAQ from './pages/FAQ';
 import Footer from './components/Footer';
 
 import ProtectedRoute from './components/auth/ProtectedRoute';
-import './test-stripe-connection'; // Debugging Tool
+import './test-stripe-connection'; // Debugging Tool re-enabled for troubleshooting
 
 function App() {
   return (

@@ -19,8 +19,9 @@ const PaymentSettingsModal = ({ isOpen, onClose, profile, onSave }) => {
         setLoading(true);
         try {
             const { error } = await supabase
-                .from('profiles')
-                .update({
+                .from('photographer_private_data')
+                .upsert({
+                    id: profile.id,
                     bank_transfer_enabled: enabled,
                     bank_details: details,
                     bank_name: bankName,
@@ -28,8 +29,7 @@ const PaymentSettingsModal = ({ isOpen, onClose, profile, onSave }) => {
                     bank_code: bankCode,
                     account_number: accountNumber,
                     rib: rib
-                })
-                .eq('id', profile.id);
+                });
 
             if (error) throw error;
             onSave({

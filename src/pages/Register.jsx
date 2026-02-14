@@ -42,7 +42,11 @@ const Register = () => {
                 const target = action ? `${redirect}?action=${action}` : redirect;
                 navigate(target);
             } else {
-                navigate('/');
+                if (role === 'photographer') {
+                    navigate('/photographer/dashboard');
+                } else {
+                    navigate('/albums');
+                }
             }
         }
     };

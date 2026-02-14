@@ -31,7 +31,12 @@ serve(async (req) => {
 
         // --- AUTHENTICATION & AUTHORIZATION ---
         const authHeader = req.headers.get('Authorization')
-        if (!authHeader && action !== 'create-checkout-session' && action !== 'get-download-urls') {
+
+        console.log(`Action: ${action}, Auth Header present: ${!!authHeader}`)
+
+        const isPublicAction = ['create-checkout-session', 'get-download-urls', 'ping'].includes(action)
+
+        if (!authHeader && !isPublicAction) {
             return new Response(JSON.stringify({ error: 'Missing Authorization header' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
         }
 
@@ -39,32 +44,29 @@ serve(async (req) => {
         let user: any = null;
         if (authHeader) {
             const token = authHeader.replace(/^Bearer\s+/i, "")
+            console.log(`Token received: ${token.substring(0, 15)}...`)
 
-            // Try identifying with service client (more authoritative)
+            // Try identifying with service client
             const { data: { user: authUser }, error: authError } = await serviceClient.auth.getUser(token)
 
             if (authError || !authUser) {
-                console.error('Auth Error:', authError);
+                console.error('Auth User Check Failed:', JSON.stringify(authError));
 
-                // Public-facing actions (guest checkout / download)
+                // Public-facing actions
                 const isPublicAction = ['create-checkout-session', 'get-download-urls'].includes(action)
                 if (!isPublicAction) {
                     return new Response(JSON.stringify({
-                        error: `AUTH FAIL: ${authError?.message || 'No user found - Token Invalid'}`,
-                        details: authError,
+                        error: `AUTH FAIL: ${authError?.message || 'No user found'}`,
+                        code: 401,
                         debug: {
-                            hasAuthHeader: !!authHeader,
-                            authHeaderLen: authHeader?.length,
-                            tokenStart: token?.substring(0, 10),
-                            env: {
-                                hasUrl: !!Deno.env.get('SUPABASE_URL'),
-                                hasServiceKey: !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),
-                                hasAnonKey: !!Deno.env.get('SUPABASE_ANON_KEY')
-                            }
+                            action,
+                            hasToken: !!token,
+                            tokenStart: token?.substring(0, 10)
                         }
                     }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
                 }
             } else {
+                console.log(`Authenticated as: ${authUser.email}`)
                 user = authUser;
             }
         }
@@ -92,13 +94,19 @@ serve(async (req) => {
             const { accountId } = payload
             if (!accountId) throw new Error('accountId is required for this action')
 
-            const { data: profile } = await serviceClient
-                .from('profiles')
-                .select('stripe_account_id, role')
+            const { data: privData } = await serviceClient
+                .from('photographer_private_data')
+                .select('stripe_account_id')
                 .eq('id', user.id)
                 .single()
 
-            if (!profile || (profile.stripe_account_id !== accountId && profile.role !== 'admin')) {
+            const { data: profile } = await serviceClient
+                .from('profiles')
+                .select('role')
+                .eq('id', user.id)
+                .single()
+
+            if (!privData || (privData.stripe_account_id !== accountId && profile?.role !== 'admin')) {
                 return new Response(JSON.stringify({ error: 'Forbidden: You do not own this Stripe account' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
             }
         }
@@ -159,7 +167,7 @@ serve(async (req) => {
                 } = payload
 
                 const { data: photographer, error: pError } = await serviceClient
-                    .from('profiles')
+                    .from('photographer_private_data')
                     .select('stripe_account_id')
                     .eq('id', photographerId)
                     .single()

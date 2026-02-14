@@ -47,8 +47,12 @@ export const createConnectedAccount = async (userId) => {
 
         if (error) throw error;
 
-        // Save account ID to profile
-        await supabase.from('profiles').update({ stripe_account_id: data.id }).eq('id', userId);
+        // Save account ID to private data table
+        await supabase.from('photographer_private_data').upsert({
+            id: userId,
+            stripe_account_id: data.id,
+            updated_at: new Date().toISOString()
+        });
 
         return data;
     } catch (error) {

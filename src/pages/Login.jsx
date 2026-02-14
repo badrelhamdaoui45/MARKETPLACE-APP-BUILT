@@ -1,10 +1,10 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import '../components/ui/ui.css';
+import { supabase } from '../lib/supabase';
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -18,11 +18,12 @@ const Login = () => {
         e.preventDefault();
         setError('');
         setLoading(true);
-        const { error } = await signIn(email, password);
-        if (error) {
-            setError(error.message);
+        const { data, error: loginError } = await signIn(email, password);
+
+        if (loginError) {
+            setError(loginError.message);
             setLoading(false);
-        } else {
+        } else if (data?.user) {
             const params = new URLSearchParams(window.location.search);
             const redirect = params.get('redirect');
             const action = params.get('action');
@@ -31,7 +32,27 @@ const Login = () => {
                 const target = action ? `${redirect}?action=${action}` : redirect;
                 navigate(target);
             } else {
-                navigate('/');
+                // Fetch user role for specific redirection
+                try {
+                    const { data: profile, error: profileError } = await supabase
+                        .from('profiles')
+                        .select('role')
+                        .eq('id', data.user.id)
+                        .single();
+
+                    if (profileError) throw profileError;
+
+                    if (profile.role === 'admin') {
+                        navigate('/admin');
+                    } else if (profile.role === 'photographer') {
+                        navigate('/photographer/dashboard');
+                    } else {
+                        navigate('/albums');
+                    }
+                } catch (err) {
+                    console.error("Error fetching role for redirect:", err);
+                    navigate('/'); // Fallback to home
+                }
             }
         }
     };
