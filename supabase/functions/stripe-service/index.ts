@@ -34,7 +34,19 @@ serve(async (req) => {
 
         console.log(`Action: ${action}, Auth Header present: ${!!authHeader}`)
 
-        const isPublicAction = ['create-checkout-session', 'get-download-urls', 'ping'].includes(action)
+        // Skip auth for ping action (admin testing)
+        if (action === 'ping') {
+            return new Response(
+                JSON.stringify({
+                    message: 'pong',
+                    timestamp: new Date().toISOString(),
+                    status: 'Stripe backend is reachable'
+                }),
+                { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            )
+        }
+
+        const isPublicAction = ['create-checkout-session', 'get-download-urls'].includes(action)
 
         if (!authHeader && !isPublicAction) {
             return new Response(JSON.stringify({ error: 'Missing Authorization header' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
@@ -69,22 +81,6 @@ serve(async (req) => {
                 console.log(`Authenticated as: ${authUser.email}`)
                 user = authUser;
             }
-        }
-
-        // Handle ping after auth
-        if (action === 'ping') {
-            return new Response(
-                JSON.stringify({
-                    message: 'pong',
-                    user: user ? { email: user.email, id: user.id } : 'Anonymous',
-                    timestamp: new Date().toISOString(),
-                    debug: {
-                        authResult: user ? 'Identified' : 'Anonymous',
-                        tokenUsed: !!authHeader
-                    }
-                }),
-                { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            )
         }
 
         // For connected account actions, verify ownership

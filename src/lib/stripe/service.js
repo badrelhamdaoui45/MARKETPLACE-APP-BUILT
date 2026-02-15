@@ -1,5 +1,6 @@
 import { loadStripe } from '@stripe/stripe-js';
 import { supabase } from '../supabase';
+import { createClient } from '@supabase/supabase-js';
 
 const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
 
@@ -234,26 +235,30 @@ export const getPayoutHistory = async (accountId, limit = 10) => {
 
 /**
  * INVOKE SECURE BACKEND: Ping (Connectivity Test)
+ * Uses direct fetch to ensure no JWT is attached by the Supabase SDK.
  */
 export const pingStripe = async () => {
     try {
-        const { data, error: invokeError } = await invokeHelper('stripe-service', {
-            body: { action: 'ping', payload: {} }
+        const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-service`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
+            },
+            body: JSON.stringify({
+                action: 'ping',
+                payload: {}
+            })
         });
 
-        if (invokeError) {
-            console.error('Stripe Ping Invoke Error Details:', invokeError);
-            let message = invokeError.message;
-            try {
-                const body = await invokeError.context?.json();
-                if (body) {
-                    console.error('Stripe Ping Error Body:', body);
-                    if (body.error) message = body.error;
-                    if (body.debug) console.log('Backend Debug Info:', body.debug);
-                }
-            } catch (e) { /* ignore */ }
-            throw new Error(message);
+        const data = await response.json();
+
+        if (!response.ok) {
+            console.error('Stripe Ping Invoke Error Details:', data);
+            throw new Error(data.error || `HTTP ${response.status}`);
         }
+
         return data;
     } catch (error) {
         console.error('Stripe Ping Error:', error);

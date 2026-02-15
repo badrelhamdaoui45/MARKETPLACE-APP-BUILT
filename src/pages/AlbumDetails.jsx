@@ -7,7 +7,7 @@ import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import { ArrowLeft, Trash2, Upload, Eye, EyeOff, Share2, Copy, Check, Hash, Edit2, Save, X } from 'lucide-react';
 import Toast from '../components/ui/Toast';
-import { detectBibs } from '../lib/gemini';
+import { detectBibsBatch } from '../lib/gemini';
 import { slugify } from '../utils/slugify';
 import SubscribersModal from '../components/ui/SubscribersModal';
 import SkeletonPage from '../components/ui/SkeletonPage';
@@ -357,20 +357,56 @@ const AlbumDetails = () => {
         let errorCount = 0;
 
         try {
-            for (const photo of photos) {
-                const detected = await detectBibs(photo.watermarked_url);
+            // Batch size of 10 to stay within free tier limits and multimodal capacity
+            const batchSize = 10;
+            for (let i = 0; i < photos.length; i += batchSize) {
+                const batch = photos.slice(i, i + batchSize);
+                const imageUrls = batch.map(p => p.watermarked_url || p.photo_url);
 
-                if (detected && detected.length > 0) {
-                    const { error } = await supabase
-                        .from('photos')
-                        .update({ bib_numbers: detected })
-                        .eq('id', photo.id);
+                console.log(`[Batch AI] Scanning ${batch.length} photos (Index ${i} to ${i + batchSize - 1})...`);
 
-                    if (!error) successCount++;
-                    else errorCount++;
+                try {
+                    const resultsMapping = await detectBibsBatch(imageUrls);
+                    console.log(`[Batch AI] Results received:`, resultsMapping);
+
+                    // Process each photo in the batch
+                    for (let j = 0; j < batch.length; j++) {
+                        const photo = batch[j];
+                        const detected = resultsMapping[j.toString()] || [];
+
+                        if (detected && detected.length > 0) {
+                            const { error } = await supabase
+                                .from('photos')
+                                .update({ bib_numbers: detected })
+                                .eq('id', photo.id);
+
+                            if (!error) {
+                                console.log(`[DB] Saved bibs for ${photo.id}:`, detected);
+                                successCount++;
+                                // Real-time UI update
+                                setPhotos(prev => prev.map(p =>
+                                    p.id === photo.id ? { ...p, bib_numbers: detected } : p
+                                ));
+                            } else {
+                                console.error(`[DB] Error saving bibs for ${photo.id}:`, error);
+                                errorCount++;
+                            }
+                        }
+                    }
+                } catch (batchErr) {
+                    console.error(`[Batch AI] Failed processing batch starting at ${i}:`, batchErr);
+                    errorCount += batch.length;
+
+                    // If it's a 429, we should probably stop the whole process
+                    if (batchErr.message?.includes('429') || batchErr.message?.includes('quota')) {
+                        throw new Error("API Quota exceeded. Please wait a few minutes before trying again.");
+                    }
                 }
 
-                await new Promise(r => setTimeout(r, 1000));
+                // Small delay between batches to be safe
+                if (i + batchSize < photos.length) {
+                    await new Promise(r => setTimeout(r, 2000));
+                }
             }
 
             // USER REQUEST: Show MODULE (Modal) for results, not Alert/Toast
@@ -394,7 +430,11 @@ const AlbumDetails = () => {
                 });
             }
 
-            fetchAlbumDetails();
+            setToast({
+                message: `Detection complete! ${successCount} photos updated with bib numbers.`,
+                type: 'success'
+            });
+            console.log(`[AI] Batch detection process finished. Persistence verified through real-time state updates.`);
         } catch (error) {
             console.error("Batch detection error:", error);
             setToast({
@@ -915,27 +955,29 @@ const AlbumDetails = () => {
                                             alt={photo.title}
                                             className="manage-photo-img"
                                         />
-                                        {photo.bib_numbers && photo.bib_numbers.length > 0 && (
+                                        <div className="manage-overlay">
+                                            <div className="photo-info-overlay">
+                                                <span className="photo-name">{photo.title}</span>
+                                            </div>
+                                            <Button
+                                                variant="danger"
+                                                size="sm"
+                                                onClick={() => handleDeletePhoto(photo.id, photo.title)}
+                                                className="delete-btn"
+                                            >
+                                                <Trash2 size={14} style={{ marginRight: '4px' }} /> Delete
+                                            </Button>
+                                        </div>
+                                    </div>
+                                    {photo.bib_numbers && photo.bib_numbers.length > 0 && (
+                                        <div className="photo-bottom-info">
                                             <div className="bib-tags">
                                                 {photo.bib_numbers.map((bib, i) => (
                                                     <span key={i} className="bib-tag">#{bib}</span>
                                                 ))}
                                             </div>
-                                        )}
-                                    </div>
-                                    <div className="manage-overlay">
-                                        <div className="photo-info-overlay">
-                                            <span className="photo-name">{photo.title}</span>
                                         </div>
-                                        <Button
-                                            variant="danger"
-                                            size="sm"
-                                            onClick={() => handleDeletePhoto(photo.id, photo.title)}
-                                            className="delete-btn"
-                                        >
-                                            <Trash2 size={14} style={{ marginRight: '4px' }} /> Delete
-                                        </Button>
-                                    </div>
+                                    )}
                                 </div>
                             ))}
                         </div>
@@ -1634,25 +1676,37 @@ const AlbumDetails = () => {
                     border-radius: 12px;
                     border: 1px solid #ffedd5;
                 }
+                .photo-bottom-info {
+                    padding: 0.25rem 0.75rem 0.6rem; 
+                    background: white;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.5rem;
+                }
+
                 .bib-tags {
-                    position: absolute;
-                    top: 8px;
-                    left: 8px;
                     display: flex;
                     flex-wrap: wrap;
-                    gap: 4px;
-                    z-index: 5;
+                    gap: 6px;
+                    margin-top: 2px;
                 }
 
                 .bib-tag {
-                    background: rgba(15, 23, 42, 0.8);
+                    background: #ea580c;
                     color: white;
-                    padding: 2px 6px;
-                    border-radius: 4px;
-                    font-size: 0.7rem;
-                    font-weight: 700;
-                    backdrop-filter: blur(4px);
-                    border: 1px solid rgba(255, 255, 255, 0.2);
+                    padding: 4px 10px;
+                    border-radius: 4px; /* More "rectangular" */
+                    font-size: 0.85rem;
+                    font-weight: 800;
+                    border: none;
+                    transition: all 0.2s ease;
+                    box-shadow: 0 2px 4px rgba(234, 88, 12, 0.2);
+                }
+
+                .bib-tag:hover {
+                    background: #f97316;
+                    transform: translateY(-1px);
+                    box-shadow: 0 4px 8px rgba(234, 88, 12, 0.3);
                 }
 
                 .detect-bibs-btn {

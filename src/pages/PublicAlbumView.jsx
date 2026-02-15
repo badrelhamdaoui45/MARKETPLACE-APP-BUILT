@@ -5,7 +5,7 @@ import Button from '../components/ui/Button';
 import { calculateCommission } from '../config/platform';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { ShoppingCart, Check, Plus, Lock, X, ZoomIn, ChevronLeft, ChevronRight, Gift } from 'lucide-react';
+import { ShoppingCart, Check, Plus, Lock, X, ZoomIn, ChevronLeft, ChevronRight, Gift, Search, Tag, ChevronDown, ChevronUp } from 'lucide-react';
 import DynamicPopup from '../components/DynamicPopup';
 import SkeletonAlbumView from '../components/ui/SkeletonAlbumView';
 
@@ -20,6 +20,8 @@ const PublicAlbumView = () => {
     const [loading, setLoading] = useState(true);
     const [isClaiming, setIsClaiming] = useState(false);
     const [selectedPhotoForView, setSelectedPhotoForView] = useState(null); // Lightbox state
+    const [bibSearch, setBibSearch] = useState('');
+    const [isPricingExpanded, setIsPricingExpanded] = useState(false);
 
     // Cart Interaction
     const { addToCart, removeFromCart, isInCart, cartItems, updateCartPackage } = useCart();
@@ -218,6 +220,10 @@ const PublicAlbumView = () => {
     const pkgName = getPackageName();
     const hasPackages = packages.length > 0;
 
+    const filteredPhotos = bibSearch.trim() === ''
+        ? photos
+        : photos.filter(p => p.bib_numbers?.some(b => b.includes(bibSearch.trim())));
+
     return (
         <div className="album-view-container">
             {album.pre_inscription_enabled ? (
@@ -280,181 +286,236 @@ const PublicAlbumView = () => {
                     </div>
                 </div>
             ) : (
-                <div className="album-content-layout">
-
-                    {/* Left/Top: Photos Grid */}
-                    <div className="photos-section">
-                        <div className="album-header">
-                            <h1 className="album-title">{album.title}</h1>
-                            <div className="photographer-info-row">
-                                {album.profiles?.logo_url && (
-                                    <img
-                                        src={album.profiles.logo_url}
-                                        alt={album.profiles.full_name}
-                                        className="photographer-logo-small"
-                                    />
-                                )}
-                                <p className="album-author">
-                                    by <Link to={`/photographer/${encodeURIComponent(album.profiles?.full_name)}`} className="photographer-link">
-                                        {album.profiles?.full_name}
-                                    </Link>
-                                </p>
-                            </div>
-
-                            {album.is_free && (
-                                <div className="free-album-banner">
-                                    <div className="banner-content">
-                                        <Gift size={18} />
-                                        <span>THIS ALBUM IS COMPLETELY <strong>FREE</strong></span>
-                                    </div>
-                                </div>
+                <>
+                    <div className="album-header">
+                        <h1 className="album-title">{album.title}</h1>
+                        <div className="photographer-info-row">
+                            {album.profiles?.logo_url && (
+                                <img
+                                    src={album.profiles.logo_url}
+                                    alt={album.profiles.full_name}
+                                    className="photographer-logo-small"
+                                />
                             )}
-
-                            <div className="selection-hint">
-                                <span className="hint-icon"><ShoppingCart size={16} /></span>
-                                Click the button below photos to add to cart
-                            </div>
-                        </div>
-
-                        <div className="photos-grid">
-                            {photos.map(photo => {
-                                const selected = isInCart(photo.id);
-                                return (
-                                    <div key={photo.id} className="photo-card-wrapper">
-                                        <div
-                                            onClick={() => setSelectedPhotoForView(photo)}
-                                            className={`photo-item ${selected ? 'selected' : ''}`}
-                                        >
-                                            <img
-                                                src={photo.watermarked_url}
-                                                alt={photo.title}
-                                                loading="lazy"
-                                            />
-
-                                            {/* Zoom Overlay */}
-                                            <div className="photo-view-overlay">
-                                                <div className="zoom-icon-wrapper">
-                                                    <ZoomIn size={24} strokeWidth={2.5} />
-                                                </div>
-                                            </div>
-
-                                            {selected && <div className="selected-status-badge"><Check size={12} /></div>}
-                                            {selected && <div className="selected-border" />}
-                                        </div>
-                                        <div className="photo-actions">
-                                            <Button
-                                                variant="outline"
-                                                className={`add-to-cart-btn action-btn cart-btn-grid ${selected ? 'in-cart' : ''}`}
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    const btn = e.currentTarget;
-                                                    btn.classList.add('animate-orange');
-                                                    setTimeout(() => btn.classList.remove('animate-orange'), 600);
-                                                    toggleCartItem(photo);
-                                                }}
-                                            >
-                                                {selected ? 'Remove from Cart' : 'Add to Cart'}
-                                            </Button>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    {/* Right/Bottom: Purchase Card */}
-                    <div className="purchase-card-container">
-                        <div className="purchase-card">
-                            <div className="purchase-header">
-                                <h2 className="package-name">{pkgName}</h2>
-                                <p className="package-description">
-                                    {selectedPackage && selectedPackage.description}
-                                </p>
-                            </div>
-
-                            {packages.length > 1 && (
-                                <div className="package-selector-section">
-                                    <p className="selector-label">SELECT A PACKAGE</p>
-                                    <div className="package-options-grid">
-                                        {packages.map(pkg => (
-                                            <button
-                                                key={pkg.id}
-                                                className={`pkg-option-btn ${selectedPackage?.id === pkg.id ? 'active' : ''}`}
-                                                onClick={() => handlePackageChange(pkg)}
-                                            >
-                                                <span className="pkg-opt-name">{pkg.name}</span>
-                                                <span className={`pkg-opt-type ${pkg.package_type}`}>{pkg.package_type}</span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className="purchase-details">
-                                <div className="detail-row">
-                                    <span>Selected (this album)</span>
-                                    <span className="detail-value">{selectionCount} photos</span>
-                                </div>
-
-                                {/* Show Tiers Info */}
-                                {selectedPackage && selectedPackage.tiers && (
-                                    <div className="pricing-tiers">
-                                        <p className="tiers-title">Volume Discounts:</p>
-                                        <div className="tiers-list">
-                                            {selectedPackage.tiers.sort((a, b) => a.quantity - b.quantity).map((tier, i) => (
-                                                <div key={i} className="tier-item">
-                                                    <span>{tier.quantity}+ Photos</span>
-                                                    <span className="tier-price">{tier.price} <small>/photo</small></span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {!selectedPackage && (
-                                    <p className="package-description">
-                                        Full album access for {album.price}€
-                                    </p>
-                                )}
-                                <div className="price-divider"></div>
-
-                                <div className="total-price-row">
-                                    <span>Subtotal</span>
-                                    <span className="total-amount">{finalPrice}</span>
-                                </div>
-                            </div>
-
-                            <Button
-                                className="buy-button action-btn"
-                                onClick={() => navigate('/cart')}
-                            >
-                                <ShoppingCart size={20} style={{ marginRight: '8px' }} />
-                                View Cart ({cartItems.length})
-                            </Button>
-
-                            {album.is_free && (
-                                <div className="free-claim-wrapper">
-                                    <div className="claim-divider">
-                                        <span>OR</span>
-                                    </div>
-                                    <Button
-                                        className="free-claim-btn"
-                                        onClick={handleClaimFree}
-                                        disabled={isClaiming}
-                                    >
-                                        <Gift size={20} />
-                                        {isClaiming ? 'Loading...' : 'CLAIM EVERYTHING FOR FREE'}
-                                    </Button>
-                                    <p className="free-disclaimer">Access all photos without paying.</p>
-                                </div>
-                            )}
-
-                            <p className="payment-note">
-                                <Lock size={12} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> Secure payment via Stripe
+                            <p className="album-author">
+                                by <Link to={`/photographer/${encodeURIComponent(album.profiles?.full_name)}`} className="photographer-link">
+                                    {album.profiles?.full_name}
+                                </Link>
                             </p>
                         </div>
+
+                        {album.is_free && (
+                            <div className="free-album-banner">
+                                <div className="banner-content">
+                                    <Gift size={18} />
+                                    <span>THIS ALBUM IS COMPLETELY <strong>FREE</strong></span>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="selection-hint">
+                            <span className="hint-icon"><ShoppingCart size={16} /></span>
+                            Click the button below photos to add to cart
+                        </div>
                     </div>
-                </div>
+
+                    <div className="album-content-layout">
+                        {/* Left/Top: Photos Grid */}
+                        <div className="photos-section">
+
+                            <div className="photos-grid">
+                                {filteredPhotos.map(photo => {
+                                    const selected = isInCart(photo.id);
+                                    return (
+                                        <div key={photo.id} className="photo-card-wrapper">
+                                            <div
+                                                onClick={() => setSelectedPhotoForView(photo)}
+                                                className={`photo-item ${selected ? 'selected' : ''}`}
+                                            >
+                                                <img
+                                                    src={photo.watermarked_url}
+                                                    alt={photo.title}
+                                                    loading="lazy"
+                                                />
+
+                                                {/* Zoom Overlay */}
+                                                <div className="photo-view-overlay">
+                                                    <div className="zoom-icon-wrapper">
+                                                        <ZoomIn size={24} strokeWidth={2.5} />
+                                                    </div>
+                                                </div>
+
+                                                {selected && <div className="selected-status-badge"><Check size={12} /></div>}
+                                                {selected && <div className="selected-border" />}
+                                            </div>
+                                            {photo.bib_numbers && photo.bib_numbers.length > 0 && (
+                                                <div className="photo-bottom-info">
+                                                    <div className="bib-tags">
+                                                        {photo.bib_numbers.map((bib, i) => (
+                                                            <span key={i} className="bib-tag">#{bib}</span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            <div className="photo-actions">
+                                                <Button
+                                                    variant="outline"
+                                                    className={`add-to-cart-btn action-btn cart-btn-grid ${selected ? 'in-cart' : ''}`}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        const btn = e.currentTarget;
+                                                        btn.classList.add('animate-orange');
+                                                        setTimeout(() => btn.classList.remove('animate-orange'), 600);
+                                                        toggleCartItem(photo);
+                                                    }}
+                                                >
+                                                    {selected ? 'Remove from Cart' : 'Add to Cart'}
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Right/Bottom: Purchase Card */}
+                        <div className="purchase-card-container">
+                            <div className="purchase-card">
+                                <div className="purchase-header compact">
+                                    <p className="package-description">
+                                        {selectedPackage && selectedPackage.description}
+                                    </p>
+                                </div>
+
+                                {/* SEARCH BY BIB */}
+                                <div className="bib-search-container">
+                                    <div className="search-input-wrapper">
+                                        <Search size={18} className="search-icon" />
+                                        <input
+                                            type="text"
+                                            placeholder="Search by Bib (e.g. 123)"
+                                            className="bib-search-input"
+                                            value={bibSearch}
+                                            onChange={(e) => setBibSearch(e.target.value)}
+                                        />
+                                        {bibSearch && (
+                                            <button
+                                                className="clear-search-btn"
+                                                onClick={() => setBibSearch('')}
+                                            >
+                                                <X size={14} />
+                                            </button>
+                                        )}
+                                    </div>
+                                    {bibSearch && filteredPhotos.length === 0 && (
+                                        <p className="search-no-results">No photos found with bib #{bibSearch}</p>
+                                    )}
+                                </div>
+
+
+                                {/* PRICING ACCORDION */}
+                                <div className="pricing-accordion-container">
+                                    <button
+                                        className={`pricing-toggle-btn ${isPricingExpanded ? 'active' : ''}`}
+                                        onClick={() => setIsPricingExpanded(!isPricingExpanded)}
+                                    >
+                                        <div className="toggle-left">
+                                            <Tag size={16} className="pricing-icon" />
+                                            <span>Pricing</span>
+                                        </div>
+                                        {isPricingExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                                    </button>
+
+                                    {isPricingExpanded && (
+                                        <div className="purchase-details-panel">
+                                            <div className="purchase-details">
+                                                {packages.length > 1 && (
+                                                    <div className="package-selector-section dropdown-theme" style={{ marginBottom: '1rem' }}>
+                                                        <p className="selector-label">PACKAGE</p>
+                                                        <select
+                                                            className="package-dropdown-select"
+                                                            value={selectedPackage?.id || ''}
+                                                            onChange={(e) => {
+                                                                const pkg = packages.find(p => p.id === e.target.value);
+                                                                if (pkg) handlePackageChange(pkg);
+                                                            }}
+                                                        >
+                                                            {packages.map(pkg => (
+                                                                <option key={pkg.id} value={pkg.id}>
+                                                                    {pkg.name} — {pkg.package_type.toUpperCase()}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                )}
+                                                <div className="detail-row">
+                                                    <span>Selected (this album)</span>
+                                                    <span className="detail-value">{selectionCount} photos</span>
+                                                </div>
+
+                                                {/* Show Tiers Info */}
+                                                {selectedPackage && selectedPackage.tiers && (
+                                                    <div className="pricing-tiers">
+                                                        <p className="tiers-title">Volume Discounts:</p>
+                                                        <div className="tiers-list">
+                                                            {selectedPackage.tiers.sort((a, b) => a.quantity - b.quantity).map((tier, i) => (
+                                                                <div key={i} className="tier-item">
+                                                                    <span>{tier.quantity}+ Photos</span>
+                                                                    <span className="tier-price">{tier.price} <small>/photo</small></span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {!selectedPackage && (
+                                                    <p className="package-description">
+                                                        Full album access for {album.price}€
+                                                    </p>
+                                                )}
+                                                <div className="price-divider"></div>
+
+                                                <div className="total-price-row">
+                                                    <span>Subtotal</span>
+                                                    <span className="total-amount">{finalPrice}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <Button
+                                    className="buy-button action-btn"
+                                    onClick={() => navigate('/cart')}
+                                >
+                                    <ShoppingCart size={20} style={{ marginRight: '8px' }} />
+                                    View Cart ({cartItems.length})
+                                </Button>
+
+                                {album.is_free && (
+                                    <div className="free-claim-wrapper">
+                                        <div className="claim-divider">
+                                            <span>OR</span>
+                                        </div>
+                                        <Button
+                                            className="free-claim-btn"
+                                            onClick={handleClaimFree}
+                                            disabled={isClaiming}
+                                        >
+                                            <Gift size={20} />
+                                            {isClaiming ? 'Loading...' : 'CLAIM EVERYTHING FOR FREE'}
+                                        </Button>
+                                        <p className="free-disclaimer">Access all photos without paying.</p>
+                                    </div>
+                                )}
+
+                                <p className="payment-note">
+                                    <Lock size={12} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> Secure payment via Stripe
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </>
             )}
 
             <style>{`
@@ -643,7 +704,20 @@ const PublicAlbumView = () => {
                 }
 
                 .album-header {
-                    margin-bottom: var(--spacing-xl);
+                    margin-bottom: 2rem;
+                    max-width: 100%;
+                }
+
+                @media (max-width: 1024px) {
+                    .album-header {
+                        text-align: center;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                    }
+                    .photographer-info-row {
+                        justify-content: center !important;
+                    }
                 }
 
                 .album-title {
@@ -967,30 +1041,180 @@ const PublicAlbumView = () => {
 
                 .purchase-card {
                     background: var(--bg-primary);
-                    padding: var(--spacing-xl);
+                    padding: 1.25rem;
                     border-radius: var(--radius-xl);
                     border: 1px solid var(--border-light);
                     box-shadow: var(--shadow-lg);
                     position: sticky;
                     top: 100px;
+                    max-width: 320px;
                 }
 
-                .package-name {
-                    font-size: var(--font-size-xl);
-                    margin-bottom: var(--spacing-sm);
+                .purchase-header.compact {
+                    margin-bottom: 1rem;
                 }
 
                 .package-description {
-                    font-size: var(--font-size-sm);
+                    font-size: 0.8rem;
                     color: var(--text-secondary);
-                    margin-bottom: var(--spacing-lg);
+                    margin-bottom: 0.5rem;
+                    line-height: 1.4;
+                }
+
+                .package-dropdown-select {
+                    width: 100%;
+                    padding: 10px 14px;
+                    background: #f8fafc;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 10px;
+                    font-size: 0.9rem;
+                    font-weight: 700;
+                    color: #1e293b;
+                    cursor: pointer;
+                    appearance: none;
+                    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+                    background-repeat: no-repeat;
+                    background-position: right 12px center;
+                }
+
+                .package-dropdown-select:focus {
+                    border-color: var(--primary-blue);
+                    outline: none;
+                    background-color: white;
                 }
 
                 .purchase-details {
                     background: var(--bg-secondary);
-                    padding: var(--spacing-lg);
+                    padding: 1rem;
                     border-radius: var(--radius-lg);
-                    margin-bottom: var(--spacing-xl);
+                    margin-bottom: 0; /* Handled by container */
+                }
+
+                .pricing-accordion-container {
+                    margin-top: 1rem;
+                    margin-bottom: 1.25rem;
+                }
+
+                .pricing-toggle-btn {
+                    width: 100%;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 12px 14px;
+                    background: white;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 12px;
+                    font-size: 0.9rem;
+                    font-weight: 700;
+                    color: var(--text-primary);
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    margin-bottom: 0.5rem;
+                }
+
+                .pricing-toggle-btn:hover {
+                    background: #f8fafc;
+                    border-color: #cbd5e1;
+                }
+
+                .pricing-toggle-btn.active {
+                    background: #eff6ff;
+                    border-color: var(--primary-blue);
+                    color: var(--primary-blue);
+                    margin-bottom: 0.75rem;
+                }
+
+                .toggle-left {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                }
+
+                .pricing-icon {
+                    color: #ea580c;
+                }
+
+                .purchase-details-panel {
+                    animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+                }
+
+                @keyframes slideDown {
+                    from { opacity: 0; transform: translateY(-10px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+
+                .bib-search-container {
+                    margin-bottom: 1.5rem;
+                    padding: 4px;
+                }
+
+                .search-input-wrapper {
+                    position: relative;
+                    display: flex;
+                    align-items: center;
+                }
+
+                .search-icon {
+                    position: absolute;
+                    left: 14px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    color: #94a3b8;
+                    pointer-events: none;
+                    z-index: 2;
+                }
+
+                .bib-search-input {
+                    width: 100%;
+                    padding: 12px 16px 12px 52px !important;
+                    background: #f8fafc;
+                    border: 2px solid #f1f5f9;
+                    border-radius: 12px;
+                    font-size: 0.95rem;
+                    font-weight: 600;
+                    color: #1e293b;
+                    transition: all 0.2s;
+                    outline: none;
+                }
+
+                .bib-search-input:focus {
+                    border-color: #ea580c; /* Orange focus */
+                    background: white;
+                    box-shadow: 0 0 0 4px rgba(234, 88, 12, 0.1);
+                }
+
+                .bib-search-input::placeholder {
+                    color: #94a3b8;
+                    font-weight: 500;
+                }
+
+                .clear-search-btn {
+                    position: absolute;
+                    right: 8px;
+                    width: 24px;
+                    height: 24px;
+                    border-radius: 50%;
+                    background: #e2e8f0;
+                    color: #64748b;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border: none;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }
+
+                .clear-search-btn:hover {
+                    background: #cbd5e1;
+                    color: #1e293b;
+                }
+
+                .search-no-results {
+                    font-size: 0.75rem;
+                    color: #ef4444;
+                    margin-top: 0.5rem;
+                    font-weight: 600;
+                    text-align: center;
                 }
 
                 .detail-row {
@@ -1216,7 +1440,7 @@ const PublicAlbumView = () => {
                         max-width: 100%;
                         gap: 1.5rem;
                         display: flex;
-                        flex-direction: column;
+                        flex-direction: column-reverse; /* Reorder: Pricing on Top */
                         margin: 0 auto;
                     }
 
@@ -1394,6 +1618,62 @@ const PublicAlbumView = () => {
                     color: var(--text-secondary);
                     margin: 0;
                 }
+                .photo-bottom-info {
+                    padding: 0.15rem 0.25rem 0.4rem;
+                    background: transparent;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.3rem;
+                }
+
+                .bib-tags {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 4px;
+                    margin-top: 0;
+                }
+
+                .bib-tag {
+                    background: #ea580c;
+                    color: white;
+                    padding: 2px 8px; /* Slightly smaller padding */
+                    border-radius: 4px;
+                    font-size: 0.7rem; /* Reduced font size from 0.8rem */
+                    font-weight: 800;
+                    border: none;
+                    transition: all 0.2s ease;
+                    box-shadow: 0 1px 3px rgba(234, 88, 12, 0.2);
+                }
+
+                .bib-tag:hover {
+                    background: #f97316;
+                    transform: translateY(-1px);
+                }
+
+                .lightbox-image-wrapper {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 1.5rem;
+                    max-width: 90%;
+                    max-height: 85vh;
+                }
+
+                .lightbox-bib-tags {
+                    display: flex;
+                    gap: 0.75rem;
+                    flex-wrap: wrap;
+                    justify-content: center;
+                }
+
+                .bib-tag.orange {
+                    font-size: 0.95rem;
+                    padding: 8px 16px;
+                    background: #ea580c;
+                    color: white;
+                    border-radius: 6px;
+                    box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);
+                }
             `}</style>
             {album && (
                 <DynamicPopup
@@ -1416,11 +1696,20 @@ const PublicAlbumView = () => {
                         </button>
 
                         <div className="lightbox-main-view">
-                            <img
-                                src={selectedPhotoForView.watermarked_url}
-                                alt={selectedPhotoForView.title}
-                                className="lightbox-image-main"
-                            />
+                            <div className="lightbox-image-wrapper">
+                                <img
+                                    src={selectedPhotoForView.watermarked_url}
+                                    alt={selectedPhotoForView.title}
+                                    className="lightbox-image-main"
+                                />
+                                {selectedPhotoForView.bib_numbers && selectedPhotoForView.bib_numbers.length > 0 && (
+                                    <div className="lightbox-bib-tags">
+                                        {selectedPhotoForView.bib_numbers.map((bib, i) => (
+                                            <span key={i} className="bib-tag orange">#{bib}</span>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         <div className="lightbox-action-bar">

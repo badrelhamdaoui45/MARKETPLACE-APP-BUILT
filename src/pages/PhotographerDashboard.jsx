@@ -59,7 +59,7 @@ const PhotographerDashboard = () => {
         try {
             const { data, error } = await supabase
                 .from('albums')
-                .select('*')
+                .select('*, photos(count)')
                 .eq('photographer_id', user.id)
                 .order('created_at', { ascending: false });
 
@@ -308,9 +308,15 @@ const PhotographerDashboard = () => {
                                         </div>
                                         <div className="album-card-mini-body">
                                             <h3>{album.title}</h3>
-                                            <p className="album-meta">
-                                                {album.is_published ? 'Published' : 'Draft'}
-                                            </p>
+                                            <div className="album-card-stats">
+                                                <span className="photo-count">
+                                                    <ImageIcon size={14} />
+                                                    {album.photos?.[0]?.count || 0} photos
+                                                </span>
+                                                <span className={`album-meta-badge ${album.is_published ? 'published' : ''}`}>
+                                                    {album.is_published ? 'Published' : 'Draft'}
+                                                </span>
+                                            </div>
                                             <div style={{ display: 'flex', gap: '1rem', marginTop: 'auto' }}>
                                                 <Link to={`/photographer/albums/${encodeURIComponent(album.slug || album.title)}/edit`} style={{ flex: 1 }}>
                                                     <Button className="w-full action-btn">Edit</Button>
@@ -1036,29 +1042,49 @@ const PhotographerDashboard = () => {
                 }
 
                 .album-card-mini-body h3 {
-                    margin-bottom: 0.5rem;
+                    margin-bottom: 0.75rem;
                     font-size: 1.15rem;
                     font-weight: 800;
                     color: #1e293b;
                     letter-spacing: -0.01em;
                 }
 
-                .album-meta {
+                .album-card-stats {
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    gap: 0.5rem;
+                    gap: 0.75rem;
                     margin-bottom: 1.5rem;
-                    font-size: 0.85rem;
-                    color: #64748b;
-                    font-weight: 500;
                 }
 
-                .album-meta-divider {
-                    width: 4px;
-                    height: 4px;
-                    background: #cbd5e1;
-                    border-radius: 50%;
+                .photo-count {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.35rem;
+                    font-size: 0.85rem;
+                    color: #64748b;
+                    font-weight: 600;
+                    background: #f1f5f9;
+                    padding: 0.25rem 0.6rem;
+                    border-radius: 6px;
+                }
+
+                .album-meta-badge {
+                    font-size: 0.7rem;
+                    font-weight: 800;
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                    padding: 0.25rem 0.6rem;
+                    border-radius: 6px;
+                    background: #f8fafc;
+                    color: #94a3b8;
+                    border: 1px solid #e2e8f0;
+                }
+
+                .album-meta-badge.published {
+                    background: #ecfdf5;
+                    color: #059669;
+                    border-color: #d1fae5;
                 }
 
                 .stats-grid {
