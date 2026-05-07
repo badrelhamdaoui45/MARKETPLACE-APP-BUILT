@@ -22,6 +22,8 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
     const [clientSecret, setClientSecret] = useState(null);
     const [initializingPayment, setInitializingPayment] = useState(false);
     const [authError, setAuthError] = useState('');
+    const [authMethod, setAuthMethod] = useState('email'); // 'email' or 'phone'
+    const [countryCode, setCountryCode] = useState('+212');
     const [paymentMethod, setPaymentMethod] = useState('stripe'); // 'stripe' or 'bank_transfer'
     const [photographerSettings, setPhotographerSettings] = useState(null);
     const [copied, setCopied] = useState(false);
@@ -76,20 +78,37 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
         setAuthError('');
     };
 
+    const { signInWithPhonePassword, signUpWithPhone } = useAuth();
+
     const handleAuthAction = async () => {
         setAuthError('');
         setInitializingPayment(true);
 
         try {
             if (!user) {
-                if (authMode === 'login') {
-                    if (!formData.email || !formData.password) throw new Error("Please enter email and password.");
-                    const { error } = await signIn(formData.email, formData.password);
-                    if (error) throw error;
+                if (authMethod === 'phone') {
+                    if (!formData.phone || !formData.password) throw new Error("Please enter phone and password.");
+                    if (authMode === 'signup' && !formData.fullName) throw new Error("Please enter your full name.");
+                    
+                    const fullPhoneNumber = countryCode + formData.phone.replace(/^0+/, '');
+                    
+                    if (authMode === 'login') {
+                        const { error } = await signInWithPhonePassword(fullPhoneNumber, formData.password);
+                        if (error) throw error;
+                    } else {
+                        const { error } = await signUpWithPhone(fullPhoneNumber, formData.password, formData.fullName, 'runner');
+                        if (error) throw error;
+                    }
                 } else {
-                    if (!formData.email || !formData.password || !formData.fullName) throw new Error("Please fill in all fields.");
-                    const { error } = await signUp(formData.email, formData.password, formData.fullName, 'runner');
-                    if (error) throw error;
+                    if (authMode === 'login') {
+                        if (!formData.email || !formData.password) throw new Error("Please enter email and password.");
+                        const { error } = await signIn(formData.email, formData.password);
+                        if (error) throw error;
+                    } else {
+                        if (!formData.email || !formData.password || !formData.fullName) throw new Error("Please fill in all fields.");
+                        const { error } = await signUp(formData.email, formData.password, formData.fullName, 'runner');
+                        if (error) throw error;
+                    }
                 }
             }
 
@@ -204,6 +223,25 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
 
                             {authError && <div className="error-message">{authError}</div>}
 
+                            {!user && (
+                                <div className="auth-method-switcher" style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', background: '#f1f5f9', padding: '0.25rem', borderRadius: '8px' }}>
+                                    <button 
+                                        className={`method-btn ${authMethod === 'email' ? 'active' : ''}`}
+                                        onClick={() => setAuthMethod('email')}
+                                        style={{ flex: 1, padding: '0.5rem', border: 'none', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', background: authMethod === 'email' ? 'white' : 'transparent', color: authMethod === 'email' ? '#1e293b' : '#64748b', boxShadow: authMethod === 'email' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
+                                    >
+                                        Email
+                                    </button>
+                                    <button 
+                                        className={`method-btn ${authMethod === 'phone' ? 'active' : ''}`}
+                                        onClick={() => setAuthMethod('phone')}
+                                        style={{ flex: 1, padding: '0.5rem', border: 'none', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', background: authMethod === 'phone' ? 'white' : 'transparent', color: authMethod === 'phone' ? '#1e293b' : '#64748b', boxShadow: authMethod === 'phone' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
+                                    >
+                                        Phone
+                                    </button>
+                                </div>
+                            )}
+
                             {!user && authMode === 'signup' && (
                                 <div className="form-group">
                                     <label>Full Name</label>
@@ -221,21 +259,49 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
                                 </div>
                             )}
 
-                            <div className="form-group">
-                                <label>Email Address</label>
-                                <div className="input-wrapper">
-                                    <Mail size={18} className="input-icon" />
-                                    <input
-                                        type="email"
-                                        name="email"
-                                        placeholder="john@example.com"
-                                        value={formData.email}
-                                        onChange={handleInputChange}
-                                        className="checkout-input"
-                                        disabled={!!user} // Disable if logged in
-                                    />
+                            {authMethod === 'email' ? (
+                                <div className="form-group">
+                                    <label>Email Address</label>
+                                    <div className="input-wrapper">
+                                        <Mail size={18} className="input-icon" />
+                                        <input
+                                            type="email"
+                                            name="email"
+                                            placeholder="john@example.com"
+                                            value={formData.email}
+                                            onChange={handleInputChange}
+                                            className="checkout-input"
+                                            disabled={!!user} // Disable if logged in
+                                        />
+                                    </div>
                                 </div>
-                            </div>
+                            ) : !user && (
+                                <div className="form-group">
+                                    <label>Phone Number</label>
+                                    <div className="phone-input-row" style={{ display: 'flex', gap: '0.5rem' }}>
+                                        <select 
+                                            className="country-code-select-checkout"
+                                            value={countryCode}
+                                            onChange={(e) => setCountryCode(e.target.value)}
+                                            style={{ width: '100px', padding: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.9rem', background: '#f8fafc' }}
+                                        >
+                                            <option value="+212">+212 (MA)</option>
+                                            <option value="+33">+33 (FR)</option>
+                                            <option value="+1">+1 (US)</option>
+                                            <option value="+44">+44 (UK)</option>
+                                        </select>
+                                        <input
+                                            type="tel"
+                                            name="phone"
+                                            placeholder="612345678"
+                                            value={formData.phone || ''}
+                                            onChange={handleInputChange}
+                                            className="checkout-input phone-field"
+                                            style={{ flex: 1, paddingLeft: '1rem' }}
+                                        />
+                                    </div>
+                                </div>
+                            )}
 
                             {!user && (
                                 <div className="form-group">
@@ -1106,8 +1172,56 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
                         margin-bottom: 0.75rem;
                     }
                 }
+
+                   @media (max-width: 480px) {
+                    .checkout-modal-container {
+                        max-height: 95vh;
+                        border-radius: 15px;
+                        margin: 0;
+                    }
+                    
+                    .checkout-header {
+                        padding: 1rem;
+                    }
+                    
+                    .checkout-header h2 {
+                        font-size: 1.1rem;
+                        margin-bottom: 0.5rem;
+                    }
+                    
+                    .step-indicator {
+                        gap: 0.5rem;
+                    }
+                    
+                    .step-line {
+                        width: 20px;
+                    }
+                    
+                    .checkout-body {
+                        padding: 1rem;
+                    }
+                    
+                    .step-title {
+                        font-size: 1.1rem;
+                    }
+                    
+                    .step-desc {
+                        font-size: 0.85rem;
+                        margin-bottom: 1rem;
+                    }
+                    
+                    .form-group {
+                        margin-bottom: 1rem;
+                    }
+                    
+                    .checkout-input {
+                        padding-top: 0.6rem !important;
+                        padding-bottom: 0.6rem !important;
+                        font-size: 0.95rem;
+                    }
+                }
             `}</style>
-        </div >
+        </div>
     );
 };
 

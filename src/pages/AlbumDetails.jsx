@@ -624,23 +624,33 @@ const AlbumDetails = () => {
                         <div className="album-info-card">
                             <div className="info-card-header">
                                 <label className="modern-label">GENERAL INFORMATION</label>
-                                <button
-                                    className="edit-details-btn"
-                                    onClick={() => {
-                                        if (isEditingMainDetails) {
-                                            // Reset form on cancel
-                                            setMainDetailsForm({
-                                                title: album.title,
-                                                description: album.description || '',
-                                                price: album.price
-                                            });
-                                        }
-                                        setIsEditingMainDetails(!isEditingMainDetails);
-                                    }}
-                                >
-                                    {isEditingMainDetails ? <X size={16} /> : <Edit2 size={16} />}
-                                    {isEditingMainDetails ? 'Annuler' : 'Modifier'}
-                                </button>
+                                <div className="header-controls">
+                                    <Button
+                                        onClick={handlePublishToggle}
+                                        variant={album.is_published ? 'secondary' : 'primary'}
+                                        className="publish-btn-compact"
+                                    >
+                                        {album.is_published ? <EyeOff size={14} /> : <Eye size={14} />}
+                                        {album.is_published ? 'Unpublish' : 'Publish'}
+                                    </Button>
+                                    <button
+                                        className="edit-details-btn"
+                                        onClick={() => {
+                                            if (isEditingMainDetails) {
+                                                // Reset form on cancel
+                                                setMainDetailsForm({
+                                                    title: album.title,
+                                                    description: album.description || '',
+                                                    price: album.price
+                                                });
+                                            }
+                                            setIsEditingMainDetails(!isEditingMainDetails);
+                                        }}
+                                    >
+                                        {isEditingMainDetails ? <X size={16} /> : <Edit2 size={16} />}
+                                        {isEditingMainDetails ? 'Annuler' : 'Modifier'}
+                                    </button>
+                                </div>
                             </div>
 
                             {!isEditingMainDetails ? (
@@ -1027,18 +1037,8 @@ const AlbumDetails = () => {
                         </div>
                     </div>
 
-                    <div className="header-actions">
-                        <Button
-                            onClick={handlePublishToggle}
-                            variant={album.is_published ? 'secondary' : 'primary'}
-                            className="publish-btn"
-                        >
-                            {album.is_published ? <EyeOff size={16} style={{ marginRight: '8px' }} /> : <Eye size={16} style={{ marginRight: '8px' }} />}
-                            {album.is_published ? 'Unpublish' : 'Publish Album'}
-                        </Button>
                     </div>
-                </div>
-            </header>
+                </header>
 
             {/* Upload Section */}
             <section className="upload-section-card">
@@ -1124,7 +1124,7 @@ const AlbumDetails = () => {
                         </div>
                     )
                 }
-            </section >
+            </section>
 
             {/* AI Grouping Section */}
             <section className="grouping-section">
@@ -1260,9 +1260,7 @@ const AlbumDetails = () => {
                     gap: 1.5rem;
                 }
 
-                .header-actions {
-                    flex-shrink: 0;
-                }
+
 
                 .back-btn {
                     font-size: 0.9rem !important;
@@ -1359,28 +1357,7 @@ const AlbumDetails = () => {
                     }
                 }
 
-                .publish-btn {
-                    min-width: 160px;
-                    display: flex;
-                    align-items: center;
-                    font-weight: 700 !important;
-                    justify-content: center;
-                    gap: 0.5rem;
-                    background-color: #F5A623 !important;
-                    border-color: #F5A623 !important;
-                    color: white !important;
-                    transition: all 0.2s;
-                }
 
-                .publish-btn:hover {
-                    background-color: #e59512 !important;
-                    transform: translateY(-1px);
-                    box-shadow: 0 4px 12px rgba(245, 166, 35, 0.3);
-                }
-
-                .publish-btn:active {
-                    transform: translateY(0);
-                }
 
                 .share-link-banner {
                     margin-top: 1.5rem;
@@ -1982,6 +1959,33 @@ const AlbumDetails = () => {
                     margin-bottom: 1.5rem;
                 }
 
+                .header-controls {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                }
+
+                .publish-btn-compact {
+                    height: 34px !important;
+                    padding: 0 1rem !important;
+                    font-size: 0.85rem !important;
+                    font-weight: 700 !important;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    background-color: #F5A623 !important;
+                    border-color: #F5A623 !important;
+                    color: white !important;
+                    transition: all 0.2s;
+                    border-radius: 8px !important;
+                }
+
+                .publish-btn-compact:hover {
+                    background-color: #e59512 !important;
+                    transform: translateY(-1px);
+                    box-shadow: 0 4px 12px rgba(245, 166, 35, 0.3);
+                }
+
                 .edit-details-btn {
                     display: flex;
                     align-items: center;
@@ -2053,14 +2057,19 @@ const AlbumDetails = () => {
                         width: 100%;
                     }
 
-                    .header-actions {
-                        width: 100%;
+
+
+                    .info-card-header {
+                        flex-direction: column;
+                        align-items: flex-start;
+                        gap: 1rem;
                     }
 
-                    .publish-btn {
+                    .header-controls {
                         width: 100%;
-                        height: 48px;
-                        justify-content: center;
+                        display: flex;
+                        justify-content: flex-start;
+                        gap: 0.5rem;
                     }
 
                     .album-title-modern {

@@ -287,35 +287,54 @@ const PublicAlbumView = () => {
                 </div>
             ) : (
                 <>
-                    <div className="album-header">
-                        <h1 className="album-title">{album.title}</h1>
-                        <div className="photographer-info-row">
-                            {album.profiles?.logo_url && (
-                                <img
-                                    src={album.profiles.logo_url}
-                                    alt={album.profiles.full_name}
-                                    className="photographer-logo-small"
-                                />
-                            )}
-                            <p className="album-author">
-                                by <Link to={`/photographer/${encodeURIComponent(album.profiles?.full_name)}`} className="photographer-link">
-                                    {album.profiles?.full_name}
-                                </Link>
-                            </p>
-                        </div>
-
-                        {album.is_free && (
-                            <div className="free-album-banner">
-                                <div className="banner-content">
-                                    <Gift size={18} />
-                                    <span>THIS ALBUM IS COMPLETELY <strong>FREE</strong></span>
-                                </div>
+                    <div className="album-hero-section">
+                        {album.cover_image_url && (
+                            <div className="hero-background">
+                                <img src={album.cover_image_url} alt="" />
+                                <div className="hero-overlay"></div>
                             </div>
                         )}
+                        
+                        <div className="hero-content">
+                            <div className="hero-main-info">
+                                <div className="photographer-badge-premium">
+                                    {album.profiles?.logo_url ? (
+                                        <img src={album.profiles.logo_url} alt={album.profiles.full_name} className="p-badge-logo" />
+                                    ) : (
+                                        <div className="p-badge-initials">{album.profiles?.full_name?.charAt(0)}</div>
+                                    )}
+                                    <span className="p-badge-name">
+                                        by <Link to={`/photographer/${encodeURIComponent(album.profiles?.full_name)}`}>{album.profiles?.full_name}</Link>
+                                    </span>
+                                </div>
 
-                        <div className="selection-hint">
-                            <span className="hint-icon"><ShoppingCart size={16} /></span>
-                            Click the button below photos to add to cart
+                                <h1 className="hero-title">{album.title}</h1>
+                                {album.description && <p className="hero-description">{album.description}</p>}
+                                
+                                <div className="hero-meta-row">
+                                    <div className="meta-item">
+                                        <Search size={14} />
+                                        <span>{photos.length} Photos</span>
+                                    </div>
+                                    <div className="meta-item">
+                                        <Tag size={14} />
+                                        <span>{new Date(album.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                                    </div>
+                                    {album.is_free && (
+                                        <div className="meta-item free-label">
+                                            <Gift size={14} />
+                                            <span>Free Album</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="hero-actions-hint">
+                                <div className="selection-hint-premium">
+                                    <ShoppingCart size={18} />
+                                    <span>Select photos below to add to your collection</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -530,6 +549,34 @@ const PublicAlbumView = () => {
                     margin-bottom: 3rem;
                 }
 
+                .album-header.central .album-title {
+                    font-size: clamp(2rem, 5vw, 3rem);
+                    font-weight: 800;
+                    color: #1e293b;
+                    margin-bottom: 0.5rem;
+                }
+
+                .album-header.central .album-author {
+                    color: #64748b;
+                    font-size: 1.1rem;
+                }
+
+                .album-header.central .photographer-link {
+                    color: var(--primary-blue);
+                    font-weight: 700;
+                    text-decoration: none;
+                }
+
+                .album-header.central .photographer-logo-small {
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 50%;
+                    object-fit: cover;
+                    border: 1px solid #e2e8f0;
+                    vertical-align: middle;
+                    margin-right: 8px;
+                }
+
                 .pre-inscription-card {
                     display: grid;
                     grid-template-columns: 1fr 1.2fr;
@@ -703,82 +750,207 @@ const PublicAlbumView = () => {
                     align-items: start;
                 }
 
-                .album-header {
-                    margin-bottom: 2rem;
-                    max-width: 100%;
+                .album-hero-section {
+                    position: relative;
+                    margin: -2rem -2rem 2.5rem -2rem;
+                    padding: 4rem 4rem 3rem;
+                    min-height: 300px;
+                    display: flex;
+                    align-items: flex-end;
+                    overflow: hidden;
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                    border-radius: 0 0 32px 32px;
+                    background: linear-gradient(135deg, #f97316 0%, #ef4444 100%);
                 }
 
-                @media (max-width: 1024px) {
-                    .album-header {
-                        text-align: center;
-                        display: flex;
-                        flex-direction: column;
-                        align-items: center;
-                    }
-                    .photographer-info-row {
-                        justify-content: center !important;
-                    }
+                .hero-background {
+                    position: absolute;
+                    inset: 0;
+                    z-index: 1;
                 }
 
-                .album-title {
-                    font-size: clamp(1.5rem, 5vw, 2.5rem);
-                    margin-bottom: var(--spacing-xs);
-                    color: var(--text-primary);
+                .hero-background img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                    filter: blur(50px) brightness(0.7) saturate(1.2);
+                    transform: scale(1.1);
+                    opacity: 0.8;
                 }
 
-                .album-author {
-                    font-size: var(--font-size-lg);
-                    color: var(--text-secondary);
-                    margin-bottom: 0; /* Remove bottom margin as it's now in a flex container */
+                .hero-overlay {
+                    position: absolute;
+                    inset: 0;
+                    background: linear-gradient(to top, rgba(15, 23, 42, 0.8) 0%, rgba(249, 115, 22, 0.4) 100%);
                 }
 
-                .photographer-info-row {
+                .hero-content {
+                    position: relative;
+                    z-index: 2;
+                    width: 100%;
+                    max-width: 1400px;
+                    margin: 0 auto;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-end;
+                    gap: 3rem;
+                }
+
+                .hero-main-info {
+                    flex: 1;
+                }
+
+                .photographer-badge-premium {
                     display: flex;
                     align-items: center;
-                    justify-content: flex-start; /* Changed from center to allow custom alignment */
                     gap: 0.75rem;
-                    margin-bottom: var(--spacing-md);
+                    background: rgba(255, 255, 255, 0.1);
+                    backdrop-filter: blur(10px);
+                    padding: 0.5rem 1rem 0.5rem 0.5rem;
+                    border-radius: 99px;
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                    width: fit-content;
+                    margin-bottom: 1rem;
                 }
 
-                .album-header.central .photographer-info-row {
-                    justify-content: center;
-                }
-
-                .photographer-logo-small {
+                .p-badge-logo {
                     width: 32px;
                     height: 32px;
                     border-radius: 50%;
                     object-fit: cover;
-                    border: 1px solid #e2e8f0;
+                    border: 1.5px solid white;
                 }
 
-                .photographer-link {
-                    color: var(--primary-blue);
-                    text-decoration: none;
-                    font-weight: 600;
-                    transition: color var(--transition-fast);
-                }
-
-                .photographer-link:hover {
-                    color: var(--secondary-cyan);
-                    text-decoration: underline;
-                }
-
-                .selection-hint {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: var(--spacing-sm);
-                    padding: var(--spacing-sm) var(--spacing-md);
-                    background: var(--bg-tertiary);
-                    border-radius: var(--radius-full);
-                    font-size: var(--font-size-sm);
-                    color: var(--primary-blue);
-                    font-weight: 500;
-                }
-                
-                .hint-icon {
+                .p-badge-initials {
+                    width: 32px;
+                    height: 32px;
+                    background: var(--primary-blue);
+                    color: white;
+                    border-radius: 50%;
                     display: flex;
                     align-items: center;
+                    justify-content: center;
+                    font-weight: 800;
+                    font-size: 0.85rem;
+                }
+
+                .p-badge-name {
+                    color: rgba(255, 255, 255, 0.9);
+                    font-size: 0.9rem;
+                    font-weight: 500;
+                }
+
+                .p-badge-name a {
+                    color: white;
+                    font-weight: 800;
+                    text-decoration: none;
+                }
+
+                .hero-title {
+                    font-size: clamp(1.75rem, 5vw, 2.75rem);
+                    font-weight: 900;
+                    color: white;
+                    line-height: 1.2;
+                    margin-bottom: 0.75rem;
+                    letter-spacing: -0.01em;
+                    text-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                }
+
+                .hero-description {
+                    font-size: 1rem;
+                    color: rgba(255, 255, 255, 0.85);
+                    max-width: 600px;
+                    line-height: 1.5;
+                    margin-bottom: 1.5rem;
+                    display: -webkit-box;
+                    -webkit-line-clamp: 3;
+                    -webkit-box-orient: vertical;
+                    overflow: hidden;
+                }
+
+                .hero-meta-row {
+                    display: flex;
+                    gap: 1.5rem;
+                    flex-wrap: wrap;
+                }
+
+                .meta-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    color: rgba(255, 255, 255, 0.7);
+                    font-size: 0.85rem;
+                    font-weight: 600;
+                    background: rgba(255, 255, 255, 0.05);
+                    padding: 0.4rem 0.8rem;
+                    border-radius: 8px;
+                }
+
+                .meta-item.free-label {
+                    background: rgba(16, 185, 129, 0.2);
+                    color: #10b981;
+                }
+
+                .hero-actions-hint {
+                    flex-shrink: 0;
+                    padding-bottom: 0.5rem;
+                }
+
+                .selection-hint-premium {
+                    display: flex;
+                    align-items: center;
+                    gap: 1rem;
+                    background: rgba(245, 166, 35, 0.1);
+                    border: 1px solid rgba(245, 166, 35, 0.3);
+                    color: #F5A623;
+                    padding: 1rem 1.5rem;
+                    border-radius: 20px;
+                    font-weight: 700;
+                    font-size: 0.95rem;
+                    backdrop-filter: blur(10px);
+                }
+
+                @media (max-width: 1024px) {
+                    .album-hero-section {
+                        margin: -1rem -1rem 2rem -1rem;
+                        padding: 4rem 2rem 3rem;
+                        min-height: auto;
+                        border-radius: 0;
+                    }
+                    .hero-content {
+                        flex-direction: column;
+                        align-items: center;
+                        text-align: center;
+                        gap: 2rem;
+                    }
+                    .photographer-badge-premium {
+                        margin: 0 auto 1.5rem;
+                    }
+                    .hero-meta-row {
+                        justify-content: center;
+                    }
+                    .hero-description {
+                        margin-left: auto;
+                        margin-right: auto;
+                    }
+                }
+
+                @media (max-width: 640px) {
+                    .album-hero-section {
+                        padding: 3rem 1.25rem 2.5rem;
+                    }
+                    .hero-title {
+                        font-size: 1.75rem;
+                    }
+                    .hero-description {
+                        font-size: 0.95rem;
+                    }
+                    .selection-hint-premium {
+                        padding: 0.75rem 1rem;
+                        font-size: 0.85rem;
+                        width: 100%;
+                        justify-content: center;
+                    }
                 }
 
                 .photos-grid {
@@ -944,9 +1116,21 @@ const PublicAlbumView = () => {
                     max-width: 100%;
                     max-height: 100%;
                     object-fit: contain;
-                    border-radius: 8px;
-                    box-shadow: 0 30px 100px rgba(0,0,0,0.7);
+                    border-radius: 12px;
+                    box-shadow: 0 40px 100px rgba(0,0,0,0.8);
                     animation: imageZoom 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+                    border: 1px solid rgba(255,255,255,0.1);
+                }
+
+                @media (min-width: 1025px) {
+                    .lightbox-image-wrapper {
+                        max-width: 75% !important;
+                        max-height: 70vh !important;
+                    }
+                    
+                    .lightbox-image-main {
+                        max-height: 70vh;
+                    }
                 }
 
                 @keyframes imageZoom {
