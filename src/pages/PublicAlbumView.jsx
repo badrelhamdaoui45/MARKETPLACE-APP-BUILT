@@ -1045,7 +1045,7 @@ const PublicAlbumView = () => {
                 .selected-border {
                     position: absolute;
                     inset: 0;
-                    border: 3px solid var(--primary-blue);
+                    border: 2px solid var(--primary-blue);
                     border-radius: var(--radius-lg);
                     pointer-events: none;
                     z-index: 4;
@@ -1158,8 +1158,8 @@ const PublicAlbumView = () => {
 
                 .lightbox-cart-action-btn {
                     min-width: 320px;
-                    height: 64px;
-                    font-size: 1.2rem !important;
+                    height: 54px;
+                    font-size: 0.95rem !important;
                     font-weight: 700 !important;
                     background: #F5A623 !important;
                     border-color: #F5A623 !important;
@@ -1207,8 +1207,8 @@ const PublicAlbumView = () => {
                     }
                     .lightbox-cart-action-btn {
                         min-width: 100%; /* Match the card look */
-                        height: 54px;
-                        font-size: 1rem !important;
+                        height: 48px;
+                        font-size: 0.85rem !important;
                     }
                 }
 
@@ -1218,8 +1218,8 @@ const PublicAlbumView = () => {
 
                 .add-to-cart-btn {
                     width: 100%;
-                    font-size: 0.9rem !important;
-                    height: 44px;
+                    font-size: 0.75rem !important;
+                    height: 38px;
                     border: 1.5px solid var(--primary-blue) !important; /* Added Border */
                 }
 
@@ -1655,8 +1655,8 @@ const PublicAlbumView = () => {
                     }
 
                     .add-to-cart-btn {
-                        font-size: 0.8rem !important;
-                        height: 40px !important;
+                        font-size: 0.65rem !important;
+                        height: 34px !important;
                         padding: 0 8px !important;
                         border: 1px solid var(--primary-blue) !important;
                         letter-spacing: 0.02em !important;
