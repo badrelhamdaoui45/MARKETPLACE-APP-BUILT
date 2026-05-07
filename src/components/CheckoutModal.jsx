@@ -1105,10 +1105,10 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
 
                 @media (max-width: 640px) {
                     .checkout-modal-container {
-                        max-height: 85vh;
+                        max-height: 80vh;
                         height: auto;
                         width: 90vw !important; /* Use viewport width */
-                        max-width: 380px !important;
+                        max-width: 340px !important;
                         margin: 0 !important; /* Flexbox handles centering */
                         border-radius: 20px;
                         display: flex;
@@ -1147,7 +1147,7 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
                     }
 
                     .checkout-body {
-                        padding: 1rem;
+                        padding: 0.75rem 1rem;
                     }
 
                     .step-indicator {
@@ -1175,7 +1175,7 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
 
                    @media (max-width: 480px) {
                     .checkout-modal-container {
-                        max-height: 95vh;
+                        max-height: 90vh;
                         border-radius: 15px;
                         margin: 0;
                     }
