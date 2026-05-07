@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/ui/Button';
-import { Copy, Check, MessageSquare, Eye, FileCheck, Image as ImageIcon, Share2, HelpCircle, Wallet } from 'lucide-react';
+import { Copy, Check, MessageSquare, Eye, FileCheck, Image as ImageIcon, Share2, HelpCircle, Wallet, Search } from 'lucide-react';
 import ConnectStripe from '../components/stripe/ConnectStripe';
 import Toast from '../components/ui/Toast';
 import PaymentSettingsModal from '../components/PaymentSettingsModal';
@@ -43,6 +43,7 @@ const PhotographerDashboard = () => {
     const [dateFilter, setDateFilter] = useState('all'); // 'all', 'today', '7days', '30days', '90days'
     const [albumFilter, setAlbumFilter] = useState('all'); // 'all' or album_id
     const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'paid', 'manual_pending'
+    const [orderSearch, setOrderSearch] = useState('');
 
     // Runner Details Modal State
     const [selectedRunner, setSelectedRunner] = useState(null);
@@ -214,6 +215,9 @@ const PhotographerDashboard = () => {
         // Status filter
         if (statusFilter === 'manual_pending' && sale.status !== 'manual_pending') return false;
         if (statusFilter === 'paid' && sale.status !== 'paid') return false;
+
+        // Order number search
+        if (orderSearch && !sale.order_number?.toLowerCase().includes(orderSearch.toLowerCase())) return false;
 
         return true;
     });
@@ -552,6 +556,21 @@ const PhotographerDashboard = () => {
                                     ))}
                                 </select>
                             </div>
+
+                            {/* Order Search */}
+                            <div className="filter-group">
+                                <label className="filter-label">Search Order</label>
+                                <div className="search-input-wrapper">
+                                    <Search size={16} className="search-icon" />
+                                    <input
+                                        type="text"
+                                        placeholder="Order number..."
+                                        value={orderSearch}
+                                        onChange={(e) => setOrderSearch(e.target.value)}
+                                        className="order-search-input"
+                                    />
+                                </div>
+                            </div>
                         </div>
 
                         {/* Desktop Transactions Table */}
@@ -560,6 +579,7 @@ const PhotographerDashboard = () => {
                                 <thead>
                                     <tr>
                                         <th>Date</th>
+                                        <th>Order #</th>
                                         <th>Album</th>
                                         <th>Runner</th>
                                         <th style={{ textAlign: 'right' }}>Brut</th>
@@ -580,6 +600,23 @@ const PhotographerDashboard = () => {
                                         filteredSales.map(tx => (
                                             <tr key={tx.id}>
                                                 <td>{new Date(tx.created_at).toLocaleDateString()}</td>
+                                                <td style={{ fontWeight: 700, color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                        {tx.order_number || 'N/A'}
+                                                        {tx.order_number && (
+                                                            <button 
+                                                                onClick={() => {
+                                                                    navigator.clipboard.writeText(tx.order_number);
+                                                                    setToast({ message: 'Order # copied!', type: 'success' });
+                                                                }}
+                                                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '2px', display: 'flex' }}
+                                                                title="Copy Order #"
+                                                            >
+                                                                <Copy size={12} />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </td>
                                                 <td>{tx.albums?.title || 'Unknown Album'}</td>
                                                 <td>
                                                     <button
@@ -658,6 +695,20 @@ const PhotographerDashboard = () => {
                                     <div key={tx.id} className="transaction-card">
                                         <div className="tx-header">
                                             <span className="tx-date">{new Date(tx.created_at).toLocaleDateString()}</span>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <span style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b' }}>{tx.order_number || 'N/A'}</span>
+                                                {tx.order_number && (
+                                                    <button 
+                                                        onClick={() => {
+                                                            navigator.clipboard.writeText(tx.order_number);
+                                                            setToast({ message: 'Order # copied!', type: 'success' });
+                                                        }}
+                                                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '2px', display: 'flex' }}
+                                                    >
+                                                        <Copy size={12} />
+                                                    </button>
+                                                )}
+                                            </div>
                                             <span className={`status-badge ${tx.status}`}>
                                                 {tx.status} {tx.payment_method === 'bank_transfer' ? '(Bank)' : ''}
                                             </span>
@@ -958,6 +1009,42 @@ const PhotographerDashboard = () => {
                 }
 
                 .album-filter-select:focus {
+                    outline: none;
+                    border-color: #F5A623;
+                    box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.1);
+                }
+
+                .search-input-wrapper {
+                    position: relative;
+                    display: flex;
+                    align-items: center;
+                }
+
+                .search-icon {
+                    position: absolute;
+                    left: 12px;
+                    color: #94a3b8;
+                    pointer-events: none;
+                }
+
+                .order-search-input {
+                    width: 100%;
+                    padding: 0.75rem 1rem 0.75rem 3rem !important;
+                    box-sizing: border-box !important;
+                    background: white;
+                    border: 2px solid #e2e8f0;
+                    border-radius: 8px;
+                    font-size: 0.875rem;
+                    font-weight: 600;
+                    color: #475569;
+                    transition: all 0.2s ease;
+                }
+
+                .order-search-input:hover {
+                    border-color: #cbd5e1;
+                }
+
+                .order-search-input:focus {
                     outline: none;
                     border-color: #F5A623;
                     box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.1);

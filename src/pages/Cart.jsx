@@ -9,6 +9,7 @@ import { supabase } from '../lib/supabase';
 import { calculateCommission } from '../config/platform';
 import { ShoppingCart, Trash2, CreditCard, CheckCircle, X } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
+import { generateOrderNumber } from '../utils/order';
 
 const Cart = () => {
     const { cartItems, removeFromCart, clearCart, calculateTotal } = useCart();
@@ -81,6 +82,7 @@ const Cart = () => {
 
                     // 3. Insert Transaction
                     const { error } = await supabase.from('transactions').insert({
+                        order_number: generateOrderNumber(),
                         buyer_id: user?.id || null, // Can be null (guest)
                         photographer_id: photographerId,
                         album_id: albumId,
@@ -193,6 +195,7 @@ const Cart = () => {
             if (finalPaymentMethod === 'bank_transfer' || finalPaymentMethod === 'free') {
                 // MANUAL OR FREE FLOW
                 const { error: txError } = await supabase.from('transactions').insert({
+                    order_number: generateOrderNumber(),
                     buyer_id: user?.id || null,
                     photographer_id: group.photographer_id,
                     album_id: albumId,
@@ -678,7 +681,7 @@ const Cart = () => {
 
             .btn-brand-orange {
                 background: #F5A623 !important;
-                border: 2px solid #F5A623 !important;
+                border: 1.5px solid #F5A623 !important;
                 color: white !important;
                 font-weight: 700 !important;
                 text-transform: uppercase;

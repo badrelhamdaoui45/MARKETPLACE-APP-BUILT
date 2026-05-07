@@ -1286,7 +1286,7 @@ const Home = () => {
                 }
 
                 .hero-btn-contact {
-                    border: 2px solid #0f172a !important;
+                    border: 1.5px solid #0f172a !important;
                     color: #0f172a !important;
                     height: 56px;
                     min-width: 160px;

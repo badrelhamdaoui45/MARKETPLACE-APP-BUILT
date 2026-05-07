@@ -1220,7 +1220,7 @@ const PublicAlbumView = () => {
                     width: 100%;
                     font-size: 0.9rem !important;
                     height: 44px;
-                    border: 2px solid var(--primary-blue) !important; /* Added Border */
+                    border: 1.5px solid var(--primary-blue) !important; /* Added Border */
                 }
 
                 .purchase-card {
@@ -1655,13 +1655,12 @@ const PublicAlbumView = () => {
                     }
 
                     .add-to-cart-btn {
-                        font-size: 0.7rem !important;
-                        height: 32px !important; /* Smaller button */
-                        padding: 0 4px !important;
-                        letter-spacing: -0.02em !important;
+                        font-size: 0.8rem !important;
+                        height: 40px !important;
+                        padding: 0 8px !important;
+                        border: 1px solid var(--primary-blue) !important;
+                        letter-spacing: 0.02em !important;
                         white-space: nowrap;
-                        text-overflow: ellipsis;
-                        overflow: hidden;
                     }
                     
                     .album-title {

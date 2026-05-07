@@ -277,7 +277,7 @@ const AlbumDownload = () => {
                     justify-content: center;
                     gap: 0.75rem;
                     padding: 0.75rem 1.25rem !important;
-                    border: 2px solid var(--primary-blue) !important;
+                    border: 1.5px solid var(--primary-blue) !important;
                     color: var(--primary-blue) !important;
                     background: white !important;
                     border-radius: var(--radius-md) !important;

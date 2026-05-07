@@ -234,6 +234,7 @@ const RunnerProfile = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
     const [toast, setToast] = useState(null);
+    const [copiedOrder, setCopiedOrder] = useState(null);
 
     // Ref to prevent double insertion on React Strict Mode
     const processedRef = useRef(false);
@@ -366,10 +367,14 @@ const RunnerProfile = () => {
     };
 
 
-    const copyToClipboard = (text, label) => {
+    const copyToClipboard = (text, label, orderId = null) => {
         if (!text) return;
         navigator.clipboard.writeText(text).then(() => {
             setToast({ message: `${label} copied!`, type: 'success' });
+            if (orderId) {
+                setCopiedOrder(orderId);
+                setTimeout(() => setCopiedOrder(null), 2000);
+            }
         }).catch(err => {
             console.error('Failed to copy: ', err);
             setToast({ message: 'Erreur lors de la copie.', type: 'error' });
@@ -457,6 +462,19 @@ const RunnerProfile = () => {
                                             <span className="purchase-date">{new Date(tx.created_at).toLocaleDateString()}</span>
                                             <span className="meta-divider">•</span>
                                             <span className="purchase-amount">${tx.amount}</span>
+                                        </div>
+                                        <div className="order-number-display">
+                                            <span className="order-label">ORDER:</span>
+                                            <span className="order-value">{tx.order_number || 'N/A'}</span>
+                                            {tx.order_number && (
+                                                <button 
+                                                    className="order-copy-btn"
+                                                    onClick={() => copyToClipboard(tx.order_number, 'Order number', tx.id)}
+                                                    title="Copy Order Number"
+                                                >
+                                                    {copiedOrder === tx.id ? <Check size={14} /> : <Copy size={14} />}
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -678,6 +696,47 @@ const RunnerProfile = () => {
                 .purchase-amount {
                     color: var(--primary-blue);
                     font-weight: 700;
+                }
+
+                .order-number-display {
+                    margin-top: 0.5rem;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    background: #f8fafc;
+                    padding: 4px 8px;
+                    border-radius: 6px;
+                    width: fit-content;
+                    border: 1px solid #e2e8f0;
+                }
+
+                .order-label {
+                    font-size: 0.65rem;
+                    font-weight: 800;
+                    color: #94a3b8;
+                    letter-spacing: 0.05em;
+                }
+
+                .order-value {
+                    font-size: 0.75rem;
+                    font-weight: 700;
+                    color: #475569;
+                    font-family: monospace;
+                }
+
+                .order-copy-btn {
+                    background: none;
+                    border: none;
+                    color: #94a3b8;
+                    cursor: pointer;
+                    display: flex;
+                    padding: 2px;
+                    transition: all 0.2s;
+                }
+
+                .order-copy-btn:hover {
+                    color: var(--primary-blue);
+                    transform: scale(1.1);
                 }
 
                 .purchase-footer {
@@ -902,7 +961,7 @@ const RunnerProfile = () => {
                     align-items: center;
                     gap: 0.75rem;
                     padding: 0.75rem 1.25rem !important;
-                    border: 2px solid var(--primary-blue) !important;
+                    border: 1.5px solid var(--primary-blue) !important;
                     color: var(--primary-blue) !important;
                     background: white !important;
                     border-radius: var(--radius-md) !important;
