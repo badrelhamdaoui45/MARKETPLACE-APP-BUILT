@@ -45,7 +45,8 @@ export const AuthProvider = ({ children }) => {
                         account_holder,
                         bank_code,
                         account_number,
-                        rib
+                        rib,
+                        bank_accounts
                     )
                 `)
                 .eq('id', userId)
@@ -86,7 +87,44 @@ export const AuthProvider = ({ children }) => {
         return { data, error };
     };
 
+    const signUpWithPhone = async (phone, password, fullName, role, metadata = {}) => {
+        console.log("Signing up phone with:", { phone, fullName, role, metadata });
+        const { data, error } = await supabase.auth.signUp({
+            phone,
+            password,
+            options: {
+                data: {
+                    full_name: fullName,
+                    role: role,
+                    ...metadata,
+                },
+            },
+        });
+        return { data, error };
+    };
+
     const signIn = (email, password) => supabase.auth.signInWithPassword({ email, password });
+    
+    const signInWithPhonePassword = (phone, password) => supabase.auth.signInWithPassword({ phone, password });
+    
+    const signInWithGoogle = () => {
+        return supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: window.location.origin,
+            }
+        });
+    };
+
+    const signInWithPhone = async (phone, metadata = {}) => {
+        return await supabase.auth.signInWithOtp({
+            phone,
+            options: {
+                data: metadata
+            }
+        });
+    };
+
     const signOut = () => supabase.auth.signOut();
 
     const value = {
@@ -94,7 +132,11 @@ export const AuthProvider = ({ children }) => {
         profile,
         loading,
         signUp,
+        signUpWithPhone,
         signIn,
+        signInWithPhonePassword,
+        signInWithGoogle,
+        signInWithPhone,
         signOut,
     };
 

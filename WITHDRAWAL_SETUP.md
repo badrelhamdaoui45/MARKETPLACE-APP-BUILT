@@ -1,3 +1,4 @@
+git log
 # Withdrawal Feature - Setup Instructions
 
 ## Quick Setup

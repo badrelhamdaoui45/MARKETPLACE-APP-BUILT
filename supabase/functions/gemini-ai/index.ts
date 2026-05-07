@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@0.21.0"
+import { encode } from "https://deno.land/std@0.168.0/encoding/base64.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
 
 const corsHeaders = {
@@ -16,89 +16,53 @@ serve(async (req) => {
     try {
         const { action, payload } = await req.json()
 
-        // --- AUTHENTICATION ---
-        const authHeader = req.headers.get('Authorization')
+        // Authentication is handled at the gateway level via verify_jwt: true
+        // We can still extract the user if needed, but for now we'll just proceed
+        // to ensure the function is accessible to authenticated users.
 
-        // For test-connection, allow without strict auth (for admin testing)
-        if (action !== 'test-connection') {
-            if (!authHeader) {
-                return new Response(JSON.stringify({ error: 'Missing Authorization header' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-            }
+        const geminiKey = Deno.env.get('GEMINI_API_KEY') || Deno.env.get('OPENROUTER_API_KEY')
 
-            const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-            const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
-
-            console.log(`[Auth Debug] URL: ${supabaseUrl.substring(0, 10)}..., Key: ${supabaseAnonKey.substring(0, 5)}...`);
-            console.log(`[Auth Debug] Auth Header: ${authHeader ? authHeader.substring(0, 20) + '...' : 'MISSING'}`);
-
-            const supabaseClient = createClient(
-                supabaseUrl,
-                supabaseAnonKey,
-                {
-                    auth: {
-                        persistSession: false,
-                        detectSessionInUrl: false,
-                        autoRefreshToken: false
-                    }
-                }
-            )
-
-            // Extract token and pass explicitly to getUser
-            const token = authHeader.replace(/^Bearer\s+/i, "");
-            const { data, error: authError } = await supabaseClient.auth.getUser(token)
-            const user = data?.user;
-
-            if (authError || !user) {
-                const debugInfo = {
-                    authHeaderStart: authHeader ? authHeader.substring(0, 10) : 'MISSING',
-                    tokenExtracted: !!token,
-                    tokenStart: token ? token.substring(0, 5) : 'NONE',
-                    userFound: !!user,
-                    authError: authError ? authError.message : 'No error object',
-                };
-                console.error("Auth Fail:", JSON.stringify(debugInfo));
-                return new Response(JSON.stringify({
-                    error: `Unauthorized: ${authError?.message || 'Session missing'}`,
-                    debug: debugInfo
-                }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-            }
-        }
-        // --- END AUTH ---
-
-        const openRouterKey = Deno.env.get('OPENROUTER_API_KEY') || Deno.env.get('GEMINI_API_KEY')
-
-        if (!openRouterKey) {
+        if (!geminiKey) {
             return new Response(
-                JSON.stringify({ error: 'Neither OPENROUTER_API_KEY nor GEMINI_API_KEY is set' }),
+                JSON.stringify({ error: 'GEMINI_API_KEY is not set' }),
                 { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
             )
         }
 
-        const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-        const MODEL = "google/gemini-2.0-flash-001" // High performance multimodal model
+        const GEMINI_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${geminiKey}`
+        const MODEL = "gemini-2.5-flash" 
+
+        // Helper function to fetch and convert image to base64
+        const urlToBase64 = async (url: string) => {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
+            const buffer = await response.arrayBuffer();
+            const mimeType = response.headers.get('content-type') || 'image/jpeg';
+            const data = encode(new Uint8Array(buffer));
+            return { mimeType, data };
+        };
 
         if (action === 'test-connection') {
-            const response = await fetch(OPENROUTER_URL, {
+            const response = await fetch(GEMINI_URL, {
                 method: "POST",
                 headers: {
-                    "Authorization": `Bearer ${openRouterKey}`,
-                    "Content-Type": "application/json",
-                    "HTTP-Referer": "https://marketplace-app-built.vercel.app",
-                    "X-Title": "Bib Detection App"
+                    "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
-                    model: MODEL,
-                    messages: [{ role: "user", content: "Say 'Connection Successful via OpenRouter'" }]
+                    contents: [{
+                        role: "user",
+                        parts: [{ text: "Say 'Connection Successful via Gemini API'" }]
+                    }]
                 })
             })
 
             const data = await response.json()
             if (!response.ok) {
-                console.error("OpenRouter Error:", data)
-                throw new Error(data.error?.message || `OpenRouter Error: ${response.status}`)
+                console.error("Gemini Error:", data)
+                throw new Error(data.error?.message || `Gemini Error: ${response.status}`)
             }
 
-            const message = data.choices?.[0]?.message?.content || "No response content"
+            const message = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response content"
             return new Response(
                 JSON.stringify({ success: true, message: message.trim() }),
                 { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -114,12 +78,10 @@ serve(async (req) => {
                 )
             }
 
-            console.log(`[OpenRouter Batch] processing ${imageUrls.length} images...`)
+            console.log(`[Gemini Batch] processing ${imageUrls.length} images...`)
 
-            // Prepare multimodal content for OpenRouter (OpenAI format)
-            const content = []
-            content.push({
-                type: "text",
+            const parts = []
+            parts.push({
                 text: `Identify all athlete bib numbers (race numbers) visible in these images. 
                 Follow these strict rules:
                 1. Return a JSON object where keys are the 0-indexed position of the image in the provided list.
@@ -137,33 +99,32 @@ serve(async (req) => {
             })
 
             for (const url of imageUrls) {
-                content.push({
-                    type: "image_url",
-                    image_url: {
-                        url: url
+                const { mimeType, data } = await urlToBase64(url);
+                parts.push({
+                    inline_data: {
+                        mime_type: mimeType,
+                        data: data
                     }
                 })
             }
 
-            const response = await fetch(OPENROUTER_URL, {
+            const response = await fetch(GEMINI_URL, {
                 method: "POST",
                 headers: {
-                    "Authorization": `Bearer ${openRouterKey}`,
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
-                    model: MODEL,
-                    messages: [{ role: "user", content }],
+                    contents: [{ role: "user", parts }]
                 })
             })
 
             const data = await response.json()
             if (!response.ok) {
-                console.error("OpenRouter API Error:", data)
-                throw new Error(data.error?.message || `OpenRouter Error: ${response.status}`)
+                console.error("Gemini API Error:", data)
+                throw new Error(data.error?.message || `Gemini Error: ${response.status}`)
             }
 
-            let text = data.choices?.[0]?.message?.content?.trim() || "{}"
+            let text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "{}"
 
             // Handle optional markdown wrapping in AI response
             if (text.startsWith('```json')) {
@@ -183,13 +144,83 @@ serve(async (req) => {
             }
         }
 
+        if (action === 'list-models') {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1/models?key=${geminiKey}`, {
+                method: "GET",
+                headers: { "Content-Type": "application/json" }
+            })
+            const data = await response.json()
+            return new Response(JSON.stringify({ results: data }), {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            })
+        }
+
+        if (action === 'detect-runners') {
+            const { imageUrl } = payload
+            if (!imageUrl) {
+                return new Response(
+                    JSON.stringify({ error: 'imageUrl is required' }),
+                    { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+                )
+            }
+
+            console.log(`[Gemini Runner Detection] processing image: ${imageUrl.substring(0, 50)}...`)
+
+            const parts = []
+            parts.push({
+                text: "Analyze this image of runners. Detect all visible runners. For each runner, find their face and their bib number. Return the bounding box of their face as [ymin, xmin, ymax, xmax] where each value is an integer between 0 and 1000 representing the relative position. If a bib number is not clearly visible, use 'Unknown'. Ensure you associate the correct bib number with the correct face."
+            })
+
+            const { mimeType, data: base64Data } = await urlToBase64(imageUrl);
+            parts.push({
+                inline_data: {
+                    mime_type: mimeType,
+                    data: base64Data
+                }
+            })
+
+            const response = await fetch(GEMINI_URL, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    contents: [{ role: "user", parts }]
+                })
+            })
+
+            const data = await response.json()
+            if (!response.ok) {
+                console.error("Gemini API Error:", data)
+                throw new Error(data.error?.message || `Gemini Error: ${response.status}`)
+            }
+
+            let text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "[]"
+
+            if (text.startsWith('```json')) {
+                text = text.replace(/^```json/, '').replace(/```$/, '').trim()
+            } else if (text.startsWith('```')) {
+                text = text.replace(/^```/, '').replace(/```$/, '').trim()
+            }
+
+            try {
+                const results = JSON.parse(text)
+                return new Response(JSON.stringify({ results }), {
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                })
+            } catch (err) {
+                console.error("Failed to parse AI JSON output:", text)
+                throw new Error("AI returned invalid JSON format")
+            }
+        }
+
         return new Response(
             JSON.stringify({ error: 'Invalid action' }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
         )
 
     } catch (error) {
-        console.error('OpenRouter Edge Function Error:', error)
+        console.error('Gemini Edge Function Error:', error)
         return new Response(
             JSON.stringify({ error: error.message }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }

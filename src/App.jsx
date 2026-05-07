@@ -15,6 +15,7 @@ import PublicAlbumView from './pages/PublicAlbumView';
 import RunnerProfile from './pages/RunnerProfile';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminPhotographerDetails from './pages/AdminPhotographerDetails';
+import AdminRunnerDetect from './pages/AdminRunnerDetect';
 import PhotographerProfile from './pages/PhotographerProfile';
 import PhotographerSettings from './pages/PhotographerSettings';
 import Albums from './pages/Albums';
@@ -122,6 +123,14 @@ function App() {
                 element={
                   <ProtectedRoute allowedRoles={['admin']}>
                     <AdminPhotographerDetails />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/runner-detect"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <AdminRunnerDetect />
                   </ProtectedRoute>
                 }
               />

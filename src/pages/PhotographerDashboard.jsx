@@ -42,6 +42,7 @@ const PhotographerDashboard = () => {
     const [paymentFilter, setPaymentFilter] = useState('all'); // 'all', 'stripe', 'bank_transfer'
     const [dateFilter, setDateFilter] = useState('all'); // 'all', 'today', '7days', '30days', '90days'
     const [albumFilter, setAlbumFilter] = useState('all'); // 'all' or album_id
+    const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'paid', 'manual_pending'
 
     // Runner Details Modal State
     const [selectedRunner, setSelectedRunner] = useState(null);
@@ -210,6 +211,10 @@ const PhotographerDashboard = () => {
         // Album filter
         if (albumFilter !== 'all' && sale.album_id !== albumFilter) return false;
 
+        // Status filter
+        if (statusFilter === 'manual_pending' && sale.status !== 'manual_pending') return false;
+        if (statusFilter === 'paid' && sale.status !== 'paid') return false;
+
         return true;
     });
 
@@ -344,6 +349,103 @@ const PhotographerDashboard = () => {
             {
                 activeTab === 'sales' && (
                     <div className="tab-content sales-content">
+                        {/* Sales Top Section: Trend Chart */}
+                        <div className="sales-top-layout">
+                            <div className="sales-chart-container">
+                                <h3 className="chart-title">Revenue Trend</h3>
+                                <ResponsiveContainer width="100%" height={240}>
+                                    <AreaChart data={(() => {
+                                        // Group sales by date for chart
+                                        const salesByDate = {};
+                                        filteredSales.forEach(sale => {
+                                            const date = new Date(sale.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                                            if (!salesByDate[date]) {
+                                                salesByDate[date] = 0;
+                                            }
+                                            salesByDate[date] += Number(sale.amount || 0);
+                                        });
+                                        return Object.entries(salesByDate).map(([date, amount]) => ({ date, amount })).slice(-10);
+                                    })()}>
+                                        <defs>
+                                            <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#F5A623" stopOpacity={0.8} />
+                                                <stop offset="95%" stopColor="#F5A623" stopOpacity={0.1} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                                        <XAxis
+                                            dataKey="date"
+                                            stroke="#64748b"
+                                            style={{ fontSize: '0.65rem', fontWeight: 600 }}
+                                            axisLine={false}
+                                            tickLine={false}
+                                        />
+                                        <YAxis
+                                            stroke="#64748b"
+                                            style={{ fontSize: '0.65rem', fontWeight: 600 }}
+                                            tickFormatter={(value) => `$${value}`}
+                                            axisLine={false}
+                                            tickLine={false}
+                                        />
+                                        <Tooltip
+                                            contentStyle={{
+                                                backgroundColor: 'white',
+                                                border: 'none',
+                                                borderRadius: '12px',
+                                                boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'
+                                            }}
+                                            formatter={(value) => [`$${Number(value).toFixed(2)}`, 'Revenue']}
+                                        />
+                                        <Area
+                                            type="monotone"
+                                            dataKey="amount"
+                                            stroke="#F5A623"
+                                            strokeWidth={3}
+                                            fillOpacity={1}
+                                            fill="url(#colorRevenue)"
+                                        />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+
+                        {/* Stats Overview */}
+                        <div className="stats-grid">
+                            <div className="stat-card">
+                                <div className="stat-label">Total Sales Volume</div>
+                                <div className="stat-value">${filteredStats.total.toFixed(2)}</div>
+                            </div>
+                            <div className="stat-card highlight">
+                                <div className="stat-label">Net Revenue</div>
+                                <div className="stat-value">${filteredStats.net.toFixed(2)}</div>
+                                <div className="stat-note">Payments via Stripe</div>
+                                {profile?.stripe_account_id && (
+                                    <Button
+                                        onClick={() => setWithdrawalModalOpen(true)}
+                                        style={{
+                                            marginTop: '1rem',
+                                            width: '100%',
+                                            background: '#059669',
+                                            color: 'white',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '0.5rem',
+                                            fontWeight: 700,
+                                            border: 'none'
+                                        }}
+                                    >
+                                        <Wallet size={18} />
+                                        Withdraw Funds
+                                    </Button>
+                                )}
+                            </div>
+                            <div className="stat-card">
+                                <div className="stat-label">Total Orders</div>
+                                <div className="stat-value">{filteredStats.count}</div>
+                            </div>
+                        </div>
+
                         {/* Enhanced Filters Section */}
                         <div className="filters-section">
                             {/* Payment Method Filter */}
@@ -408,6 +510,32 @@ const PhotographerDashboard = () => {
                                 </div>
                             </div>
 
+                            {/* Status Filter */}
+                            <div className="filter-group">
+                                <label className="filter-label">Approval Status</label>
+                                <div className="filter-buttons">
+                                    <button
+                                        className={`filter-btn ${statusFilter === 'all' ? 'active' : ''}`}
+                                        onClick={() => setStatusFilter('all')}
+                                    >
+                                        All
+                                    </button>
+                                    <button
+                                        className={`filter-btn ${statusFilter === 'manual_pending' ? 'active' : ''}`}
+                                        onClick={() => setStatusFilter('manual_pending')}
+                                        style={{ color: statusFilter === 'manual_pending' ? 'white' : '#9a3412', borderColor: statusFilter === 'manual_pending' ? '#F5A623' : '#ffedd5' }}
+                                    >
+                                        Pending Approval
+                                    </button>
+                                    <button
+                                        className={`filter-btn ${statusFilter === 'paid' ? 'active' : ''}`}
+                                        onClick={() => setStatusFilter('paid')}
+                                    >
+                                        Approved
+                                    </button>
+                                </div>
+                            </div>
+
                             {/* Album Filter */}
                             <div className="filter-group">
                                 <label className="filter-label">Album</label>
@@ -423,97 +551,6 @@ const PhotographerDashboard = () => {
                                         </option>
                                     ))}
                                 </select>
-                            </div>
-                        </div>
-
-                        {/* Sales Chart */}
-                        <div className="sales-chart-container">
-                            <h3 className="chart-title">Revenue Trend</h3>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <AreaChart data={(() => {
-                                    // Group sales by date for chart
-                                    const salesByDate = {};
-                                    filteredSales.forEach(sale => {
-                                        const date = new Date(sale.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                                        if (!salesByDate[date]) {
-                                            salesByDate[date] = 0;
-                                        }
-                                        salesByDate[date] += Number(sale.amount || 0);
-                                    });
-                                    return Object.entries(salesByDate).map(([date, amount]) => ({ date, amount })).slice(-10);
-                                })()}>
-                                    <defs>
-                                        <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#F5A623" stopOpacity={0.8} />
-                                            <stop offset="95%" stopColor="#F5A623" stopOpacity={0.1} />
-                                        </linearGradient>
-                                    </defs>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                                    <XAxis
-                                        dataKey="date"
-                                        stroke="#64748b"
-                                        style={{ fontSize: '0.75rem' }}
-                                    />
-                                    <YAxis
-                                        stroke="#64748b"
-                                        style={{ fontSize: '0.75rem' }}
-                                        tickFormatter={(value) => `$${value}`}
-                                    />
-                                    <Tooltip
-                                        contentStyle={{
-                                            backgroundColor: 'white',
-                                            border: '1px solid #e2e8f0',
-                                            borderRadius: '8px',
-                                            boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-                                        }}
-                                        formatter={(value) => [`$${Number(value).toFixed(2)}`, 'Revenue']}
-                                    />
-                                    <Area
-                                        type="monotone"
-                                        dataKey="amount"
-                                        stroke="#F5A623"
-                                        strokeWidth={3}
-                                        fillOpacity={1}
-                                        fill="url(#colorRevenue)"
-                                    />
-                                </AreaChart>
-                            </ResponsiveContainer>
-                        </div>
-
-                        {/* Stats Overview */}
-                        <div className="stats-grid">
-                            <div className="stat-card">
-                                <div className="stat-label">Total Sales Volume</div>
-                                <div className="stat-value">${filteredStats.total.toFixed(2)}</div>
-                            </div>
-                            <div className="stat-card highlight">
-                                <div className="stat-label">Net Revenue</div>
-                                <div className="stat-value">${filteredStats.net.toFixed(2)}</div>
-                                <div className="stat-note">Payments via Stripe</div>
-                                {profile?.stripe_account_id && (
-                                    <Button
-                                        onClick={() => setWithdrawalModalOpen(true)}
-                                        style={{
-                                            marginTop: '1rem',
-                                            width: '100%',
-                                            background: '#059669',
-                                            color: 'white',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            gap: '0.5rem',
-                                            fontWeight: 700,
-                                            border: 'none'
-                                        }}
-                                    >
-                                        <Wallet size={18} />
-                                        Withdraw Funds
-                                    </Button>
-                                )}
-                            </div>
-                            <div className="stat-card">
-                                <div className="stat-label">Total Orders</div>
-                                <div className="stat-value">{filteredStats.count}</div>
                             </div>
                         </div>
 
@@ -837,6 +874,10 @@ const PhotographerDashboard = () => {
                     color: var(--text-primary);
                 }
 
+                .sales-top-layout {
+                    margin-bottom: 2rem;
+                }
+
                 .filters-section {
                     background: #ffffff;
                     border: 1px solid #e2e8f0;
@@ -844,7 +885,7 @@ const PhotographerDashboard = () => {
                     padding: 1.5rem;
                     margin-bottom: 2rem;
                     display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
                     gap: 1.5rem;
                 }
 
@@ -927,7 +968,8 @@ const PhotographerDashboard = () => {
                     border: 1px solid #e2e8f0;
                     border-radius: 16px;
                     padding: 1.5rem;
-                    margin-bottom: 2rem;
+                    display: flex;
+                    flex-direction: column;
                 }
 
                 .chart-title {

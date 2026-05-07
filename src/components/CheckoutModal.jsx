@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 import { loadStripe } from '@stripe/stripe-js';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
 import { useAuth } from '../context/AuthContext';
+import { getBankLogoUrl } from '../utils/banks';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
@@ -25,6 +26,7 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
     const [photographerSettings, setPhotographerSettings] = useState(null);
     const [copied, setCopied] = useState(false);
     const [confirmedTransfer, setConfirmedTransfer] = useState(false);
+    const [selectedBankIndex, setSelectedBankIndex] = useState(0);
 
     const effectivelyFree = isFree || parseFloat(totalAmount) === 0;
 
@@ -319,68 +321,177 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
                                         <Landmark size={32} className="header-icon" />
                                         <h3>Virement Bancaire</h3>
                                     </div>
+                                    <div className="bank-details-container">
+                                        {photographerSettings?.bank_accounts && photographerSettings.bank_accounts.length > 0 ? (
+                                            <div className="bank-accounts-selection">
+                                                <div className="bank-accounts-dropdown-container" style={{ marginBottom: '1.5rem' }}>
+                                                    <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.5rem', display: 'block' }}>Choose Bank to Transfer To</label>
+                                                    <div className="custom-bank-select" style={{ position: 'relative' }}>
+                                                        <select 
+                                                            value={selectedBankIndex} 
+                                                            onChange={(e) => setSelectedBankIndex(Number(e.target.value))}
+                                                            style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 2.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', appearance: 'none', background: '#fff', fontSize: '0.9rem', fontWeight: 600, color: '#1e293b', cursor: 'pointer' }}
+                                                        >
+                                                            {photographerSettings.bank_accounts.map((acc, idx) => (
+                                                                <option key={idx} value={idx}>{acc.bank_name || `Bank Option ${idx + 1}`}</option>
+                                                            ))}
+                                                        </select>
+                                                        <div style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                                                            {photographerSettings.bank_accounts[selectedBankIndex]?.logo_url ? (
+                                                                <img src={photographerSettings.bank_accounts[selectedBankIndex].logo_url} alt="Bank Logo" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
+                                                            ) : (
+                                                                getBankLogoUrl(photographerSettings.bank_accounts[selectedBankIndex]?.bank_name) ? (
+                                                                    <img src={getBankLogoUrl(photographerSettings.bank_accounts[selectedBankIndex].bank_name)} alt="Bank Logo" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
+                                                                ) : (
+                                                                    <Landmark size={18} color="#64748b" />
+                                                                )
+                                                            )}
+                                                        </div>
+                                                        <div style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+                                                            <svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1.5L6 6.5L11 1.5" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                                        </div>
+                                                    </div>
+                                                </div>
 
-                                    <div className="bank-details-grid">
-                                        {photographerSettings?.bank_name && (
-                                            <div className="bank-detail-item">
-                                                <label>Banque</label>
-                                                <div className="detail-value-box">
-                                                    <span>{photographerSettings.bank_name}</span>
-                                                    <button className="copy-btn-mini" onClick={() => handleCopyDetails(photographerSettings.bank_name, 'bank_name')}>
-                                                        {copied === 'bank_name' ? <Check size={14} /> : <Copy size={14} />}
-                                                    </button>
-                                                </div>
+                                                {(() => {
+                                                    const account = photographerSettings.bank_accounts[selectedBankIndex];
+                                                    if (!account) return null;
+                                                    return (
+                                                        <div className="bank-details-grid">
+                                                            {account.bank_name && (
+                                                                <div className="bank-detail-item">
+                                                                    <label>Banque</label>
+                                                                    <div className="detail-value-box">
+                                                                        <span>{account.bank_name}</span>
+                                                                        <button className="copy-btn-mini" onClick={() => handleCopyDetails(account.bank_name, 'bank_name')}>
+                                                                            {copied === 'bank_name' ? <Check size={14} /> : <Copy size={14} />}
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                            {account.account_holder && (
+                                                                <div className="bank-detail-item">
+                                                                    <label>Titulaire</label>
+                                                                    <div className="detail-value-box">
+                                                                        <span>{account.account_holder}</span>
+                                                                        <button className="copy-btn-mini" onClick={() => handleCopyDetails(account.account_holder, 'account_holder')}>
+                                                                            {copied === 'account_holder' ? <Check size={14} /> : <Copy size={14} />}
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                            {account.bank_code && (
+                                                                <div className="bank-detail-item">
+                                                                    <label>Code Banque</label>
+                                                                    <div className="detail-value-box">
+                                                                        <span>{account.bank_code}</span>
+                                                                        <button className="copy-btn-mini" onClick={() => handleCopyDetails(account.bank_code, 'bank_code')}>
+                                                                            {copied === 'bank_code' ? <Check size={14} /> : <Copy size={14} />}
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                            {account.account_number && (
+                                                                <div className="bank-detail-item">
+                                                                    <label>Numéro de Compte</label>
+                                                                    <div className="detail-value-box">
+                                                                        <span>{account.account_number}</span>
+                                                                        <button className="copy-btn-mini" onClick={() => handleCopyDetails(account.account_number, 'account_number')}>
+                                                                            {copied === 'account_number' ? <Check size={14} /> : <Copy size={14} />}
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                            {account.rib && (
+                                                                <div className="bank-detail-item full-width">
+                                                                    <label>RIB / IBAN</label>
+                                                                    <div className="detail-value-box">
+                                                                        <span>{account.rib}</span>
+                                                                        <button className="copy-btn-mini" onClick={() => handleCopyDetails(account.rib, 'rib')}>
+                                                                            {copied === 'rib' ? <Check size={14} /> : <Copy size={14} />}
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })()}
+                                            </div>
+                                        ) : (
+                                            <div className="bank-details-grid">
+                                                {photographerSettings?.bank_name && (
+                                                    <div className="bank-detail-item">
+                                                        <label>Banque</label>
+                                                        <div className="detail-value-box">
+                                                            <div className="bank-name-with-logo">
+                                                                {getBankLogoUrl(photographerSettings.bank_name) && (
+                                                                    <img 
+                                                                        src={getBankLogoUrl(photographerSettings.bank_name)} 
+                                                                        alt={photographerSettings.bank_name} 
+                                                                        className="bank-logo-small"
+                                                                        onError={(e) => { e.target.style.display = 'none'; }}
+                                                                    />
+                                                                )}
+                                                                <span>{photographerSettings.bank_name}</span>
+                                                            </div>
+                                                            <button className="copy-btn-mini" onClick={() => handleCopyDetails(photographerSettings.bank_name, 'bank_name')}>
+                                                                {copied === 'bank_name' ? <Check size={14} /> : <Copy size={14} />}
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {photographerSettings?.account_holder && (
+                                                    <div className="bank-detail-item">
+                                                        <label>Titulaire</label>
+                                                        <div className="detail-value-box">
+                                                            <span>{photographerSettings.account_holder}</span>
+                                                            <button className="copy-btn-mini" onClick={() => handleCopyDetails(photographerSettings.account_holder, 'account_holder')}>
+                                                                {copied === 'account_holder' ? <Check size={14} /> : <Copy size={14} />}
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {photographerSettings?.bank_code && (
+                                                    <div className="bank-detail-item">
+                                                        <label>Code Banque</label>
+                                                        <div className="detail-value-box">
+                                                            <span>{photographerSettings.bank_code}</span>
+                                                            <button className="copy-btn-mini" onClick={() => handleCopyDetails(photographerSettings.bank_code, 'bank_code')}>
+                                                                {copied === 'bank_code' ? <Check size={14} /> : <Copy size={14} />}
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {photographerSettings?.account_number && (
+                                                    <div className="bank-detail-item">
+                                                        <label>Numéro de Compte</label>
+                                                        <div className="detail-value-box">
+                                                            <span>{photographerSettings.account_number}</span>
+                                                            <button className="copy-btn-mini" onClick={() => handleCopyDetails(photographerSettings.account_number, 'account_number')}>
+                                                                {copied === 'account_number' ? <Check size={14} /> : <Copy size={14} />}
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {photographerSettings?.rib && (
+                                                    <div className="bank-detail-item full-width">
+                                                        <label>RIB / IBAN</label>
+                                                        <div className="detail-value-box">
+                                                            <span>{photographerSettings.rib}</span>
+                                                            <button className="copy-btn-mini" onClick={() => handleCopyDetails(photographerSettings.rib, 'rib')}>
+                                                                {copied === 'rib' ? <Check size={14} /> : <Copy size={14} />}
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
-                                        {photographerSettings?.account_holder && (
-                                            <div className="bank-detail-item">
-                                                <label>Titulaire</label>
-                                                <div className="detail-value-box">
-                                                    <span>{photographerSettings.account_holder}</span>
-                                                    <button className="copy-btn-mini" onClick={() => handleCopyDetails(photographerSettings.account_holder, 'account_holder')}>
-                                                        {copied === 'account_holder' ? <Check size={14} /> : <Copy size={14} />}
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )}
-                                        {photographerSettings?.bank_code && (
-                                            <div className="bank-detail-item">
-                                                <label>Code Banque</label>
-                                                <div className="detail-value-box">
-                                                    <span>{photographerSettings.bank_code}</span>
-                                                    <button className="copy-btn-mini" onClick={() => handleCopyDetails(photographerSettings.bank_code, 'bank_code')}>
-                                                        {copied === 'bank_code' ? <Check size={14} /> : <Copy size={14} />}
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )}
-                                        {photographerSettings?.account_number && (
-                                            <div className="bank-detail-item">
-                                                <label>Numéro de Compte</label>
-                                                <div className="detail-value-box">
-                                                    <span>{photographerSettings.account_number}</span>
-                                                    <button className="copy-btn-mini" onClick={() => handleCopyDetails(photographerSettings.account_number, 'account_number')}>
-                                                        {copied === 'account_number' ? <Check size={14} /> : <Copy size={14} />}
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )}
-                                        {photographerSettings?.rib && (
-                                            <div className="bank-detail-item full-width">
-                                                <label>RIB / IBAN</label>
-                                                <div className="detail-value-box">
-                                                    <span>{photographerSettings.rib}</span>
-                                                    <button className="copy-btn-mini" onClick={() => handleCopyDetails(photographerSettings.rib, 'rib')}>
-                                                        {copied === 'rib' ? <Check size={14} /> : <Copy size={14} />}
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )}
+
                                         {photographerSettings?.bank_details && (
-                                            <div className="bank-detail-item full-width">
-                                                <label>Instructions</label>
-                                                <div className="detail-value-box instructions">
-                                                    <pre>{photographerSettings.bank_details}</pre>
+                                            <div className="bank-detail-item full-width" style={{ marginTop: '1rem', background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Instructions Générales</label>
+                                                <div className="detail-value-box instructions" style={{ alignItems: 'flex-start' }}>
+                                                    <pre style={{ margin: 0, fontFamily: 'inherit', fontSize: '0.9rem', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{photographerSettings.bank_details}</pre>
                                                     <button className="copy-btn-mini" onClick={() => handleCopyDetails(photographerSettings.bank_details, 'details')}>
                                                         {copied === 'details' ? <Check size={14} /> : <Copy size={14} />}
                                                     </button>

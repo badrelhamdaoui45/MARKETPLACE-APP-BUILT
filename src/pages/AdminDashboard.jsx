@@ -9,125 +9,13 @@ import { format, subDays, isAfter, startOfDay, parseISO } from 'date-fns';
 import {
     TrendingUp, Users, Image as ImageIcon, Briefcase,
     ChevronDown, Calendar, Filter, DollarSign, Search, Smile,
-    FileText, Plus, Trash2, Edit, Video, Mail, ShieldCheck, Sparkles, CreditCard
+    FileText, Plus, Trash2, Edit, Video, Mail, ShieldCheck, Sparkles, CreditCard, Hash
 } from 'lucide-react';
 import SkeletonPage from '../components/ui/SkeletonPage';
-import { testGeminiAPI, detectBibsBatch, detectFacesBatch } from '../lib/gemini';
+import { testGeminiAPI, detectBibsBatch } from '../lib/gemini';
 import { pingStripe } from '../lib/stripe/service';
 import Modal from '../components/ui/Modal';
-
-const FaceCard = ({ person, personId, faceTestPreviews, isSelected, onSelect }) => {
-    const [faceUrl, setFaceUrl] = React.useState(null);
-
-    React.useEffect(() => {
-        if (!faceTestPreviews || faceTestPreviews.length === 0 || !person.appearances?.[0]) return;
-
-        const appearance = person.appearances[0];
-        const originalImage = faceTestPreviews[appearance.image_index];
-        if (!originalImage) return;
-
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-        img.src = originalImage;
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            const [ymin, xmin, ymax, xmax] = appearance.box_2d;
-
-            const width = img.width;
-            const height = img.height;
-
-            // 1. Calculate Face Bounds
-            const left = (xmin / 1000) * width;
-            const top = (ymin / 1000) * height;
-            const right = (xmax / 1000) * width;
-            const bottom = (ymax / 1000) * height;
-
-            const faceW = right - left;
-            const faceH = bottom - top;
-            const centerX = left + faceW / 2;
-            const centerY = top + faceH / 2;
-
-            // 2. Define Square Crop Size (1.5x larger face dimension for context)
-            const size = Math.max(faceW, faceH) * 1.5;
-            const halfSize = size / 2;
-
-            // 3. Define Source Rectangle (can go out of bounds)
-            const sx = centerX - halfSize;
-            const sy = centerY - halfSize;
-
-            canvas.width = 200;
-            canvas.height = 200;
-
-            // Fill with background color to avoid transparency issues at edges
-            ctx.fillStyle = "#f1f5f9";
-            ctx.fillRect(0, 0, 200, 200);
-
-            // Draw to canvas (browser handles clipping automatically)
-            ctx.drawImage(img, sx, sy, size, size, 0, 0, 200, 200);
-
-            setFaceUrl(canvas.toDataURL());
-        };
-    }, [faceTestPreviews, person]);
-
-    return (
-        <div style={{
-            background: isSelected ? '#f5f3ff' : 'white',
-            borderRadius: '12px',
-            border: isSelected ? '2px solid #7c3aed' : '1px solid #e2e8f0',
-            padding: '1rem',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '0.75rem',
-            boxShadow: isSelected ? '0 8px 15px -3px rgba(124, 58, 237, 0.2)' : '0 4px 6px -1px rgba(0,0,0,0.1)',
-            transition: 'all 0.2s',
-            width: '140px',
-            cursor: 'pointer',
-            transform: isSelected ? 'translateY(-4px)' : 'none'
-        }}
-            className="face-result-card"
-            onClick={() => onSelect(personId === isSelected ? null : personId)}
-        >
-            <div style={{
-                width: '80px',
-                height: '80px',
-                borderRadius: '50%',
-                overflow: 'hidden',
-                background: '#f1f5f9',
-                border: '3px solid #f8fafc',
-                boxShadow: `0 0 0 2px ${isSelected ? '#7c3aed' : '#e2e8f0'}`
-            }}>
-                {faceUrl ? (
-                    <img src={faceUrl} alt={personId} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                ) : (
-                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Smile size={32} color="#94a3b8" />
-                    </div>
-                )}
-            </div>
-            <div style={{ textAlign: 'center' }}>
-                <div style={{ fontWeight: '700', fontSize: '0.875rem', color: '#0f172a' }}>{personId}</div>
-                {person.bib ? (
-                    <div style={{
-                        marginTop: '4px',
-                        background: '#f5f3ff',
-                        color: '#7c3aed',
-                        padding: '2px 8px',
-                        borderRadius: '6px',
-                        fontSize: '0.75rem',
-                        fontWeight: '800',
-                        display: 'inline-block'
-                    }}>
-                        #{person.bib}
-                    </div>
-                ) : (
-                    <div style={{ fontSize: '0.75rem', color: '#64748b', fontStyle: 'italic' }}>No bib</div>
-                )}
-            </div>
-        </div>
-    );
-};
+import RunnerDetector from '../components/admin/RunnerDetector';
 
 const AdminDashboard = () => {
     const [photographers, setPhotographers] = useState([]);
@@ -189,12 +77,6 @@ const AdminDashboard = () => {
     const [isDetectingTest, setIsDetectingTest] = useState(false);
     const [testResults, setTestResults] = useState(null);
 
-    // Face Detection Test State
-    const [faceTestImages, setFaceTestImages] = useState([]);
-    const [faceTestPreviews, setFaceTestPreviews] = useState([]);
-    const [isDetectingFaces, setIsDetectingFaces] = useState(false);
-    const [faceTestResults, setFaceTestResults] = useState(null);
-    const [selectedPerson, setSelectedPerson] = useState(null);
 
     useEffect(() => {
         fetchAllData();
@@ -345,6 +227,27 @@ const AdminDashboard = () => {
         }
     };
 
+    const handleListModels = async () => {
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/gemini-ai`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify({ action: 'list-models', payload: {} })
+            });
+            const data = await response.json();
+            console.log("Available Gemini Models:", data.results);
+            alert("Available models logged to console. Please check the browser console.");
+        } catch (err) {
+            console.error("List Models Error:", err);
+            alert("Failed to list models: " + err.message);
+        }
+    };
+
     const handleTestImageChange = (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -386,7 +289,7 @@ const AdminDashboard = () => {
                 .from('public-photos')
                 .getPublicUrl(filePath);
 
-            // 2. Run detection (via OpenRouter now)
+            // 2. Run detection (via Gemini API now)
             const result = await detectBibsBatch([publicUrl]);
 
             // 3. Set results
@@ -408,90 +311,6 @@ const AdminDashboard = () => {
         }
     };
 
-    const handleTestFaceImageChange = (e) => {
-        const files = Array.from(e.target.files);
-        if (files.length > 0) {
-            setFaceTestImages(files);
-            const newPreviews = [];
-            let loadedCount = 0;
-
-            files.forEach((file, index) => {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    newPreviews[index] = reader.result;
-                    loadedCount++;
-                    if (loadedCount === files.length) {
-                        setFaceTestPreviews(newPreviews);
-                    }
-                };
-                reader.readAsDataURL(file);
-            });
-            setFaceTestResults(null);
-            setSelectedPerson(null);
-        }
-    };
-
-    const handleRunFaceTest = async () => {
-        if (faceTestImages.length === 0) return;
-
-        setIsDetectingFaces(true);
-        setFaceTestResults(null);
-        setSelectedPerson(null);
-
-        try {
-            // 0. Ensure valid session
-            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-            if (sessionError || !session) {
-                throw new Error("Session expired. Please refresh the page or log in again.");
-            }
-
-            const publicUrls = [];
-            const tempPaths = [];
-
-            // 1. Upload all images to temporary storage
-            for (let i = 0; i < faceTestImages.length; i++) {
-                const file = faceTestImages[i];
-                const fileExt = file.name.split('.').pop();
-                const fileName = `temp-face-test-${Date.now()}-${i}.${fileExt}`;
-                const filePath = `temp-tests/${fileName}`;
-
-                const { error: uploadError } = await supabase.storage
-                    .from('public-photos')
-                    .upload(filePath, file);
-
-                if (uploadError) throw uploadError;
-
-                const { data: { publicUrl } } = supabase.storage
-                    .from('public-photos')
-                    .getPublicUrl(filePath);
-
-                publicUrls.push(publicUrl);
-                tempPaths.push(filePath);
-            }
-
-            // 2. Run face detection on the batch
-            const result = await detectFacesBatch(publicUrls);
-
-            // 3. Set results
-            setFaceTestResults(result);
-
-            // 4. Cleanup
-            if (tempPaths.length > 0) {
-                await supabase.storage
-                    .from('public-photos')
-                    .remove(tempPaths);
-            }
-
-        } catch (error) {
-            console.error('Face Test Error:', error);
-            setGeminiTestResult({
-                success: false,
-                message: `Face Test Failed: ${error.message || 'Unknown error'}`
-            });
-        } finally {
-            setIsDetectingFaces(false);
-        }
-    };
 
     const handleTestStripe = async () => {
         setTestingStripe(true);
@@ -736,6 +555,12 @@ const AdminDashboard = () => {
                     onClick={() => setActiveTab('settings')}
                 >
                     Settings
+                </button>
+                <button
+                    className={`admin-tab ${activeTab === 'detector' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('detector')}
+                >
+                    Bib & Face Detector
                 </button>
             </div>
 
@@ -1427,14 +1252,14 @@ const AdminDashboard = () => {
                                             <div className="input-info-box" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
                                                 <ShieldCheck size={18} color="#10b981" />
                                                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                                    <span style={{ fontWeight: 600, color: '#0f172a' }}>OpenRouter Gateway (Recommended)</span>
-                                                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Bypasses direct project quotas and handles model fallbacks.</span>
+                                                    <span style={{ fontWeight: 600, color: '#0f172a' }}>Direct Gemini API (Enabled)</span>
+                                                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Connected directly to Google AI Studio for maximum performance.</span>
                                                 </div>
                                             </div>
                                             <p className="helper-text" style={{ marginTop: '1rem' }}>
                                                 Ensure the following secret is set in your Supabase project:
                                                 <code style={{ display: 'block', padding: '0.5rem', background: '#f1f5f9', marginTop: '0.5rem', borderRadius: '4px', fontSize: '0.75rem' }}>
-                                                    supabase secrets set OPENROUTER_API_KEY=sk-or-v1-...
+                                                    supabase secrets set GEMINI_API_KEY=AIza...
                                                 </code>
                                             </p>
                                         </div>
@@ -1448,7 +1273,7 @@ const AdminDashboard = () => {
                                                     </div>
                                                     <div>
                                                         <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Model</div>
-                                                        <div style={{ fontWeight: 600, color: '#0f172a', fontFamily: 'monospace' }}>google/gemini-2.0-flash-001</div>
+                                                        <div style={{ fontWeight: 600, color: '#0f172a', fontFamily: 'monospace' }}>gemini-2.5-flash</div>
                                                     </div>
                                                 </div>
 
@@ -1521,308 +1346,57 @@ const AdminDashboard = () => {
                                                 <ShieldCheck size={18} style={{ marginRight: '8px' }} />
                                                 {testingGemini ? 'Verifying AI Connection...' : 'Run Connectivity Check'}
                                             </Button>
-                                        </div>
-                                    </div>
-
-                                    <div className="integration-col" style={{ paddingLeft: '2rem', borderLeft: '1px solid #f1f5f9' }}>
-                                        <label style={{ fontSize: '0.875rem', fontWeight: '700', color: '#334155', display: 'block', marginBottom: '1rem' }}>
-                                            Live Bib Detection Test
-                                        </label>
-                                        <div style={{
-                                            border: '2px dashed #e2e8f0',
-                                            borderRadius: '16px',
-                                            padding: '2rem',
-                                            textAlign: 'center',
-                                            background: '#f8fafc',
-                                            cursor: 'pointer',
-                                            position: 'relative',
-                                            overflow: 'hidden',
-                                            minHeight: '200px',
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            alignItems: 'center',
-                                            justifyContent: 'center'
-                                        }}
-                                            onClick={() => document.getElementById('ai-test-upload').click()}
-                                        >
-                                            {testPreview ? (
-                                                <img src={testPreview} alt="Test" style={{ width: '100%', height: '100%', objectFit: 'contain', position: 'absolute', top: 0, left: 0, opacity: isDetectingTest ? 0.5 : 1 }} />
-                                            ) : (
-                                                <>
-                                                    <ImageIcon size={40} color="#94a3b8" style={{ marginBottom: '1rem' }} />
-                                                    <div style={{ fontSize: '0.875rem', color: '#64748b' }}>Click to upload a race photo</div>
-                                                    <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.25rem' }}>Verify bib numbers extraction</div>
-                                                </>
-                                            )}
-                                            {isDetectingTest && (
-                                                <div style={{ position: 'relative', zIndex: 1, color: '#0f172a', fontWeight: '600', background: 'rgba(255,255,255,0.8)', padding: '0.5rem 1rem', borderRadius: '20px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-                                                    Analyzing Photo...
-                                                </div>
-                                            )}
-                                        </div>
-                                        <input
-                                            type="file"
-                                            id="ai-test-upload"
-                                            style={{ display: 'none' }}
-                                            accept="image/*"
-                                            onChange={handleTestImageChange}
-                                        />
-
-                                        {testResults !== null && (
-                                            <div style={{ marginTop: '1.5rem' }}>
-                                                <label style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '0.5rem' }}>
-                                                    Extraction Results
-                                                </label>
-                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                                    {testResults.length > 0 ? (
-                                                        testResults.map((bib, idx) => (
-                                                            <span key={idx} style={{ background: '#f5f3ff', color: '#7c3aed', padding: '0.35rem 0.75rem', borderRadius: '8px', fontSize: '0.875rem', fontWeight: '700', border: '1px solid #ddd6fe' }}>
-                                                                #{bib}
-                                                            </span>
-                                                        ))
-                                                    ) : (
-                                                        <div style={{ fontSize: '0.875rem', color: '#ef4444', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                            <Plus size={16} style={{ transform: 'rotate(45deg)' }} />
-                                                            No bib numbers detected in this image.
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        <div style={{ marginTop: '1.5rem' }}>
                                             <Button
-                                                variant="secondary"
-                                                style={{ width: '100%' }}
-                                                disabled={!testImage || isDetectingTest}
-                                                onClick={handleRunLiveTest}
+                                                variant="outline"
+                                                onClick={handleListModels}
+                                                className="ml-2"
                                             >
-                                                {isDetectingTest ? 'Analyzing...' : 'Detect Bib Numbers'}
+                                                List Available Models
                                             </Button>
                                         </div>
                                     </div>
+
+                                    <div className="integration-col">
+                                        <div className="form-group-admin">
+                                            <label>System Prompts (Instructional AI)</label>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1rem' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                                                        <Hash size={14} color="#64748b" />
+                                                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Bib Detection Prompt</span>
+                                                    </div>
+                                                    <pre style={{ margin: 0, fontSize: '0.75rem', whiteSpace: 'pre-wrap', color: '#1e293b', background: '#fff', padding: '0.75rem', borderRadius: '6px', border: '1px solid #f1f5f9', maxHeight: '150px', overflowY: 'auto' }}>
+{`Identify all athlete bib numbers (race numbers) visible in these images. 
+Follow these strict rules:
+1. Return a JSON object where keys are the 0-indexed position of the image in the provided list.
+2. For each key, the value should be an array of strings (the bib numbers found).
+3. If no numbers are found, return an empty array [].
+4. Do not include any other text or markers.
+5. Return valid JSON only.`}
+                                                    </pre>
+                                                </div>
+
+                                                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1rem' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                                                        <Users size={14} color="#64748b" />
+                                                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Face Grouping Prompt</span>
+                                                    </div>
+                                                    <pre style={{ margin: 0, fontSize: '0.75rem', whiteSpace: 'pre-wrap', color: '#1e293b', background: '#fff', padding: '0.75rem', borderRadius: '6px', border: '1px solid #f1f5f9', maxHeight: '150px', overflowY: 'auto' }}>
+{`Analyze these images to find and group faces of the same person.
+YOUR PRIMARY GOAL IS TO GROUP FACES OF THE SAME INDIVIDUAL ACROSS MULTIPLE IMAGES.
+
+1. Detect all faces in all provided images.
+2. AGGRESSIVELY CLUSTER FACES: Compare every face with every other face. If two faces belong to the same person, they MUST be grouped under the same "Person X" key.
+3. Return ONLY the valid JSON object.`}
+                                                    </pre>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                 </div>
                             </div>
 
-                            {/* Face Detection Integration Card */}
-                            <div className="integration-card" style={{ marginTop: '2rem' }}>
-                                <div className="integration-header">
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                        <div style={{ width: '40px', height: '40px', background: '#ecfdf5', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#059669' }}>
-                                            <Smile size={20} />
-                                        </div>
-                                        <div>
-                                            <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '700', color: '#0f172a' }}>
-                                                Face Detection & Grouping
-                                            </h3>
-                                            <p style={{ margin: 0, fontSize: '0.875rem', color: '#64748b' }}>
-                                                Group photos by identifying distinct people using Gemini AI
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div className="integration-status">
-                                        <div className={`status-dot ${geminiStatus === 'connected' ? 'connected' : 'disconnected'}`}></div>
-                                        <span style={{ fontSize: '0.875rem', fontWeight: '600', color: geminiStatus === 'connected' ? '#10b981' : '#64748b' }}>
-                                            {geminiStatus === 'connected' ? 'Ready' : 'Check Gemini Connection'}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem', padding: '2rem' }}>
-                                    <div className="integration-col">
-                                        <label style={{ fontSize: '0.875rem', fontWeight: '700', color: '#334155', display: 'block', marginBottom: '1rem' }}>
-                                            Live Face Grouping Test
-                                        </label>
-                                        <div style={{
-                                            border: '2px dashed #e2e8f0',
-                                            borderRadius: '16px',
-                                            padding: '1.5rem',
-                                            textAlign: 'center',
-                                            background: '#f8fafc',
-                                            cursor: 'pointer',
-                                            position: 'relative',
-                                            minHeight: '200px',
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            alignItems: 'center',
-                                            justifyContent: 'center'
-                                        }}
-                                            onClick={() => document.getElementById('ai-face-test-upload').click()}
-                                        >
-                                            {faceTestPreviews.length > 0 ? (
-                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '0.75rem', width: '100%' }}>
-                                                    {faceTestPreviews.map((preview, idx) => (
-                                                        <div key={idx} style={{ aspectRatio: '1/1', borderRadius: '10px', overflow: 'hidden', border: '2px solid white', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', position: 'relative' }}>
-                                                            <img src={preview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: isDetectingFaces ? 0.3 : 1 }} />
-                                                            <div style={{ position: 'absolute', bottom: 4, right: 4, background: 'rgba(0,0,0,0.5)', color: 'white', fontSize: '10px', padding: '2px 4px', borderRadius: '4px' }}>
-                                                                #{idx}
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            ) : (
-                                                <>
-                                                    <Smile size={40} color="#94a3b8" style={{ marginBottom: '1rem' }} />
-                                                    <div style={{ fontSize: '0.875rem', color: '#64748b' }}>Click to upload photos</div>
-                                                    <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.25rem' }}>Upload multiple photos to test grouping</div>
-                                                </>
-                                            )}
-                                            {isDetectingFaces && (
-                                                <div style={{ position: 'absolute', zIndex: 1, color: '#0f172a', fontWeight: '600', background: 'rgba(255,255,255,0.9)', padding: '0.75rem 1.5rem', borderRadius: '30px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}>
-                                                    Analyzing {faceTestImages.length} Photos...
-                                                </div>
-                                            )}
-                                        </div>
-                                        <input
-                                            type="file"
-                                            id="ai-face-test-upload"
-                                            style={{ display: 'none' }}
-                                            accept="image/*"
-                                            multiple
-                                            onChange={handleTestFaceImageChange}
-                                        />
-
-                                        {faceTestResults && (
-                                            <div style={{ marginTop: '2rem' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                                                    <label style={{ fontSize: '0.875rem', fontWeight: '800', color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                                                        Detected Individuals
-                                                    </label>
-                                                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                                                        {Object.keys(faceTestResults).length} people found
-                                                    </span>
-                                                </div>
-
-                                                <div style={{
-                                                    display: 'flex',
-                                                    flexWrap: 'nowrap',
-                                                    gap: '1rem',
-                                                    padding: '0.5rem',
-                                                    overflowX: 'auto',
-                                                    paddingBottom: '1rem',
-                                                    scrollbarWidth: 'thin',
-                                                    WebkitOverflowScrolling: 'touch'
-                                                }}>
-                                                    {Object.entries(faceTestResults).map(([personId, data]) => (
-                                                        <FaceCard
-                                                            key={personId}
-                                                            personId={personId}
-                                                            person={data}
-                                                            faceTestPreviews={faceTestPreviews}
-                                                            isSelected={selectedPerson === personId}
-                                                            onSelect={setSelectedPerson}
-                                                        />
-                                                    ))}
-                                                </div>
-
-                                                <Modal
-                                                    isOpen={!!selectedPerson}
-                                                    onClose={() => setSelectedPerson(null)}
-                                                    title={selectedPerson ? `${selectedPerson} Appearances` : 'Person Details'}
-                                                    showFooter={false}
-                                                >
-                                                    {selectedPerson && faceTestResults[selectedPerson] && (
-                                                        <div style={{ padding: '0.5rem' }}>
-                                                            <div style={{
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                gap: '1rem',
-                                                                marginBottom: '1.5rem',
-                                                                padding: '1rem',
-                                                                background: '#f8fafc',
-                                                                borderRadius: '12px',
-                                                                border: '1px solid #e2e8f0'
-                                                            }}>
-                                                                <div style={{
-                                                                    width: '60px',
-                                                                    height: '60px',
-                                                                    borderRadius: '50%',
-                                                                    overflow: 'hidden',
-                                                                    border: '2px solid white',
-                                                                    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
-                                                                    background: '#e2e8f0',
-                                                                    display: 'flex',
-                                                                    alignItems: 'center',
-                                                                    justifyContent: 'center'
-                                                                }}>
-                                                                    <Smile size={32} color="white" />
-                                                                </div>
-                                                                <div>
-                                                                    <div style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0f172a' }}>{selectedPerson}</div>
-                                                                    <div style={{ fontSize: '0.875rem', color: '#64748b' }}>
-                                                                        Found in {faceTestResults[selectedPerson].appearances.length} photos
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-
-                                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '1rem' }}>
-                                                                {faceTestResults[selectedPerson].appearances.map((app, idx) => (
-                                                                    <div key={idx} style={{
-                                                                        background: 'white',
-                                                                        borderRadius: '12px',
-                                                                        overflow: 'hidden',
-                                                                        border: '1px solid #e2e8f0',
-                                                                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                                                                        cursor: 'pointer',
-                                                                        transition: 'transform 0.2s',
-                                                                    }}
-                                                                        onClick={() => window.open(faceTestPreviews[app.image_index], '_blank')}
-                                                                        title="Click to view full image"
-                                                                    >
-                                                                        <div style={{ aspectRatio: '1/1', overflow: 'hidden', position: 'relative' }}>
-                                                                            <img src={faceTestPreviews[app.image_index]} alt="Appearance" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                                            <div style={{
-                                                                                position: 'absolute',
-                                                                                top: `${app.box_2d[0] / 10}%`,
-                                                                                left: `${app.box_2d[1] / 10}%`,
-                                                                                width: `${(app.box_2d[3] - app.box_2d[1]) / 10}%`,
-                                                                                height: `${(app.box_2d[2] - app.box_2d[0]) / 10}%`,
-                                                                                border: '3px solid #facc15',
-                                                                                boxShadow: '0 0 0 9999px rgba(0,0,0,0.5)',
-                                                                                borderRadius: '4px'
-                                                                            }}></div>
-                                                                        </div>
-                                                                        <div style={{ padding: '0.5rem', textAlign: 'center', fontSize: '0.75rem', fontWeight: '600', color: '#64748b', background: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
-                                                                            Image #{app.image_index + 1}
-                                                                        </div>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </Modal>
-
-
-                                                <div style={{ marginTop: '1.5rem' }}>
-                                                    <label
-                                                        style={{
-                                                            fontSize: '0.7rem',
-                                                            color: '#94a3b8',
-                                                            display: 'block',
-                                                            cursor: 'pointer',
-                                                            textAlign: 'right'
-                                                        }}
-                                                        onClick={() => console.log(faceTestResults)}
-                                                    >
-                                                        View Raw JSON in Console
-                                                    </label>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        <div style={{ marginTop: '1.5rem' }}>
-                                            <Button
-                                                variant="secondary"
-                                                style={{ width: '100%' }}
-                                                disabled={faceTestImages.length === 0 || isDetectingFaces}
-                                                onClick={handleRunFaceTest}
-                                            >
-                                                {isDetectingFaces ? `Analyzing ${faceTestImages.length} photos...` : 'Detect Faces'}
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </div >
-                            </div >
 
                             {/* Stripe Connectivity Card */}
                             < div className="integration-card" style={{ marginTop: '2rem' }}>
@@ -1888,6 +1462,16 @@ const AdminDashboard = () => {
                     </div >
                 )
             }
+
+            {/* Bib & Face Detector Tab */}
+            {
+                activeTab === 'detector' && (
+                    <div style={{ marginTop: '2rem' }}>
+                        <RunnerDetector />
+                    </div>
+                )
+            }
+
             {/* Toast Notification */}
             {
                 showToast && (
@@ -2761,6 +2345,16 @@ const AdminDashboard = () => {
                     }
                 }
             `}</style>
+            {/* Detector Tab */}
+            {activeTab === 'detector' && (
+                <div className="tab-content fade-in" style={{ padding: '0', background: 'transparent', flex: 1, minHeight: 0 }}>
+                    <div style={{ height: '100%', overflowY: 'auto', padding: '0 0 2rem 0' }}>
+                        <div style={{ background: 'white', border: 'none', minHeight: '100%' }}>
+                            <RunnerDetector />
+                        </div>
+                    </div>
+                </div>
+            )}
         </div >
     );
 };

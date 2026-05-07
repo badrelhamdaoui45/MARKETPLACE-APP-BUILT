@@ -131,3 +131,43 @@ export const detectFacesBatch = async (imageUrls) => {
         throw error;
     }
 };
+
+/**
+ * Consolidated runner detection (Face + Bib) using Gemini API.
+ * Specifically targets the high-accuracy Gemini models for best results.
+ */
+export const detectRunners = async (imageUrl) => {
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session || !session.access_token) {
+            throw new Error("No active session found");
+        }
+
+        console.log(`[detectRunners] Calling Gemini API for ${imageUrl}...`);
+
+        const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/gemini-ai`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({
+                action: 'detect-runners',
+                payload: {
+                    imageUrl,
+                    model: 'google/gemini-2.0-flash-001' // Mapping to the premium logic requested
+                }
+            })
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+
+        return data.results || [];
+    } catch (error) {
+        console.error("Error in Gemini Runner Detection:", error);
+        throw error;
+    }
+};

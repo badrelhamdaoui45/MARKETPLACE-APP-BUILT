@@ -243,7 +243,7 @@ serve(async (req) => {
                 const { photographerId } = payload
                 const { data: details, error: dError } = await serviceClient
                     .from('photographer_private_data')
-                    .select('bank_details, bank_transfer_enabled, bank_name, account_holder, bank_code, account_number, rib')
+                    .select('bank_details, bank_transfer_enabled, bank_name, account_holder, bank_code, account_number, rib, bank_accounts')
                     .eq('id', photographerId)
                     .single()
 

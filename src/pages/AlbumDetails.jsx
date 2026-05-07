@@ -5,9 +5,9 @@ import { useAuth } from '../context/AuthContext';
 import PhotoUpload from '../components/PhotoUpload';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
-import { ArrowLeft, Trash2, Upload, Eye, EyeOff, Share2, Copy, Check, Hash, Edit2, Save, X } from 'lucide-react';
+import { ArrowLeft, Trash2, Upload, Eye, EyeOff, Share2, Copy, Check, Hash, Edit2, Save, X, Users, Smile } from 'lucide-react';
 import Toast from '../components/ui/Toast';
-import { detectBibsBatch } from '../lib/gemini';
+import { detectBibsBatch, detectFacesBatch } from '../lib/gemini';
 import { slugify } from '../utils/slugify';
 import SubscribersModal from '../components/ui/SubscribersModal';
 import SkeletonPage from '../components/ui/SkeletonPage';
@@ -36,6 +36,10 @@ const AlbumDetails = () => {
         is_free: false
     });
 
+    const [isGrouping, setIsGrouping] = useState(false);
+    const [faceClusters, setFaceClusters] = useState([]);
+    const [selectedCluster, setSelectedCluster] = useState(null);
+
     // Popup management state
     const [albumPopup, setAlbumPopup] = useState({
         title: '',
@@ -51,7 +55,9 @@ const AlbumDetails = () => {
 
     useEffect(() => {
         if (user && albumTitle) {
-            fetchAlbumDetails();
+            fetchAlbumDetails().then((data) => {
+                if (data?.id) fetchFaceClusters(data.id);
+            });
         }
     }, [albumTitle, user]);
 
@@ -124,10 +130,37 @@ const AlbumDetails = () => {
 
             if (!countError) setSubscriberCount(count || 0);
 
+            return albumData;
         } catch (error) {
             console.error('Error fetching details:', error);
+            return null;
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchFaceClusters = async (id) => {
+        try {
+            const albumId = id || album?.id;
+            if (!albumId) return;
+
+            const { data, error } = await supabase
+                .from('face_clusters')
+                .select(`
+                    *,
+                    photo_faces (
+                        photo_id,
+                        bounding_box,
+                        photos (watermarked_url, title)
+                    )
+                `)
+                .eq('album_id', albumId)
+                .order('photo_count', { ascending: false });
+
+            if (error) throw error;
+            setFaceClusters(data || []);
+        } catch (error) {
+            console.error('Error fetching face clusters:', error);
         }
     };
 
@@ -414,7 +447,7 @@ const AlbumDetails = () => {
                 openModal({
                     title: 'Detection Complete',
                     message: `Found bib numbers in ${successCount} photos.${errorCount > 0 ? ` (${errorCount} errors)` : ''}`,
-                    variant: 'success',
+                    variant: 'orange',
                     confirmText: 'Close',
                     showCancel: false, // Single button for info
                     onConfirm: closeModal
@@ -458,6 +491,114 @@ const AlbumDetails = () => {
             cancelText: 'Cancel',
             showCancel: true,
             onConfirm: performBibDetection
+        });
+    };
+
+    const handleRunAIGrouping = async () => {
+        if (photos.length === 0) return;
+
+        setIsGrouping(true);
+        try {
+            // 1. Clear previous grouping results for this album
+            // Note: We should probably keep existing records and only update if we have a better way, 
+            // but for "BUILD NEW ONE" we start fresh.
+            await supabase.from('face_clusters').delete().eq('album_id', album.id);
+
+            // 2. Batch process photos for grouping
+            const batchSize = 10;
+            const allFaceMapping = {}; // local grouping state
+
+            for (let i = 0; i < photos.length; i += batchSize) {
+                const batch = photos.slice(i, i + batchSize);
+                const imageUrls = batch.map(p => p.watermarked_url || p.photo_url);
+
+                console.log(`[Grouping] Analyzing batch ${i / batchSize + 1}...`);
+                const results = await detectFacesBatch(imageUrls);
+
+                // Process Gemini results
+                Object.entries(results).forEach(([personLabel, data]) => {
+                    // CRITICAL: Use bib as the primary key if available to merge across batches
+                    const mergingKey = data.bib && data.bib !== 'Unknown' 
+                        ? `bib-${data.bib}` 
+                        : `batch-${i}-${personLabel}`;
+
+                    if (!allFaceMapping[mergingKey]) {
+                        allFaceMapping[mergingKey] = {
+                            label: data.bib && data.bib !== 'Unknown' ? `Runner #${data.bib}` : personLabel,
+                            bib: data.bib,
+                            appearances: []
+                        };
+                    }
+
+                    data.appearances.forEach(app => {
+                        const photo = batch[app.image_index];
+                        // Avoid duplicate photo entries for the same person in the same cluster
+                        const alreadyExists = allFaceMapping[mergingKey].appearances.some(a => a.photo.id === photo.id);
+                        if (!alreadyExists) {
+                            allFaceMapping[mergingKey].appearances.push({
+                                photo: photo,
+                                box_2d: app.box_2d
+                            });
+                        }
+                    });
+                });
+            }
+
+            // 3. Persist results to DB
+            for (const [key, data] of Object.entries(allFaceMapping)) {
+                console.log(`[Grouping] Persisting cluster: ${data.label} with ${data.appearances.length} unique photos`);
+                
+                // Create Cluster
+                const { data: cluster, error: clusterError } = await supabase
+                    .from('face_clusters')
+                    .insert({
+                        album_id: album.id,
+                        photographer_id: user.id,
+                        label: data.label,
+                        photo_count: data.appearances.length,
+                        thumbnail_url: data.appearances[0]?.photo.watermarked_url
+                    })
+                    .select()
+                    .single();
+
+                if (clusterError) throw clusterError;
+
+                // Create individual photo links
+                const photoFaces = data.appearances.map(app => ({
+                    photo_id: app.photo.id,
+                    face_cluster_id: cluster.id,
+                    bounding_box: app.box_2d,
+                    confidence: 1.0 // Add default confidence to satisfy NOT NULL constraint
+                }));
+
+                const { error: facesError } = await supabase
+                    .from('photo_faces')
+                    .insert(photoFaces);
+
+                if (facesError) throw facesError;
+            }
+
+            await fetchFaceClusters();
+            setToast({ message: 'Grouping complete!', type: 'success' });
+
+        } catch (error) {
+            console.error('Grouping error:', error);
+            setToast({ message: `Grouping failed: ${error.message}`, type: 'error' });
+        } finally {
+            setIsGrouping(false);
+            closeModal();
+        }
+    };
+
+    const handleAIGroupingClick = () => {
+        openModal({
+            title: 'Run AI Person Grouping?',
+            message: `This will identify all distinct people across ${photos.length} photos and group them. Existing groups for this album will be replaced.`,
+            variant: 'orange',
+            confirmText: 'Start Grouping',
+            cancelText: 'Cancel',
+            showCancel: true,
+            onConfirm: handleRunAIGrouping
         });
     };
 
@@ -984,6 +1125,101 @@ const AlbumDetails = () => {
                     )
                 }
             </section >
+
+            {/* AI Grouping Section */}
+            <section className="grouping-section">
+                <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                        <h2>AI Person Grouping</h2>
+                        <p>Identified groups of people in this album</p>
+                    </div>
+                    <Button
+                        variant="primary"
+                        onClick={handleAIGroupingClick}
+                        disabled={isGrouping || photos.length === 0}
+                        className="group-btn"
+                    >
+                        {isGrouping ? (
+                            <><span className="spinner"></span> Grouping...</>
+                        ) : (
+                            <><Users size={16} /> Run AI Grouping</>
+                        )}
+                    </Button>
+                </div>
+
+                {faceClusters.length === 0 ? (
+                    <div className="empty-state">
+                        <div className="empty-grouping-icon">
+                            <Users size={48} color="#e2e8f0" />
+                        </div>
+                        <p>No person groups identified yet. Run AI Grouping to cluster photos by people.</p>
+                    </div>
+                ) : (
+                    <div className="clusters-grid">
+                        {faceClusters.map(cluster => {
+                            const representativeFace = cluster.photo_faces?.[0];
+                            const box = representativeFace?.bounding_box;
+                            
+                            // Calculate crop style if box exists [ymin, xmin, ymax, xmax]
+                            let cropStyle = {};
+                            if (box && box.length === 4) {
+                                const [ymin, xmin, ymax, xmax] = box;
+                                const width = xmax - xmin;
+                                const height = ymax - ymin;
+                                // We want to center the face and zoom in
+                                // Using object-position and transform for a clean crop
+                                const centerX = (xmin + xmax) / 20; // 0-1000 to 0-100
+                                const centerY = (ymin + ymax) / 20;
+                                cropStyle = {
+                                    objectPosition: `${centerX}% ${centerY}%`,
+                                    transform: 'scale(1.8)' // Zoom into the face
+                                };
+                            }
+
+                            return (
+                                <div key={cluster.id} className="cluster-card" onClick={() => setSelectedCluster(cluster)}>
+                                    <div className="cluster-thumbnail">
+                                        <div className="thumbnail-wrapper">
+                                            <img 
+                                                src={cluster.thumbnail_url} 
+                                                alt={cluster.label} 
+                                                style={cropStyle}
+                                            />
+                                        </div>
+                                        <div className="photo-count-badge">
+                                            {cluster.photo_count} {cluster.photo_count === 1 ? 'photo' : 'photos'}
+                                        </div>
+                                    </div>
+                                    <div className="cluster-info">
+                                        <div className="runner-label-row">
+                                            <Smile size={14} className="runner-icon" />
+                                            <h3>{cluster.label}</h3>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+            </section>
+
+            {/* Selected Cluster Modal */}
+            {selectedCluster && (
+                <Modal
+                    isOpen={!!selectedCluster}
+                    onClose={() => setSelectedCluster(null)}
+                    title={`Photos of ${selectedCluster.label}`}
+                    size="xl"
+                >
+                    <div className="cluster-photos-grid">
+                        {selectedCluster.photo_faces?.map((face, idx) => (
+                            <div key={idx} className="face-photo-item">
+                                <img src={face.photos?.watermarked_url} alt={face.photos?.title} />
+                            </div>
+                        ))}
+                    </div>
+                </Modal>
+            )}
 
             <style>{`
                 .album-details-container {
@@ -1987,6 +2223,171 @@ const AlbumDetails = () => {
                     height: 20px;
                     cursor: pointer;
                     accent-color: #10b981;
+                }
+
+                /* AI Grouping Styles */
+                .grouping-section {
+                    margin-bottom: 4rem;
+                }
+
+                .group-btn {
+                    background: #7c3aed !important;
+                    border: none !important;
+                    color: white !important;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    font-weight: 700 !important;
+                    padding: 0.6rem 1.5rem !important;
+                    border-radius: 12px !important;
+                    transition: all 0.2s;
+                }
+
+                .group-btn:hover {
+                    background: #6d28d9 !important;
+                    transform: translateY(-1px);
+                    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+                }
+
+                .empty-grouping-icon {
+                    background: #f8fafc;
+                    width: 100px;
+                    height: 100px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin: 0 auto 1.5rem;
+                    border: 2px dashed #e2e8f0;
+                }
+
+                .clusters-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+                    gap: 1.5rem;
+                    margin-top: 2rem;
+                }
+
+                .cluster-card {
+                    background: white;
+                    border-radius: 16px;
+                    overflow: hidden;
+                    border: 1px solid var(--border-subtle);
+                    transition: all 0.3s ease;
+                    cursor: pointer;
+                    display: flex;
+                    flex-direction: column;
+                }
+
+                .cluster-card:hover {
+                    transform: translateY(-4px);
+                    box-shadow: var(--shadow-md);
+                    border-color: #7c3aed;
+                }
+
+                .cluster-thumbnail {
+                    position: relative;
+                    aspect-ratio: 1;
+                    background: #f1f5f9;
+                    overflow: hidden; /* CRITICAL for cropping */
+                }
+
+                .thumbnail-wrapper {
+                    width: 100%;
+                    height: 100%;
+                    padding: 3px;
+                }
+
+                .cluster-thumbnail img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                    border-radius: 13px;
+                }
+
+                .photo-count-badge {
+                    position: absolute;
+                    top: 0.75rem;
+                    right: 0.75rem;
+                    background: #7c3aed;
+                    color: white;
+                    padding: 0.35rem 0.75rem;
+                    border-radius: 12px;
+                    font-size: 0.75rem;
+                    font-weight: 800;
+                    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+                    display: flex;
+                    align-items: center;
+                    gap: 0.3rem;
+                    z-index: 10;
+                }
+
+                .photo-count-badge::before {
+                    content: '';
+                    display: inline-block;
+                    width: 6px;
+                    height: 6px;
+                    background: #10b981;
+                    border-radius: 50%;
+                    box-shadow: 0 0 8px #10b981;
+                }
+
+                .cluster-info {
+                    padding: 1rem;
+                    text-align: center;
+                    background: #f8fafc;
+                }
+
+                .runner-label-row {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 0.4rem;
+                }
+
+                .runner-icon {
+                    color: #7c3aed;
+                }
+
+                .cluster-info h3 {
+                    font-size: 0.9rem;
+                    font-weight: 800;
+                    color: var(--text-primary);
+                    margin: 0;
+                }
+
+                .cluster-photos-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                    gap: 1rem;
+                    padding: 1rem;
+                }
+
+                .face-photo-item {
+                    aspect-ratio: 1;
+                    border-radius: 12px;
+                    overflow: hidden;
+                    background: #f1f5f9;
+                    border: 1px solid #e2e8f0;
+                }
+
+                .face-photo-item img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                }
+
+                .spinner {
+                    width: 16px;
+                    height: 16px;
+                    border: 2px solid rgba(255, 255, 255, 0.3);
+                    border-top-color: white;
+                    border-radius: 50%;
+                    animation: spin 0.8s linear infinite;
+                }
+
+                @keyframes spin {
+                    to { transform: rotate(360deg); }
                 }
             `}</style>
 

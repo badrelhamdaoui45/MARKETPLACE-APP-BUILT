@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@0.21.0"
+import { encode } from "https://deno.land/std@0.168.0/encoding/base64.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
 
 const corsHeaders = {
@@ -58,17 +58,27 @@ serve(async (req) => {
         }
         // --- END AUTH ---
 
-        const openRouterKey = Deno.env.get('OPENROUTER_API_KEY') || Deno.env.get('GEMINI_API_KEY')
+        const geminiKey = Deno.env.get('GEMINI_API_KEY') || Deno.env.get('OPENROUTER_API_KEY')
 
-        if (!openRouterKey) {
+        if (!geminiKey) {
             return new Response(
-                JSON.stringify({ error: 'Neither OPENROUTER_API_KEY nor GEMINI_API_KEY is set' }),
+                JSON.stringify({ error: 'GEMINI_API_KEY is not set' }),
                 { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
             )
         }
 
-        const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-        const MODEL = "google/gemini-2.0-flash-001" // High performance multimodal model
+        const GEMINI_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${geminiKey}`
+        const MODEL = "gemini-2.5-flash"
+
+        // Helper function to fetch and convert image to base64
+        const urlToBase64 = async (url: string) => {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
+            const buffer = await response.arrayBuffer();
+            const mimeType = response.headers.get('content-type') || 'image/jpeg';
+            const data = encode(new Uint8Array(buffer));
+            return { mimeType, data };
+        };
 
         if (action === 'detect-faces') {
             const { imageUrls } = payload
@@ -79,66 +89,65 @@ serve(async (req) => {
                 )
             }
 
-            console.log(`[OpenRouter Batch] Processing faces in ${imageUrls.length} images...`)
+            console.log(`[Gemini Batch] Processing faces in ${imageUrls.length} images...`)
 
-            // Prepare multimodal content for OpenRouter (OpenAI format)
-            const content = []
-            content.push({
-                type: "text",
-                text: `Analyze these images to find and group faces of the same person.
-                YOUR PRIMARY GOAL IS TO GROUP FACES OF THE SAME INDIVIDUAL ACROSS MULTIPLE IMAGES.
+            const parts = []
+            parts.push({
+                text: `Analyze these images to detect, identify, and group every runner.
                 
-                Follow these strict rules:
-                1. Detect all faces in all provided images.
-                2. AGGRESSIVELY CLUSTER FACES: Compare every face with every other face. If two faces belong to the same person, they MUST be grouped under the same "Person X" key.
-                3. Look for bib numbers (race numbers) on chests/shirts to help confirm identity, but rely primarily on facial features.
-                4. For each unique person identified, list EVERY separate image they appear in.
+                YOUR GOAL: Create a single entry per person, grouping all their appearances across the batch.
+                
+                CLUSTERING LOGIC:
+                1. PRIMARY IDENTIFIER: Bib Numbers (Race Numbers). If two people have the same bib number, they are the SAME PERSON. Group them together regardless of facial variation.
+                2. SECONDARY IDENTIFIER: Facial Features. Use facial recognition to group people when bibs are hidden, blurry, or missing.
+                3. TRANSITIVE GROUPING: If Person A in Image 1 (Bib 101) looks exactly like Person B in Image 2 (no bib), and Person B looks like Person C in Image 3 (Bib 101), they are all Person 101.
+                
+                STRICT RULES:
+                - NO DUPLICATES: One person = One JSON key. Do not create "Person 1" and "Person 2" for the same individual.
+                - BOXES: Provide accurate face bounding boxes [ymin, xmin, ymax, xmax] (normalized 0-1000).
+                - BIB ASSIGNMENT: If you find a bib for a person in ANY image of the group, assign that bib number to the "bib" field for the entire group.
                 
                 Output JSON format:
                 {
                   "Person 1": {
                     "bib": "123" (or null),
                     "appearances": [
-                      { "image_index": 0, "box_2d": [ymin, xmin, ymax, xmax] (normalized 0-1000) },
-                      { "image_index": 3, "box_2d": [ymin, xmin, ymax, xmax] }
+                      { "image_index": 0, "box_2d": [ymin, xmin, ymax, xmax] },
+                      { "image_index": 2, "box_2d": [ymin, xmin, ymax, xmax] }
                     ]
                   }
                 }
                 
-                CRITICAL: 
-                - Do not create separate "Person" entries for the same individual. Group them!
-                - Scan ALL images.
-                - Return ONLY the valid JSON object.`
+                CRITICAL: Scan ALL images thoroughly. Return ONLY valid JSON.`
             })
 
             for (const url of imageUrls) {
-                content.push({
-                    type: "image_url",
-                    image_url: {
-                        url: url
+                const { mimeType, data } = await urlToBase64(url);
+                parts.push({
+                    inline_data: {
+                        mime_type: mimeType,
+                        data: data
                     }
                 })
             }
 
-            const response = await fetch(OPENROUTER_URL, {
+            const response = await fetch(GEMINI_URL, {
                 method: "POST",
                 headers: {
-                    "Authorization": `Bearer ${openRouterKey}`,
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
-                    model: MODEL,
-                    messages: [{ role: "user", content }],
+                    contents: [{ role: "user", parts }]
                 })
             })
 
             const data = await response.json()
             if (!response.ok) {
-                console.error("OpenRouter API Error:", data)
-                throw new Error(data.error?.message || `OpenRouter Error: ${response.status}`)
+                console.error("Gemini API Error:", data)
+                throw new Error(data.error?.message || `Gemini Error: ${response.status}`)
             }
 
-            let text = data.choices?.[0]?.message?.content?.trim() || "{}"
+            let text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "{}"
 
             // Handle optional markdown wrapping in AI response
             if (text.startsWith('```json')) {
@@ -164,7 +173,7 @@ serve(async (req) => {
         )
 
     } catch (error) {
-        console.error('OpenRouter Edge Function Error:', error)
+        console.error('Gemini Edge Function Error:', error)
         return new Response(
             JSON.stringify({ error: error.message }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }

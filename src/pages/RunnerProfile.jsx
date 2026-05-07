@@ -6,11 +6,13 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { calculateCommission } from '../config/platform';
 import { ShoppingBag, Camera, Download, Check, Landmark, Copy, Upload, MessageSquare, Image as ImageIcon, Loader } from 'lucide-react';
 import Toast from '../components/ui/Toast';
+import { getBankLogoUrl } from '../utils/banks';
 
 const BankDetails = ({ photogId }) => {
     const [details, setDetails] = useState(null);
     const [loading, setLoading] = useState(true);
     const [copied, setCopied] = useState(false);
+    const [selectedBankIndex, setSelectedBankIndex] = useState(0);
 
     useEffect(() => {
         const fetchDetails = async () => {
@@ -44,74 +46,182 @@ const BankDetails = ({ photogId }) => {
     return (
         <div className="pending-bank-details">
             <p className="details-intro">Please make the transfer to the following details:</p>
-            <div className="bank-details-mini-grid">
-                {details.bank_name && (
-                    <div className="mini-detail">
-                        <label>Banque</label>
-                        <div className="copyable-row">
-                            <span>{details.bank_name}</span>
-                            <button className="mini-copy-icon" onClick={() => handleCopy(details.bank_name, 'bn')}>
-                                {copied === 'bn' ? <Check size={12} /> : <Copy size={12} />}
-                            </button>
+            {details.bank_accounts && details.bank_accounts.length > 0 ? (
+                <div className="bank-accounts-selection">
+                    <div className="bank-accounts-dropdown-container" style={{ marginBottom: '1.5rem' }}>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.5rem', display: 'block' }}>Choose Bank to Transfer To</label>
+                        <div className="custom-bank-select" style={{ position: 'relative' }}>
+                            <select 
+                                value={selectedBankIndex} 
+                                onChange={(e) => setSelectedBankIndex(Number(e.target.value))}
+                                style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 2.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', appearance: 'none', background: '#fff', fontSize: '0.9rem', fontWeight: 600, color: '#1e293b', cursor: 'pointer' }}
+                            >
+                                {details.bank_accounts.map((acc, idx) => (
+                                    <option key={idx} value={idx}>{acc.bank_name || `Bank Option ${idx + 1}`}</option>
+                                ))}
+                            </select>
+                            <div style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                                {details.bank_accounts[selectedBankIndex]?.logo_url ? (
+                                    <img src={details.bank_accounts[selectedBankIndex].logo_url} alt="Bank Logo" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
+                                ) : (
+                                    getBankLogoUrl(details.bank_accounts[selectedBankIndex]?.bank_name) ? (
+                                        <img src={getBankLogoUrl(details.bank_accounts[selectedBankIndex].bank_name)} alt="Bank Logo" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
+                                    ) : (
+                                        <Landmark size={18} color="#64748b" />
+                                    )
+                                )}
+                            </div>
+                            <div style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+                                <svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1.5L6 6.5L11 1.5" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            </div>
                         </div>
                     </div>
-                )}
-                {details.account_holder && (
-                    <div className="mini-detail">
-                        <label>Titulaire</label>
-                        <div className="copyable-row">
-                            <span>{details.account_holder}</span>
-                            <button className="mini-copy-icon" onClick={() => handleCopy(details.account_holder, 'ah')}>
-                                {copied === 'ah' ? <Check size={12} /> : <Copy size={12} />}
-                            </button>
+
+                    {(() => {
+                        const account = details.bank_accounts[selectedBankIndex];
+                        if (!account) return null;
+                        return (
+                            <div className="bank-details-mini-grid">
+                                {account.bank_name && (
+                                    <div className="mini-detail">
+                                        <label>Banque</label>
+                                        <div className="copyable-row">
+                                            <span>{account.bank_name}</span>
+                                            <button className="mini-copy-icon" onClick={() => handleCopy(account.bank_name, 'bn')}>
+                                                {copied === 'bn' ? <Check size={12} /> : <Copy size={12} />}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                                {account.account_holder && (
+                                    <div className="mini-detail">
+                                        <label>Titulaire</label>
+                                        <div className="copyable-row">
+                                            <span>{account.account_holder}</span>
+                                            <button className="mini-copy-icon" onClick={() => handleCopy(account.account_holder, 'ah')}>
+                                                {copied === 'ah' ? <Check size={12} /> : <Copy size={12} />}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                                {account.bank_code && (
+                                    <div className="mini-detail">
+                                        <label>Code</label>
+                                        <div className="copyable-row">
+                                            <span>{account.bank_code}</span>
+                                            <button className="mini-copy-icon" onClick={() => handleCopy(account.bank_code, 'bc')}>
+                                                {copied === 'bc' ? <Check size={12} /> : <Copy size={12} />}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                                {account.account_number && (
+                                    <div className="mini-detail">
+                                        <label>N° Compte</label>
+                                        <div className="copyable-row">
+                                            <span>{account.account_number}</span>
+                                            <button className="mini-copy-icon" onClick={() => handleCopy(account.account_number, 'an')}>
+                                                {copied === 'an' ? <Check size={12} /> : <Copy size={12} />}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                                {account.rib && (
+                                    <div className="mini-detail full">
+                                        <label>RIB / IBAN</label>
+                                        <div className="copyable-row">
+                                            <span>{account.rib}</span>
+                                            <button className="mini-copy-icon" onClick={() => handleCopy(account.rib, 'rib')}>
+                                                {copied === 'rib' ? <Check size={12} /> : <Copy size={12} />}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })()}
+                </div>
+            ) : (
+                <div className="bank-details-mini-grid">
+                    {details.bank_name && (
+                        <div className="mini-detail">
+                            <label>Banque</label>
+                            <div className="copyable-row">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    {getBankLogoUrl(details.bank_name) && (
+                                        <img 
+                                            src={getBankLogoUrl(details.bank_name)} 
+                                            alt={details.bank_name} 
+                                            style={{ width: '16px', height: '16px', objectFit: 'contain' }}
+                                            onError={(e) => { e.target.style.display = 'none'; }}
+                                        />
+                                    )}
+                                    <span>{details.bank_name}</span>
+                                </div>
+                                <button className="mini-copy-icon" onClick={() => handleCopy(details.bank_name, 'bn')}>
+                                    {copied === 'bn' ? <Check size={12} /> : <Copy size={12} />}
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                )}
-                {details.bank_code && (
-                    <div className="mini-detail">
-                        <label>Code Banque</label>
-                        <div className="copyable-row">
-                            <span>{details.bank_code}</span>
-                            <button className="mini-copy-icon" onClick={() => handleCopy(details.bank_code, 'bc')}>
-                                {copied === 'bc' ? <Check size={12} /> : <Copy size={12} />}
-                            </button>
+                    )}
+                    {details.account_holder && (
+                        <div className="mini-detail">
+                            <label>Titulaire</label>
+                            <div className="copyable-row">
+                                <span>{details.account_holder}</span>
+                                <button className="mini-copy-icon" onClick={() => handleCopy(details.account_holder, 'ah')}>
+                                    {copied === 'ah' ? <Check size={12} /> : <Copy size={12} />}
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                )}
-                {details.account_number && (
-                    <div className="mini-detail">
-                        <label>N° Compte</label>
-                        <div className="copyable-row">
-                            <span>{details.account_number}</span>
-                            <button className="mini-copy-icon" onClick={() => handleCopy(details.account_number, 'an')}>
-                                {copied === 'an' ? <Check size={12} /> : <Copy size={12} />}
-                            </button>
+                    )}
+                    {details.bank_code && (
+                        <div className="mini-detail">
+                            <label>Code Banque</label>
+                            <div className="copyable-row">
+                                <span>{details.bank_code}</span>
+                                <button className="mini-copy-icon" onClick={() => handleCopy(details.bank_code, 'bc')}>
+                                    {copied === 'bc' ? <Check size={12} /> : <Copy size={12} />}
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                )}
-                {details.rib && (
-                    <div className="mini-detail full">
-                        <label>IBAN / RIB</label>
-                        <div className="copyable-row">
-                            <span>{details.rib}</span>
-                            <button className="mini-copy-icon" onClick={() => handleCopy(details.rib, 'rib')}>
-                                {copied === 'rib' ? <Check size={12} /> : <Copy size={12} />}
-                            </button>
+                    )}
+                    {details.account_number && (
+                        <div className="mini-detail">
+                            <label>N° Compte</label>
+                            <div className="copyable-row">
+                                <span>{details.account_number}</span>
+                                <button className="mini-copy-icon" onClick={() => handleCopy(details.account_number, 'an')}>
+                                    {copied === 'an' ? <Check size={12} /> : <Copy size={12} />}
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                )}
-                {details.bank_details && (
-                    <div className="mini-detail full">
-                        <label>Instructions</label>
-                        <div className="copyable-row">
-                            <pre style={{ fontSize: '0.75rem', margin: 0 }}>{details.bank_details}</pre>
-                            <button className="mini-copy-icon" onClick={() => handleCopy(details.bank_details, 'desc')}>
-                                {copied === 'desc' ? <Check size={12} /> : <Copy size={12} />}
-                            </button>
+                    )}
+                    {details.rib && (
+                        <div className="mini-detail full">
+                            <label>IBAN / RIB</label>
+                            <div className="copyable-row">
+                                <span>{details.rib}</span>
+                                <button className="mini-copy-icon" onClick={() => handleCopy(details.rib, 'rib')}>
+                                    {copied === 'rib' ? <Check size={12} /> : <Copy size={12} />}
+                                </button>
+                            </div>
                         </div>
+                    )}
+                </div>
+            )}
+            
+            {details.bank_details && (
+                <div className="mini-detail full" style={{ marginTop: '1rem', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
+                    <label>Instructions Générales</label>
+                    <div className="copyable-row">
+                        <pre style={{ fontSize: '0.75rem', margin: 0, fontFamily: 'inherit', whiteSpace: 'pre-wrap' }}>{details.bank_details}</pre>
+                        <button className="mini-copy-icon" onClick={() => handleCopy(details.bank_details, 'desc')}>
+                            {copied === 'desc' ? <Check size={12} /> : <Copy size={12} />}
+                        </button>
                     </div>
-                )}
-            </div>
+                </div>
+            )}
             <style>{`.mini-loader { font-size: 0.8rem; color: #94a3b8; padding: 1rem; text-align: center; }`}</style>
         </div>
     );
