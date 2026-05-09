@@ -10,11 +10,15 @@ const Select = ({ label, options, error, className = '', ...props }) => {
                 {...props}
             >
                 <option value="">Select an option</option>
-                {options.map((option) => (
-                    <option key={option} value={option}>
-                        {option}
-                    </option>
-                ))}
+                {options.map((option, index) => {
+                    const value = typeof option === 'object' ? option.value : option;
+                    const label = typeof option === 'object' ? option.label : option;
+                    return (
+                        <option key={value || index} value={value}>
+                            {label}
+                        </option>
+                    );
+                })}
             </select>
             {error && <span className="input-error-msg">{error}</span>}
         </div>

@@ -5,11 +5,14 @@ import Button from '../components/ui/Button';
 import { calculateCommission } from '../config/platform';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
+import { formatPrice } from '../utils/currencies';
 import { ShoppingCart, Check, Plus, Lock, X, ZoomIn, ChevronLeft, ChevronRight, Gift, Search, Tag, ChevronDown, ChevronUp } from 'lucide-react';
 import DynamicPopup from '../components/DynamicPopup';
 import SkeletonAlbumView from '../components/ui/SkeletonAlbumView';
 
 const PublicAlbumView = () => {
+    const { t } = useLanguage();
     const { photographerName, albumTitle } = useParams();
     const navigate = useNavigate();
     const { user } = useAuth();
@@ -56,7 +59,7 @@ const PublicAlbumView = () => {
                 .from('albums')
                 .select(`
                     *,
-                    profiles:photographer_id (full_name, logo_url)
+                    profiles:photographer_id (full_name, logo_url, currency)
                 `)
                 .ilike('profiles.full_name', decodeURIComponent(photographerName))
                 .or(`slug.eq."${decodeURIComponent(albumTitle)}",title.eq."${decodeURIComponent(albumTitle)}"`)
@@ -388,7 +391,7 @@ const PublicAlbumView = () => {
                                                         toggleCartItem(photo);
                                                     }}
                                                 >
-                                                    {selected ? 'Remove from Cart' : 'Add to Cart'}
+                                                    {selected ? t('cart_remove') : t('pub_add_cart')}
                                                 </Button>
                                             </div>
                                         </div>
@@ -412,7 +415,7 @@ const PublicAlbumView = () => {
                                         <Search size={18} className="search-icon" />
                                         <input
                                             type="text"
-                                            placeholder="Search by Bib (e.g. 123)"
+                                            placeholder={t('pub_search_bib')}
                                             className="bib-search-input"
                                             value={bibSearch}
                                             onChange={(e) => setBibSearch(e.target.value)}
@@ -427,7 +430,7 @@ const PublicAlbumView = () => {
                                         )}
                                     </div>
                                     {bibSearch && filteredPhotos.length === 0 && (
-                                        <p className="search-no-results">No photos found with bib #{bibSearch}</p>
+                                        <p className="search-no-results">{t('pub_no_photos_found')}</p>
                                     )}
                                 </div>
 
@@ -440,7 +443,7 @@ const PublicAlbumView = () => {
                                     >
                                         <div className="toggle-left">
                                             <Tag size={16} className="pricing-icon" />
-                                            <span>Pricing</span>
+                                            <span>{t('pub_pricing')}</span>
                                         </div>
                                         {isPricingExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                                     </button>
@@ -450,7 +453,7 @@ const PublicAlbumView = () => {
                                             <div className="purchase-details">
                                                 {packages.length > 1 && (
                                                     <div className="package-selector-section dropdown-theme" style={{ marginBottom: '1rem' }}>
-                                                        <p className="selector-label">PACKAGE</p>
+                                                        <p className="selector-label">{t('pub_package')}</p>
                                                         <select
                                                             className="package-dropdown-select"
                                                             value={selectedPackage?.id || ''}
@@ -468,19 +471,19 @@ const PublicAlbumView = () => {
                                                     </div>
                                                 )}
                                                 <div className="detail-row">
-                                                    <span>Selected (this album)</span>
-                                                    <span className="detail-value">{selectionCount} photos</span>
+                                                    <span>{t('pub_selected_album')}</span>
+                                                    <span className="detail-value">{selectionCount} {t('pub_photo')}{selectionCount !== 1 ? 's' : ''}</span>
                                                 </div>
 
                                                 {/* Show Tiers Info */}
                                                 {selectedPackage && selectedPackage.tiers && (
                                                     <div className="pricing-tiers">
-                                                        <p className="tiers-title">Volume Discounts:</p>
+                                                        <p className="tiers-title">{t('pub_volume_discounts')}</p>
                                                         <div className="tiers-list">
                                                             {selectedPackage.tiers.sort((a, b) => a.quantity - b.quantity).map((tier, i) => (
                                                                 <div key={i} className="tier-item">
-                                                                    <span>{tier.quantity}+ Photos</span>
-                                                                    <span className="tier-price">{tier.price} <small>/photo</small></span>
+                                                                    <span>{tier.quantity}+ {t('pricing_photos')}</span>
+                                                                    <span className="tier-price">{formatPrice(tier.price, album.profiles?.currency)} <small>/{t('pub_photo')}</small></span>
                                                                 </div>
                                                             ))}
                                                         </div>
@@ -489,14 +492,14 @@ const PublicAlbumView = () => {
 
                                                 {!selectedPackage && (
                                                     <p className="package-description">
-                                                        Full album access for {album.price}€
+                                                        Full album access for {formatPrice(album.price, album.profiles?.currency)}
                                                     </p>
                                                 )}
                                                 <div className="price-divider"></div>
 
                                                 <div className="total-price-row">
-                                                    <span>Subtotal</span>
-                                                    <span className="total-amount">{finalPrice}</span>
+                                                    <span>{t('pub_subtotal')}</span>
+                                                    <span className="total-amount">{formatPrice(finalPrice, album.profiles?.currency)}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -508,13 +511,13 @@ const PublicAlbumView = () => {
                                     onClick={() => navigate('/cart')}
                                 >
                                     <ShoppingCart size={20} style={{ marginRight: '8px' }} />
-                                    View Cart ({cartItems.length})
+                                    {t('pub_view_cart')} ({cartItems.length})
                                 </Button>
 
                                 {album.is_free && (
                                     <div className="free-claim-wrapper">
                                         <div className="claim-divider">
-                                            <span>OR</span>
+                                            <span>{t('pub_or')}</span>
                                         </div>
                                         <Button
                                             className="free-claim-btn"
@@ -522,14 +525,14 @@ const PublicAlbumView = () => {
                                             disabled={isClaiming}
                                         >
                                             <Gift size={20} />
-                                            {isClaiming ? 'Loading...' : 'CLAIM EVERYTHING FOR FREE'}
+                                            {isClaiming ? t('pub_loading') : t('pub_claim_free')}
                                         </Button>
-                                        <p className="free-disclaimer">Access all photos without paying.</p>
+                                        <p className="free-disclaimer">{t('pub_claim_free_desc')}</p>
                                     </div>
                                 )}
 
                                 <p className="payment-note">
-                                    <Lock size={12} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> Secure payment via Stripe
+                                    <Lock size={12} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> {t('pub_secure_payment')}
                                 </p>
                             </div>
                         </div>

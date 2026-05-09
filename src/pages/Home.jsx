@@ -3,8 +3,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import { Search, Camera, ChevronLeft, ChevronRight, Image as ImageIcon, Zap, Shield, Globe, Smartphone, CreditCard, Layers, Users, Trophy, Flag, Briefcase, PlayCircle, ArrowRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useLanguage } from '../context/LanguageContext';
 
 const Home = () => {
+    const { t } = useLanguage();
     const [recentAlbums, setRecentAlbums] = useState([]);
     const [recentBlogs, setRecentBlogs] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -15,32 +17,32 @@ const Home = () => {
 
     const userTypeData = {
         photographer: {
-            title: "For Photographers",
-            desc: "Turn your passion into profit. Upload your albums, set your prices, and let our AI technology handle the tagging and sales.",
+            title: t('home_for_photographers'),
+            desc: t('home_for_photographers_desc'),
             features: ["Automated AI Indexing", "Instant Stripe Payouts", "Custom Watermarking", "Portfolio Page"],
             icon: <Camera size={120} strokeWidth={1} />,
-            cta: "Start Selling"
+            cta: t('home_start_selling')
         },
         agency: {
-            title: "For Photo Agencies",
-            desc: "Scale your operations efficiently. Manage multiple photographers, track global sales, and streamline your workflow in one dashboard.",
+            title: t('home_for_agencies'),
+            desc: t('home_for_agencies_desc'),
             features: ["Multi-Photographer Management", "Centralized Analytics", "Bulk Album Processing", "Team Permissions"],
             icon: <Briefcase size={120} strokeWidth={1} />,
-            cta: "Scale Your Business"
+            cta: t('home_scale_business')
         },
         organizer: {
-            title: "For Race Organizers",
-            desc: "Enhance your participant experience. Provide easy access to event photos and increase post-race engagement without the hassle.",
+            title: t('home_for_organizers'),
+            desc: t('home_for_organizers_desc'),
             features: ["Zero Cost Setup", "Boost Event Visibility", "Seamless Photo Distribution", "Sponsor Branding Options"],
             icon: <Flag size={120} strokeWidth={1} />,
-            cta: "Partner With Us"
+            cta: t('home_partner_with_us')
         },
         club: {
-            title: "For Sport Clubs",
-            desc: "Capture your club's moments. Share match photos with parents and fans while generating extra revenue for the club.",
+            title: t('home_for_clubs'),
+            desc: t('home_for_clubs_desc'),
             features: ["Fundraising Opportunities", "Private Galleries", "Parent/Fan Engagement", "Season Archives"],
             icon: <Trophy size={120} strokeWidth={1} />,
-            cta: "Create Club Account"
+            cta: t('home_create_club')
         }
     };
 
@@ -120,24 +122,24 @@ const Home = () => {
                 <div className="hero-section">
                     <div className="hero-text">
                         <h1 className="hero-headline">
-                            REVOLUTIONIZE <br />
+                            {t('home_hero_headline')} <br />
                             <span className="animated-sport">
                                 {heroData[currentSportIndex].text.toUpperCase()}
                             </span> <br />
-                            PHOTO MANAGEMENT
+                            {t('home_hero_photo')}
                         </h1>
                         <p className="hero-subtext">
-                            Manage, share, and monetize your event and sports club photo albums with our online application
+                            {t('home_hero_subtext')}
                         </p>
                         <p className="hero-ai-hint">
-                            <strong>Our AI-based technology and automatic image analysis</strong> simplify the management of your sports photos.
+                            <strong>{t('home_hero_ai')}</strong> {t('home_hero_ai_sub')}
                         </p>
                         <div className="hero-actions">
                             <Button variant="outline" className="hero-btn-contact" onClick={() => navigate('/contact')}>
-                                Contact Us
+                                {t('home_contact_us')}
                             </Button>
                             <Button className="hero-btn-try action-btn" onClick={() => navigate('/onboarding')}>
-                                Try Run Capture
+                                {t('home_try')}
                             </Button>
                         </div>
                     </div>
@@ -164,11 +166,11 @@ const Home = () => {
                             <Search size={80} strokeWidth={1} />
                         </div>
                         <p className="home-card-text">
-                            You participated in an event and want to find your sports photos online.
+                            {t('home_runner_text')}
                         </p>
                         <Link to="/albums" className="home-card-link">
                             <Button className="home-btn runner-btn">
-                                I'M LOOKING FOR MY PHOTOS
+                                {t('home_runner_btn')}
                             </Button>
                         </Link>
                     </div>
@@ -179,11 +181,11 @@ const Home = () => {
                             <Camera size={80} strokeWidth={1} />
                         </div>
                         <p className="home-card-text">
-                            You are a photographer, event, or club and want to host and identify your sports photos online.
+                            {t('home_photog_text')}
                         </p>
                         <Link to="/login" className="home-card-link">
                             <Button variant="primary" className="home-btn photographer-btn">
-                                I AM A PHOTOGRAPHER / ORGANIZER
+                                {t('home_photog_btn')}
                             </Button>
                         </Link>
                     </div>
@@ -192,14 +194,14 @@ const Home = () => {
                 {/* Comparison Table Section */}
                 <div style={{ marginTop: '6rem', marginBottom: '6rem' }}>
                     <div className="section-header">
-                        <h2 className="section-title">Why Choose Run Capture?</h2>
-                        <p className="section-subtitle">See how we stack up against the competition</p>
+                        <h2 className="section-title">{t('home_why_title')}</h2>
+                        <p className="section-subtitle">{t('home_why_sub')}</p>
                     </div>
 
                     <div className="comparison-table-container">
                         <div className="comparison-header-row">
                             <div className="col-feature">
-                                <span className="d-none-mobile">Feature</span>
+                                <span className="d-none-mobile">{t('home_feature_col')}</span>
                             </div>
                             <div className="col-us">
                                 <span className="brand-text-logo">
@@ -207,16 +209,16 @@ const Home = () => {
                                     <span className="brand-capture">CAPTURES</span>
                                 </span>
                             </div>
-                            <div className="col-others">Other Apps</div>
+                            <div className="col-others">{t('home_others_col')}</div>
                         </div>
 
                         {[
-                            { feature: "Starting Cost", us: "Free", others: "Monthly Fees" },
-                            { feature: "AI Detection", us: "Unlimited", others: "Add-on / None" },
-                            { feature: "Payouts", us: "Instant", others: "Monthly" },
-                            { feature: "Commission", us: "Fair (15%)", others: "High (20-30%)" },
-                            { feature: "Watermark", us: "Custom", others: "Fixed" },
-                            { feature: "Setup", us: "Instant", others: "Manual" },
+                            { feature: t('home_comp_starting_cost'), us: t('free'), others: t('home_comp_monthly_fees') },
+                            { feature: t('home_comp_ai_detection'), us: t('home_comp_unlimited'), others: t('home_comp_addon_none') },
+                            { feature: t('home_comp_payouts'), us: t('home_comp_instant'), others: t('home_comp_monthly') },
+                            { feature: t('home_comp_commission'), us: t('home_comp_fair'), others: t('home_comp_high') },
+                            { feature: t('home_comp_watermark'), us: t('home_comp_custom'), others: t('home_comp_fixed') },
+                            { feature: t('home_comp_setup'), us: t('home_comp_instant'), others: t('home_comp_manual') },
                         ].map((row, idx) => (
                             <div key={idx} className={`comparison-row ${idx % 2 === 0 ? 'bg-stripe' : ''}`}>
                                 <div className="col-feature">{row.feature}</div>
@@ -234,63 +236,63 @@ const Home = () => {
                 {/* Pricing Section */}
                 <div id="pricing" className="pricing-section">
                     <div className="section-header">
-                        <h2 className="section-title">Simple, Transparent Pricing</h2>
-                        <p className="section-subtitle">Choose the plan that fits your photography business</p>
+                        <h2 className="section-title">{t('home_pricing_title')}</h2>
+                        <p className="section-subtitle">{t('home_pricing_sub')}</p>
                     </div>
 
                     <div className="pricing-grid">
                         {/* Free Tier */}
                         <div className="pricing-card">
                             <div className="pricing-header">
-                                <h3 className="pricing-tier">Free</h3>
+                                <h3 className="pricing-tier">{t('home_free_tier')}</h3>
                                 <div className="pricing-price">$0<span className="pricing-period">/mo</span></div>
-                                <p className="pricing-desc">Perfect for getting started</p>
+                                <p className="pricing-desc">{t('home_free_desc')}</p>
                             </div>
                             <ul className="pricing-features">
-                                <li><span className="check-icon">✓</span> Unlimited Uploads</li>
-                                <li><span className="check-icon">✓</span> AI Detection</li>
-                                <li><span className="check-icon">✓</span> <strong>15%</strong> Commission</li>
-                                <li><span className="check-icon">✓</span> Standard Support</li>
+                                <li><span className="check-icon">✓</span> {t('home_unlimited_uploads')}</li>
+                                <li><span className="check-icon">✓</span> {t('home_ai_detection')}</li>
+                                <li><span className="check-icon">✓</span> <strong>15%</strong> {t('home_commission')}</li>
+                                <li><span className="check-icon">✓</span> {t('home_standard_support')}</li>
                             </ul>
                             <Button variant="outline" className="pricing-btn" onClick={() => navigate('/register')}>
-                                Get Started
+                                {t('home_get_started')}
                             </Button>
                         </div>
 
                         {/* Starter Tier */}
                         <div className="pricing-card popular">
-                            <div className="popular-badge">MOST POPULAR</div>
+                            <div className="popular-badge">{t('home_most_popular')}</div>
                             <div className="pricing-header">
-                                <h3 className="pricing-tier">Starter</h3>
+                                <h3 className="pricing-tier">{t('home_starter_tier')}</h3>
                                 <div className="pricing-price">$19<span className="pricing-period">/mo</span></div>
-                                <p className="pricing-desc">For growing businesses</p>
+                                <p className="pricing-desc">{t('home_starter_desc')}</p>
                             </div>
                             <ul className="pricing-features">
-                                <li><span className="check-icon">✓</span> All Free features</li>
-                                <li><span className="check-icon">✓</span> <strong>10%</strong> Commission</li>
-                                <li><span className="check-icon">✓</span> Priority Processing</li>
-                                <li><span className="check-icon">✓</span> Portfolio Page</li>
+                                <li><span className="check-icon">✓</span> {t('home_all_free')}</li>
+                                <li><span className="check-icon">✓</span> <strong>10%</strong> {t('home_commission')}</li>
+                                <li><span className="check-icon">✓</span> {t('home_priority_processing')}</li>
+                                <li><span className="check-icon">✓</span> {t('home_portfolio_page')}</li>
                             </ul>
                             <Button className="pricing-btn btn-primary" onClick={() => navigate('/register?plan=starter')}>
-                                Start Trial
+                                {t('home_start_trial')}
                             </Button>
                         </div>
 
                         {/* Premium Tier */}
                         <div className="pricing-card">
                             <div className="pricing-header">
-                                <h3 className="pricing-tier">Premium</h3>
+                                <h3 className="pricing-tier">{t('home_premium_tier')}</h3>
                                 <div className="pricing-price">$49<span className="pricing-period">/mo</span></div>
-                                <p className="pricing-desc">For professionals & agencies</p>
+                                <p className="pricing-desc">{t('home_premium_desc')}</p>
                             </div>
                             <ul className="pricing-features">
-                                <li><span className="check-icon">✓</span> All Starter features</li>
-                                <li><span className="check-icon">✓</span> <strong>5%</strong> Commission</li>
-                                <li><span className="check-icon">✓</span> White Labeling</li>
-                                <li><span className="check-icon">✓</span> Dedicated Manager</li>
+                                <li><span className="check-icon">✓</span> {t('home_all_starter')}</li>
+                                <li><span className="check-icon">✓</span> <strong>5%</strong> {t('home_commission')}</li>
+                                <li><span className="check-icon">✓</span> {t('home_white_labeling')}</li>
+                                <li><span className="check-icon">✓</span> {t('home_dedicated_manager')}</li>
                             </ul>
                             <Button variant="outline" className="pricing-btn" onClick={() => navigate('/contact')}>
-                                Contact Sales
+                                {t('home_contact_sales')}
                             </Button>
                         </div>
                     </div>
@@ -299,16 +301,16 @@ const Home = () => {
                 {/* Timeline Section */}
                 <div id="how-it-works" className="timeline-section">
                     <div className="section-header">
-                        <h2 className="section-title">How It Works</h2>
-                        <p className="section-subtitle">Start selling your photos in 4 simple steps</p>
+                        <h2 className="section-title">{t('home_how_title')}</h2>
+                        <p className="section-subtitle">{t('home_how_sub')}</p>
                     </div>
 
                     <div className="timeline-container">
                         {[
-                            { title: "Sign Up", desc: "Create your free photographer account", icon: "1" },
-                            { title: "Upload Photos", desc: "Create albums and upload your best shots", icon: "2" },
-                            { title: "Set Pricing", desc: "Choose your rates and publish", icon: "3" },
-                            { title: "Get Paid", desc: "Receive earnings directly to your bank", icon: "4" }
+                            { title: t('home_step1_title'), desc: t('home_step1_desc'), icon: "1" },
+                            { title: t('home_step2_title'), desc: t('home_step2_desc'), icon: "2" },
+                            { title: t('home_step3_title'), desc: t('home_step3_desc'), icon: "3" },
+                            { title: t('home_step4_title'), desc: t('home_step4_desc'), icon: "4" }
                         ].map((step, i) => (
                             <div key={i} className="timeline-step">
                                 <div className="step-number">{step.icon}</div>
@@ -323,7 +325,7 @@ const Home = () => {
 
                     <div style={{ textAlign: 'center', marginTop: '3rem' }}>
                         <Button className="pricing-btn btn-primary" style={{ maxWidth: '300px', margin: '0 auto' }} onClick={() => navigate('/register')}>
-                            Join Now
+                            {t('home_join_now')}
                         </Button>
                     </div>
                 </div>
@@ -331,18 +333,18 @@ const Home = () => {
                 {/* Features Section */}
                 <div className="features-section">
                     <div className="section-header">
-                        <h2 className="section-title">Everything You Need</h2>
-                        <p className="section-subtitle">Powerful tools built for sports photography businesses</p>
+                        <h2 className="section-title">{t('home_features_title')}</h2>
+                        <p className="section-subtitle">{t('home_features_sub')}</p>
                     </div>
 
                     <div className="features-grid">
                         {[
-                            { icon: <Zap size={32} />, title: "Instant Payouts", desc: "Get paid immediately after every sale via Stripe Connect." },
-                            { icon: <Shield size={32} />, title: "Secure Storage", desc: "Unlimited cloud storage for your high-resolution albums." },
-                            { icon: <Globe size={32} />, title: "Global Reach", desc: "Sell your photos to runners from all around the world." },
-                            { icon: <Smartphone size={32} />, title: "Mobile Optimized", desc: "Runners can find and buy photos easily on any device." },
-                            { icon: <CreditCard size={32} />, title: "Low Commission", desc: "Keep more of your earnings with our transparent pricing." },
-                            { icon: <Layers size={32} />, title: "Album Management", desc: "Organize thousands of photos in minutes with bulk tools." }
+                            { icon: <Zap size={32} />, title: t('home_feat_instant'), desc: t('home_feat_instant_desc') },
+                            { icon: <Shield size={32} />, title: t('home_feat_secure'), desc: t('home_feat_secure_desc') },
+                            { icon: <Globe size={32} />, title: t('home_feat_global'), desc: t('home_feat_global_desc') },
+                            { icon: <Smartphone size={32} />, title: t('home_feat_mobile'), desc: t('home_feat_mobile_desc') },
+                            { icon: <CreditCard size={32} />, title: t('home_feat_low_comm'), desc: t('home_feat_low_comm_desc') },
+                            { icon: <Layers size={32} />, title: t('home_feat_album_mgmt'), desc: t('home_feat_album_mgmt_desc') }
                         ].map((item, i) => (
                             <div key={i} className="feature-card">
                                 <div className="feature-icon">{item.icon}</div>
@@ -356,8 +358,8 @@ const Home = () => {
                 {/* User Type Switcher Section */}
                 <div className="switcher-section">
                     <div className="section-header">
-                        <h2 className="section-title">Who is Run Capture For?</h2>
-                        <p className="section-subtitle">Tailored solutions for every player in the sports ecosystem</p>
+                        <h2 className="section-title">{t('home_who_title')}</h2>
+                        <p className="section-subtitle">{t('home_who_sub')}</p>
                     </div>
 
                     <div className="switcher-img-box">
@@ -367,16 +369,16 @@ const Home = () => {
                     <div className="switcher-container">
                         <div className="switcher-tabs">
                             <button className={`switcher-tab ${activeUserType === 'photographer' ? 'active' : ''}`} onClick={() => setActiveUserType('photographer')}>
-                                <Camera size={18} /> Photographer
+                                <Camera size={18} /> {t('home_photographer_tab')}
                             </button>
                             <button className={`switcher-tab ${activeUserType === 'agency' ? 'active' : ''}`} onClick={() => setActiveUserType('agency')}>
-                                <Briefcase size={18} /> Agency
+                                <Briefcase size={18} /> {t('home_agency_tab')}
                             </button>
                             <button className={`switcher-tab ${activeUserType === 'organizer' ? 'active' : ''}`} onClick={() => setActiveUserType('organizer')}>
-                                <Flag size={18} /> Organizer
+                                <Flag size={18} /> {t('home_organizer_tab')}
                             </button>
                             <button className={`switcher-tab ${activeUserType === 'club' ? 'active' : ''}`} onClick={() => setActiveUserType('club')}>
-                                <Trophy size={18} /> Club
+                                <Trophy size={18} /> {t('home_club_tab')}
                             </button>
                         </div>
 

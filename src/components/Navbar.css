@@ -146,6 +146,51 @@
     /* Push auth buttons to the far right */
 }
 
+.language-switcher {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-right: 1.5rem;
+    padding: 0.4rem 0.8rem;
+    background: #f8fafc;
+    border-radius: 50px;
+    border: 1px solid #e2e8f0;
+}
+
+.mobile-lang-switcher {
+    margin-right: 0;
+    padding: 0.3rem 0.6rem;
+}
+
+.lang-btn {
+    background: none;
+    border: none;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #64748b;
+    cursor: pointer;
+    padding: 2px 4px;
+    transition: all 0.2s ease;
+    border-radius: 4px;
+}
+
+.lang-btn:hover {
+    color: var(--primary-blue);
+}
+
+.lang-btn.active {
+    color: var(--primary-blue);
+    background: white;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.lang-divider {
+    color: #cbd5e1;
+    font-size: 0.75rem;
+    font-weight: 300;
+}
+
+
 
 .dashboard-btn {
     display: flex;

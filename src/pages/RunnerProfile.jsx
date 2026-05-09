@@ -1,14 +1,17 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import Button from '../components/ui/Button';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { calculateCommission } from '../config/platform';
 import { ShoppingBag, Camera, Download, Check, Landmark, Copy, Upload, MessageSquare, Image as ImageIcon, Loader } from 'lucide-react';
 import Toast from '../components/ui/Toast';
 import { getBankLogoUrl } from '../utils/banks';
+import { formatPrice } from '../utils/currencies';
 
 const BankDetails = ({ photogId }) => {
+    const { t } = useLanguage();
     const [details, setDetails] = useState(null);
     const [loading, setLoading] = useState(true);
     const [copied, setCopied] = useState(false);
@@ -40,16 +43,16 @@ const BankDetails = ({ photogId }) => {
         setTimeout(() => setCopied(false), 2000);
     };
 
-    if (loading) return <div className="mini-loader">Loading bank info...</div>;
+    if (loading) return <div className="mini-loader">{t('pub_loading') || 'Loading bank info...'}</div>;
     if (!details) return null;
 
     return (
         <div className="pending-bank-details">
-            <p className="details-intro">Please make the transfer to the following details:</p>
+            <p className="details-intro">{t('runner_transfer_details') || 'Please make the transfer to the following details:'}</p>
             {details.bank_accounts && details.bank_accounts.length > 0 ? (
                 <div className="bank-accounts-selection">
                     <div className="bank-accounts-dropdown-container" style={{ marginBottom: '1.5rem' }}>
-                        <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.5rem', display: 'block' }}>Choose Bank to Transfer To</label>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.5rem', display: 'block' }}>{t('checkout_choose_bank') || 'Choose Bank to Transfer To'}</label>
                         <div className="custom-bank-select" style={{ position: 'relative' }}>
                             <select 
                                 value={selectedBankIndex} 
@@ -84,7 +87,7 @@ const BankDetails = ({ photogId }) => {
                             <div className="bank-details-mini-grid">
                                 {account.bank_name && (
                                     <div className="mini-detail">
-                                        <label>Banque</label>
+                                        <label>{t('bank_name') || 'Banque'}</label>
                                         <div className="copyable-row">
                                             <span>{account.bank_name}</span>
                                             <button className="mini-copy-icon" onClick={() => handleCopy(account.bank_name, 'bn')}>
@@ -95,7 +98,7 @@ const BankDetails = ({ photogId }) => {
                                 )}
                                 {account.account_holder && (
                                     <div className="mini-detail">
-                                        <label>Titulaire</label>
+                                        <label>{t('account_holder') || 'Titulaire'}</label>
                                         <div className="copyable-row">
                                             <span>{account.account_holder}</span>
                                             <button className="mini-copy-icon" onClick={() => handleCopy(account.account_holder, 'ah')}>
@@ -106,7 +109,7 @@ const BankDetails = ({ photogId }) => {
                                 )}
                                 {account.bank_code && (
                                     <div className="mini-detail">
-                                        <label>Code</label>
+                                        <label>{t('bank_code') || 'Code'}</label>
                                         <div className="copyable-row">
                                             <span>{account.bank_code}</span>
                                             <button className="mini-copy-icon" onClick={() => handleCopy(account.bank_code, 'bc')}>
@@ -117,7 +120,7 @@ const BankDetails = ({ photogId }) => {
                                 )}
                                 {account.account_number && (
                                     <div className="mini-detail">
-                                        <label>N° Compte</label>
+                                        <label>{t('account_number') || 'N° Compte'}</label>
                                         <div className="copyable-row">
                                             <span>{account.account_number}</span>
                                             <button className="mini-copy-icon" onClick={() => handleCopy(account.account_number, 'an')}>
@@ -128,7 +131,7 @@ const BankDetails = ({ photogId }) => {
                                 )}
                                 {account.rib && (
                                     <div className="mini-detail full">
-                                        <label>RIB / IBAN</label>
+                                        <label>{t('bank_rib') || 'RIB / IBAN'}</label>
                                         <div className="copyable-row">
                                             <span>{account.rib}</span>
                                             <button className="mini-copy-icon" onClick={() => handleCopy(account.rib, 'rib')}>
@@ -145,7 +148,7 @@ const BankDetails = ({ photogId }) => {
                 <div className="bank-details-mini-grid">
                     {details.bank_name && (
                         <div className="mini-detail">
-                            <label>Banque</label>
+                            <label>{t('bank_name') || 'Banque'}</label>
                             <div className="copyable-row">
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                     {getBankLogoUrl(details.bank_name) && (
@@ -166,7 +169,7 @@ const BankDetails = ({ photogId }) => {
                     )}
                     {details.account_holder && (
                         <div className="mini-detail">
-                            <label>Titulaire</label>
+                            <label>{t('account_holder') || 'Titulaire'}</label>
                             <div className="copyable-row">
                                 <span>{details.account_holder}</span>
                                 <button className="mini-copy-icon" onClick={() => handleCopy(details.account_holder, 'ah')}>
@@ -177,7 +180,7 @@ const BankDetails = ({ photogId }) => {
                     )}
                     {details.bank_code && (
                         <div className="mini-detail">
-                            <label>Code Banque</label>
+                            <label>{t('bank_code') || 'Code Banque'}</label>
                             <div className="copyable-row">
                                 <span>{details.bank_code}</span>
                                 <button className="mini-copy-icon" onClick={() => handleCopy(details.bank_code, 'bc')}>
@@ -188,7 +191,7 @@ const BankDetails = ({ photogId }) => {
                     )}
                     {details.account_number && (
                         <div className="mini-detail">
-                            <label>N° Compte</label>
+                            <label>{t('account_number') || 'N° Compte'}</label>
                             <div className="copyable-row">
                                 <span>{details.account_number}</span>
                                 <button className="mini-copy-icon" onClick={() => handleCopy(details.account_number, 'an')}>
@@ -199,7 +202,7 @@ const BankDetails = ({ photogId }) => {
                     )}
                     {details.rib && (
                         <div className="mini-detail full">
-                            <label>IBAN / RIB</label>
+                            <label>{t('bank_rib') || 'IBAN / RIB'}</label>
                             <div className="copyable-row">
                                 <span>{details.rib}</span>
                                 <button className="mini-copy-icon" onClick={() => handleCopy(details.rib, 'rib')}>
@@ -228,6 +231,7 @@ const BankDetails = ({ photogId }) => {
 };
 
 const RunnerProfile = () => {
+    const { t } = useLanguage();
     const { user } = useAuth();
     const [purchases, setPurchases] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -426,21 +430,21 @@ const RunnerProfile = () => {
     return (
         <div className="purchases-container">
             <header className="purchases-header">
-                <h1 className="purchases-title">My Purchases</h1>
-                <p className="purchases-subtitle">Manage and download your professional photography collections.</p>
+                <h1 className="purchases-title">{t('runner_my_purchases')}</h1>
+                <p className="purchases-subtitle">{t('cart_browse_desc') || "Manage and download your professional photography collections."}</p>
             </header>
 
             {loading ? (
                 <div className="loading-state">
                     <div className="spinner"></div>
-                    <p>Loading...</p>
+                    <p>{t('pub_loading') || 'Loading...'}</p>
                 </div>
             ) : purchases.length === 0 ? (
                 <div className="empty-state">
                     <div className="empty-icon"><ShoppingBag size={64} strokeWidth={1} /></div>
-                    <h3 className="empty-title">No purchases yet</h3>
-                    <p className="empty-text">Browse the albums to find amazing photography collections.</p>
-                    <Button onClick={() => navigate('/albums')} className="mt-4">Explore Albums</Button>
+                    <h3 className="empty-title">{t('runner_no_purchases')}</h3>
+                    <p className="empty-text">{t('cart_browse_desc')}</p>
+                    <Button onClick={() => navigate('/albums')} className="mt-4">{t('runner_browse_albums')}</Button>
                 </div>
             ) : (
                 <div className="purchases-list">
@@ -457,14 +461,14 @@ const RunnerProfile = () => {
                                     </div>
                                     <div className="text-content">
                                         <h3 className="album-title">{tx.albums?.title}</h3>
-                                        <p className="photographer-name">by {tx.albums?.profiles?.full_name}</p>
+                                        <p className="photographer-name">{t('pub_by')} {tx.albums?.profiles?.full_name}</p>
                                         <div className="purchase-meta">
                                             <span className="purchase-date">{new Date(tx.created_at).toLocaleDateString()}</span>
                                             <span className="meta-divider">•</span>
-                                            <span className="purchase-amount">${tx.amount}</span>
+                                            <span className="purchase-amount">{formatPrice(tx.amount, tx.currency)}</span>
                                         </div>
                                         <div className="order-number-display">
-                                            <span className="order-label">ORDER:</span>
+                                            <span className="order-label">{t('runner_order_number')}:</span>
                                             <span className="order-value">{tx.order_number || 'N/A'}</span>
                                             {tx.order_number && (
                                                 <button 
@@ -488,7 +492,7 @@ const RunnerProfile = () => {
                                         }}
                                     >
                                         <Download size={16} />
-                                        {tx.status === 'manual_pending' ? 'Attente validation' : 'download MY PHOTO'}
+                                        {tx.status === 'manual_pending' ? t('db_pending_approval') : t('runner_download_all')}
                                     </Button>
                                 </div>
                             </div>
@@ -497,7 +501,7 @@ const RunnerProfile = () => {
                                 <div className="pending-preview-section">
                                     <div className="pending-header">
                                         <p className="pending-message">
-                                            ⌛ <strong>Waiting for photographer to check payment status.</strong> Your photos will be revealed once confirmed.
+                                            {t('runner_waiting_payment') || '⌛ Waiting for photographer to check payment status. Your photos will be revealed once confirmed.'}
                                         </p>
                                     </div>
                                     {tx.albums?.profiles && tx.status === 'manual_pending' && (
@@ -508,7 +512,7 @@ const RunnerProfile = () => {
                                         <div className="photographer-message-bubble">
                                             <div className="message-header">
                                                 <MessageSquare size={14} />
-                                                <span>Message du photographe :</span>
+                                                <span>{t('runner_photographer_message') || 'Message du photographe :'}</span>
                                             </div>
                                             <p>{tx.photographer_message}</p>
                                         </div>
@@ -519,11 +523,11 @@ const RunnerProfile = () => {
                                             <div className="proof-uploaded">
                                                 <div className="proof-indicator">
                                                     <Check size={14} className="check-icon" />
-                                                    <span>Payment proof sent</span>
+                                                    <span>{t('runner_proof_sent') || 'Payment proof sent'}</span>
                                                 </div>
                                                 <a href={tx.payment_proof_url} target="_blank" rel="noopener noreferrer" className="view-proof-link">
                                                     <ImageIcon size={14} />
-                                                    Voir mon justificatif
+                                                    {t('runner_view_proof') || 'Voir mon justificatif'}
                                                 </a>
                                             </div>
                                         ) : (
@@ -534,7 +538,7 @@ const RunnerProfile = () => {
                                                     ) : (
                                                         <Upload size={20} />
                                                     )}
-                                                    <span>{uploading === tx.id ? 'Envoi...' : 'Envoyer une preuve de paiement (Capture/Screenshot)'}</span>
+                                                    <span>{uploading === tx.id ? t('db_sending') : (t('runner_send_proof') || 'Envoyer une preuve de paiement')}</span>
                                                     <input
                                                         type="file"
                                                         accept="image/*"

@@ -7,9 +7,12 @@ import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Trash2, Plus, Layout, Package as PackageIcon, Info } from 'lucide-react';
+import { formatPrice, getCurrencySymbol } from '../utils/currencies';
+import { useLanguage } from '../context/LanguageContext';
 
 const PackageSettings = () => {
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
+    const { t } = useLanguage();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [packages, setPackages] = useState([]);
@@ -121,10 +124,10 @@ const PackageSettings = () => {
         <div className="packages-settings-container">
             <header className="packages-header">
                 <Button variant="outline" onClick={() => navigate('/photographer/dashboard')} className="back-btn">
-                    <ArrowLeft size={16} /> Back to Dashboard
+                    <ArrowLeft size={16} /> {t('back')} {t('dashboard')}
                 </Button>
                 <div className="header-main">
-                    <h1>Pricing Packages</h1>
+                    <h1>{t('pricing_packages')}</h1>
                     <p>Create reusable pricing structures for your albums.</p>
                 </div>
             </header>
@@ -133,7 +136,7 @@ const PackageSettings = () => {
                 <div className="packages-overview">
                     <div className="action-bar">
                         <Button onClick={() => setIsCreating(true)} className="create-btn">
-                            <Plus size={18} /> Create New Model
+                            <Plus size={18} /> {t('pricing_create_model')}
                         </Button>
                     </div>
 
@@ -160,9 +163,9 @@ const PackageSettings = () => {
                                     <div className="package-tiers">
                                         {pkg.tiers.map((tier, i) => (
                                             <div key={i} className="tier-row">
-                                                <span className="tier-qty">{tier.quantity} Photo{tier.quantity > 1 ? 's' : ''}</span>
-                                                <span className="tier-price">${tier.price} <small>/photo</small></span>
-                                                <span className="tier-total">${(tier.quantity * tier.price).toFixed(2)}</span>
+                                                <span className="tier-qty">{tier.quantity} {t('pricing_photos')}</span>
+                                                <span className="tier-price">{formatPrice(tier.price, profile?.currency)} <small>/{t('pricing_photos')}</small></span>
+                                                <span className="tier-total">{formatPrice(tier.quantity * tier.price, profile?.currency)}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -174,7 +177,7 @@ const PackageSettings = () => {
             ) : (
                 <div className="create-package-card">
                     <div className="card-header">
-                        <h2>Create Package Model</h2>
+                        <h2>{t('pricing_create_model')}</h2>
                         <span className="helper-text">Define unit prices that scale with quantity.</span>
                     </div>
 
@@ -184,14 +187,14 @@ const PackageSettings = () => {
                             <label className={`type-option ${formData.type === 'digital' ? 'active' : ''}`}>
                                 <input type="radio" checked={formData.type === 'digital'} onChange={() => setFormData({ ...formData, type: 'digital' })} />
                                 <div className="option-content">
-                                    <strong>Digital Format</strong>
+                                    <strong>{t('pricing_digital')}</strong>
                                     <span>Instant download delivery</span>
                                 </div>
                             </label>
                             <label className={`type-option ${formData.type === 'physical' ? 'active' : ''}`}>
                                 <input type="radio" checked={formData.type === 'physical'} onChange={() => setFormData({ ...formData, type: 'physical' })} />
                                 <div className="option-content">
-                                    <strong>Physical Format</strong>
+                                    <strong>{t('pricing_physical')}</strong>
                                     <span>Mail delivery for prints</span>
                                 </div>
                             </label>
@@ -200,7 +203,7 @@ const PackageSettings = () => {
 
                     <div className="form-section">
                         <Input
-                            label="PACKAGE NAME"
+                            label={t('album_title').toUpperCase()}
                             placeholder="e.g. Standard Digital Set"
                             value={formData.name}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -208,7 +211,7 @@ const PackageSettings = () => {
                     </div>
 
                     <div className="form-section">
-                        <label className="section-label">PACKAGE DESCRIPTION</label>
+                        <label className="section-label">{t('album_description').toUpperCase()}</label>
                         <textarea
                             className="modern-textarea"
                             placeholder="Briefly describe what's included in this package..."
@@ -219,12 +222,12 @@ const PackageSettings = () => {
 
                     <div className="pricing-config-grid">
                         <div className="config-left">
-                            <label className="section-label">DEFINE TIERS</label>
+                            <label className="section-label">{t('pricing_tiers').toUpperCase()}</label>
                             <div className="tiers-list">
                                 {formData.tiers.map((tier, index) => (
                                     <div key={index} className="tier-input-group">
                                         <div className="input-col">
-                                            {index === 0 && <span className="input-sublabel">Qty.</span>}
+                                            {index === 0 && <span className="input-sublabel">{t('pricing_photos')}</span>}
                                             <input
                                                 type="number"
                                                 value={tier.quantity}
@@ -233,7 +236,7 @@ const PackageSettings = () => {
                                             />
                                         </div>
                                         <div className="input-col grow">
-                                            {index === 0 && <span className="input-sublabel">Unit Price ($)</span>}
+                                            {index === 0 && <span className="input-sublabel">{t('pricing_unit_price')} ({getCurrencySymbol(profile?.currency)})</span>}
                                             <input
                                                 type="number"
                                                 value={tier.price}
@@ -247,7 +250,7 @@ const PackageSettings = () => {
                                     </div>
                                 ))}
                                 <Button variant="outline" onClick={handleAddTier} className="add-tier-btn">
-                                    <Plus size={16} /> Add Pricing Tier
+                                    <Plus size={16} /> + {t('pricing_tiers')}
                                 </Button>
                             </div>
                         </div>
@@ -256,20 +259,20 @@ const PackageSettings = () => {
                             <div className="preview-container">
                                 <div className="preview-header">
                                     <Layout size={18} />
-                                    <h4>Pricing Grid Preview</h4>
+                                    <h4>{t('pricing_preview')}</h4>
                                 </div>
                                 <div className="preview-grid">
                                     <div className="grid-header">
-                                        <span>Photos</span>
-                                        <span>Total Price</span>
+                                        <span>{t('pricing_photos')}</span>
+                                        <span>{t('pricing_total_price')}</span>
                                     </div>
                                     <div className="grid-body">
                                         {formData.tiers.map((tier, i) => (
                                             <div key={i} className="grid-row">
                                                 <span className="qty-col">{tier.quantity} item{tier.quantity > 1 ? 's' : ''}</span>
                                                 <span className="price-col">
-                                                    <strong>${(tier.quantity * tier.price).toFixed(2)}</strong>
-                                                    <small>(${tier.price}/photo)</small>
+                                                    <strong>{formatPrice(tier.quantity * tier.price, profile?.currency)}</strong>
+                                                    <small>({formatPrice(tier.price, profile?.currency)}/photo)</small>
                                                 </span>
                                             </div>
                                         ))}
@@ -284,8 +287,8 @@ const PackageSettings = () => {
                     </div>
 
                     <div className="form-actions">
-                        <Button variant="outline" onClick={() => setIsCreating(false)}>Cancel</Button>
-                        <Button onClick={handleSave} className="save-btn">Save Package Model</Button>
+                        <Button variant="outline" onClick={() => setIsCreating(false)}>{t('cancel')}</Button>
+                        <Button onClick={handleSave} className="save-btn">{t('save')}</Button>
                     </div>
                 </div>
             )}

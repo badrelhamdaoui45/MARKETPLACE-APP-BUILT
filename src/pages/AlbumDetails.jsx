@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import PhotoUpload from '../components/PhotoUpload';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
@@ -11,11 +12,13 @@ import { detectBibsBatch, detectFacesBatch } from '../lib/gemini';
 import { slugify } from '../utils/slugify';
 import SubscribersModal from '../components/ui/SubscribersModal';
 import SkeletonPage from '../components/ui/SkeletonPage';
+import { formatPrice, getCurrencySymbol } from '../utils/currencies';
 
 const AlbumDetails = () => {
     const { albumTitle } = useParams();
+    const { t } = useLanguage();
     const navigate = useNavigate();
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
     const [album, setAlbum] = useState(null);
     const [photos, setPhotos] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -669,7 +672,7 @@ const AlbumDetails = () => {
                                         <div className="meta-box">
                                             <label className="modern-label">PRICING</label>
                                             <span className={`meta-value-modern ${album.is_free ? 'free-badge' : ''}`}>
-                                                {album.is_free ? 'FREE' : `$${album.price}`}
+                                                {album.is_free ? 'FREE' : formatPrice(album.price, profile?.currency)}
                                             </span>
                                         </div>
                                         <div className="meta-box">
@@ -702,7 +705,7 @@ const AlbumDetails = () => {
                                         />
                                     </div>
                                     <div className="popup-field-group">
-                                        <label>Default Price ($)</label>
+                                        <label>Default Price ({getCurrencySymbol(profile?.currency)})</label>
                                         <input
                                             type="number"
                                             step="0.01"
@@ -748,7 +751,7 @@ const AlbumDetails = () => {
 
                                 <div className="active-packages-list">
                                     {(album.pricing_package_ids || []).length === 0 ? (
-                                        <p className="no-packages-text">No template linked. Fixed price: ${album.price}</p>
+                                        <p className="no-packages-text">No template linked. Fixed price: {formatPrice(album.price, profile?.currency)}</p>
                                     ) : (
                                         <div className="package-tags-flow">
                                             {album.pricing_package_ids.map(id => {
@@ -813,7 +816,7 @@ const AlbumDetails = () => {
                                         className="edit-packages-toggle"
                                         onClick={() => setIsEditingPreInscription(!isEditingPreInscription)}
                                     >
-                                        {isEditingPreInscription ? 'Fermer' : 'Personnaliser'}
+                                        {isEditingPreInscription ? t('album_close') : t('album_customize')}
                                     </button>
                                 </div>
                                 <div className="active-popup-preview">
@@ -821,8 +824,8 @@ const AlbumDetails = () => {
                                         {album.pre_inscription_enabled ? (
                                             <span style={{ color: '#ea580c', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                                 {subscriberCount > 0
-                                                    ? `Actif — ${subscriberCount} personnes inscrites.`
-                                                    : "Actif — Un formulaire s'affichera pour les clients."}
+                                                    ? `${t('album_active')} — ${subscriberCount} people registered.`
+                                                    : `${t('album_active')} — A form will be shown to clients.`}
 
                                                 {subscriberCount > 0 && (
                                                     <button
@@ -838,11 +841,11 @@ const AlbumDetails = () => {
                                                             padding: 0
                                                         }}
                                                     >
-                                                        Voir la liste
+                                                        {t('album_see_list')}
                                                     </button>
                                                 )}
                                             </span>
-                                        ) : 'Disabled'}
+                                        ) : t('album_disabled')}
                                     </p>
                                 </div>
 
@@ -879,7 +882,7 @@ const AlbumDetails = () => {
                                                 disabled={savingPreInscription}
                                                 className="save-popup-btn"
                                             >
-                                                {savingPreInscription ? 'Enregistrement...' : 'Enregistrer le contenu'}
+                                                {savingPreInscription ? t('album_saving') : t('album_save_content')}
                                             </Button>
                                         </div>
                                     </div>
@@ -908,7 +911,7 @@ const AlbumDetails = () => {
                                         className="edit-packages-toggle"
                                         onClick={() => setIsEditingPopup(!isEditingPopup)}
                                     >
-                                        {isEditingPopup ? 'Fermer' : 'Personnaliser'}
+                                        {isEditingPopup ? t('album_close') : t('album_customize')}
                                     </button>
                                 </div>
 
@@ -996,7 +999,7 @@ const AlbumDetails = () => {
                                                     checked={albumPopup.is_active}
                                                     onChange={(e) => setAlbumPopup({ ...albumPopup, is_active: e.target.checked })}
                                                 />
-                                                <span className="toggle-text">Activer ce popup pour cet album</span>
+                                                <span className="toggle-text">Activate this popup for this album</span>
                                             </label>
                                         </div>
 
@@ -1006,7 +1009,7 @@ const AlbumDetails = () => {
                                                 disabled={popupLoading}
                                                 className="save-popup-btn"
                                             >
-                                                {popupLoading ? 'Enregistrement...' : 'Enregistrer le Popup'}
+                                                {popupLoading ? t('album_saving') : t('album_save_popup')}
                                             </Button>
                                         </div>
                                     </div>
@@ -1020,7 +1023,7 @@ const AlbumDetails = () => {
                                     <Share2 size={18} />
                                 </div>
                                 <div className="share-text-wrapper">
-                                    <p className="share-label">SHAREABLE LINK</p>
+                                    <p className="share-label">{t('album_shareable_link').toUpperCase()}</p>
                                     <p className="share-url-text">
                                         {album?.profiles?.full_name ? `${window.location.origin}/albums/${encodeURIComponent(album.profiles.full_name)}/${encodeURIComponent(album.title)}` : 'Generating link...'}
                                     </p>
@@ -1032,7 +1035,7 @@ const AlbumDetails = () => {
                                 className="copy-link-btn"
                             >
                                 {copied ? <Check size={16} /> : <Copy size={16} />}
-                                {copied ? 'Copied!' : 'Link'}
+                                {copied ? t('album_copied') : t('album_copy_link')}
                             </Button>
                         </div>
                     </div>
@@ -1048,7 +1051,7 @@ const AlbumDetails = () => {
                             <Upload size={24} color="var(--primary-blue)" />
                         </div>
                         <div>
-                            <h2>Add Photos</h2>
+                            <h2>{t('album_add_photos')}</h2>
                             <p>Drag and drop your files or click to select</p>
                         </div>
                     </div>
@@ -1059,7 +1062,7 @@ const AlbumDetails = () => {
             {/* Photos Grid Section */}
             <section className="photos-section">
                 <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h2>Gallery ({photos.length})</h2>
+                    <h2>{t('album_gallery')} ({photos.length})</h2>
                     {photos.length > 0 && (
                         <Button
                             variant="outline"
@@ -1070,11 +1073,11 @@ const AlbumDetails = () => {
                         >
                             {isDetecting ? (
                                 <>
-                                    <span className="spinner"></span> Detecting...
+                                    <span className="spinner"></span> {t('album_detecting')}
                                 </>
                             ) : (
                                 <>
-                                    <Upload size={16} /> Detect Bibs
+                                    <Upload size={16} /> {t('album_detect_bibs')}
                                 </>
                             )}
                         </Button>
@@ -1084,7 +1087,7 @@ const AlbumDetails = () => {
                 {
                     photos.length === 0 ? (
                         <div className="empty-state">
-                            <p>No photos in this album yet.</p>
+                            <p>{t('album_no_photos')}</p>
                         </div>
                     ) : (
                         <div className="album-manage-grid">
@@ -1106,7 +1109,7 @@ const AlbumDetails = () => {
                                                 onClick={() => handleDeletePhoto(photo.id, photo.title)}
                                                 className="delete-btn"
                                             >
-                                                <Trash2 size={14} style={{ marginRight: '4px' }} /> Delete
+                                                <Trash2 size={14} style={{ marginRight: '4px' }} /> {t('delete')}
                                             </Button>
                                         </div>
                                     </div>
@@ -1130,7 +1133,7 @@ const AlbumDetails = () => {
             <section className="grouping-section">
                 <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                        <h2>AI Person Grouping</h2>
+                        <h2>{t('album_ai_grouping')}</h2>
                         <p>Identified groups of people in this album</p>
                     </div>
                     <Button
@@ -1140,9 +1143,9 @@ const AlbumDetails = () => {
                         className="group-btn"
                     >
                         {isGrouping ? (
-                            <><span className="spinner"></span> Grouping...</>
+                            <><span className="spinner"></span> {t('album_grouping')}</>
                         ) : (
-                            <><Users size={16} /> Run AI Grouping</>
+                            <><Users size={16} /> {t('album_run_grouping')}</>
                         )}
                     </Button>
                 </div>

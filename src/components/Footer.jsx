@@ -1,9 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Instagram, Twitter, Facebook, Mail, ExternalLink } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 import './Footer.css';
 
 const Footer = () => {
+    const { t } = useLanguage();
     const currentYear = new Date().getFullYear();
 
     return (
@@ -43,17 +45,17 @@ const Footer = () => {
                             <Link to="/help">Help Center</Link>
                         </div>
                         <div className="footer-link-group">
-                            <h4>Legal</h4>
-                            <Link to="/terms">Terms of Service</Link>
-                            <Link to="/privacy">Privacy Policy</Link>
-                            <Link to="/cookies">Cookie Policy</Link>
+                            <h4>{t('footer_terms')}</h4>
+                            <Link to="/terms">{t('footer_terms')}</Link>
+                            <Link to="/privacy">{t('footer_privacy')}</Link>
+                            <Link to="/cookies">{t('footer_cookies')}</Link>
                         </div>
                     </div>
                 </div>
 
                 <div className="footer-bottom">
                     <div className="footer-copyright">
-                        © {currentYear} CAPTURE RUN. All rights reserved.
+                        © {currentYear} CAPTURE RUN. {t('footer_rights')}
                     </div>
                     <div className="footer-bottom-links">
                         <span className="built-with">

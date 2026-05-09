@@ -3,15 +3,18 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
+import { formatPrice, getCurrencySymbol } from '../../utils/currencies';
+import { useLanguage } from '../../context/LanguageContext';
 
 const CreatePackageModal = ({ isOpen, onClose, onSuccess }) => {
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
+    const { t } = useLanguage();
     const [loading, setLoading] = useState(false);
 
     const [formData, setFormData] = useState({
         name: 'New Template',
         type: 'digital',
-        tiers: [{ quantity: 1, price: 10 }]
+        tiers: [{ quantity: 1, price: '' }]
     });
 
     if (!isOpen) return null;
@@ -19,13 +22,13 @@ const CreatePackageModal = ({ isOpen, onClose, onSuccess }) => {
     const handleAddTier = () => {
         setFormData(prev => ({
             ...prev,
-            tiers: [...prev.tiers, { quantity: prev.tiers.length + 1, price: 0 }]
+            tiers: [...prev.tiers, { quantity: prev.tiers.length + 1, price: '' }]
         }));
     };
 
     const handleTierChange = (index, field, value) => {
         const newTiers = [...formData.tiers];
-        newTiers[index][field] = parseFloat(value) || 0;
+        newTiers[index][field] = value;
         setFormData(prev => ({ ...prev, tiers: newTiers }));
     };
 
@@ -44,7 +47,10 @@ const CreatePackageModal = ({ isOpen, onClose, onSuccess }) => {
                     photographer_id: user.id,
                     name: formData.name,
                     package_type: formData.type,
-                    tiers: formData.tiers
+                    tiers: formData.tiers.map(t => ({
+                        quantity: parseInt(t.quantity) || 0,
+                        price: parseFloat(t.price) || 0
+                    }))
                 })
                 .select()
                 .single();
@@ -84,25 +90,25 @@ const CreatePackageModal = ({ isOpen, onClose, onSuccess }) => {
                 border: '1px solid #e5e7eb'
             }} onClick={e => e.stopPropagation()}>
 
-                <h2 style={{ marginBottom: '1.5rem', fontSize: '1.5rem', fontWeight: '700' }}>Créer un nouveau modèle de prix</h2>
+                <h2 style={{ marginBottom: '1.5rem', fontSize: '1.5rem', fontWeight: '700' }}>{t('pricing_create_model')}</h2>
 
                 <form onSubmit={handleSave}>
                     <div style={{ marginBottom: '2rem' }}>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.9rem' }}>Type de format</label>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.9rem' }}>{t('album_description')}</label>
                         <div style={{ display: 'flex', gap: '2rem' }}>
                             <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
                                 <input type="radio" checked={formData.type === 'digital'} onChange={() => setFormData({ ...formData, type: 'digital' })} />
-                                Format Numérique (Envoi email)
+                                {t('pricing_digital')}
                             </label>
                             <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
                                 <input type="radio" checked={formData.type === 'physical'} onChange={() => setFormData({ ...formData, type: 'physical' })} />
-                                Format Physique (Envoi postal)
+                                {t('pricing_physical')}
                             </label>
                         </div>
                     </div>
 
                     <Input
-                        label="Nom du modèle"
+                        label={t('album_title')}
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                         required
@@ -110,11 +116,11 @@ const CreatePackageModal = ({ isOpen, onClose, onSuccess }) => {
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '2rem', marginTop: '2rem' }}>
                         <div>
-                            <h4 style={{ marginBottom: '1rem', fontWeight: '600', fontSize: '0.95rem' }}>Définir les paliers de prix</h4>
+                            <h4 style={{ marginBottom: '1rem', fontWeight: '600', fontSize: '0.95rem' }}>{t('pricing_tiers')}</h4>
                             {formData.tiers.map((tier, index) => (
                                 <div key={index} style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', alignItems: 'flex-end' }}>
                                     <div style={{ flex: 1 }}>
-                                        {index === 0 && <label style={{ fontSize: '0.8rem', fontWeight: '600', display: 'block', marginBottom: '0.4rem' }}>Quantité</label>}
+                                        {index === 0 && <label style={{ fontSize: '0.8rem', fontWeight: '600', display: 'block', marginBottom: '0.4rem' }}>{t('pricing_photos')}</label>}
                                         <input
                                             type="number"
                                             className="input-field"
@@ -125,7 +131,7 @@ const CreatePackageModal = ({ isOpen, onClose, onSuccess }) => {
                                         />
                                     </div>
                                     <div style={{ flex: 1 }}>
-                                        {index === 0 && <label style={{ fontSize: '0.8rem', fontWeight: '600', display: 'block', marginBottom: '0.4rem' }}>Prix Unitaire ($)</label>}
+                                        {index === 0 && <label style={{ fontSize: '0.8rem', fontWeight: '600', display: 'block', marginBottom: '0.4rem' }}>{t('pricing_unit_price')} ({getCurrencySymbol(profile?.currency)})</label>}
                                         <input
                                             type="number"
                                             className="input-field"
@@ -152,21 +158,21 @@ const CreatePackageModal = ({ isOpen, onClose, onSuccess }) => {
                                 </div>
                             ))}
                             <Button type="button" variant="outline" onClick={handleAddTier} style={{ width: '100%', marginTop: '0.5rem' }}>
-                                + Ajouter un palier
+                                + {t('pricing_tiers')}
                             </Button>
                         </div>
 
                         <div style={{ background: '#f9fafb', padding: '1.5rem', borderRadius: '8px', border: '1px solid #f3f4f6' }}>
-                            <h4 style={{ marginBottom: '1rem', fontWeight: '600', fontSize: '0.95rem' }}>Aperçu de la grille</h4>
+                            <h4 style={{ marginBottom: '1rem', fontWeight: '600', fontSize: '0.95rem' }}>{t('pricing_preview')}</h4>
                             <div style={{ fontSize: '0.85rem' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem', fontWeight: '600' }}>
-                                    <span>Photos</span>
-                                    <span>Prix Total</span>
+                                    <span>{t('pricing_photos')}</span>
+                                    <span>{t('pricing_total_price')}</span>
                                 </div>
                                 {formData.tiers.map((tier, i) => (
                                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f3f4f6', padding: '0.6rem 0' }}>
                                         <span>{tier.quantity} photo{tier.quantity > 1 ? 's' : ''}</span>
-                                        <span>${(tier.quantity * tier.price).toFixed(2)}</span>
+                                        <span>{formatPrice(tier.quantity * tier.price, profile?.currency)}</span>
                                     </div>
                                 ))}
                             </div>
@@ -174,13 +180,13 @@ const CreatePackageModal = ({ isOpen, onClose, onSuccess }) => {
                     </div>
 
                     <div style={{ display: 'flex', gap: '1rem', marginTop: '2.5rem', justifyContent: 'flex-end' }}>
-                        <Button type="button" variant="outline" onClick={onClose}>Annuler</Button>
+                        <Button type="button" variant="outline" onClick={onClose}>{t('cancel')}</Button>
                         <Button
                             type="submit"
                             disabled={loading}
                             style={{ backgroundColor: '#f97316', borderColor: '#f97316' }}
                         >
-                            {loading ? 'Création...' : 'Enregistrer le modèle'}
+                            {loading ? t('album_saving') : t('save')}
                         </Button>
                     </div>
                 </form>

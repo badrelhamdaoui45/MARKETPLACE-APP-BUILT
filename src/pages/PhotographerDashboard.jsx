@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/ui/Button';
-import { Copy, Check, MessageSquare, Eye, FileCheck, Image as ImageIcon, Share2, HelpCircle, Wallet, Search } from 'lucide-react';
+import { Copy, Check, MessageSquare, Eye, FileCheck, Image as ImageIcon, Share2, HelpCircle, Wallet, Search, Settings } from 'lucide-react';
 import ConnectStripe from '../components/stripe/ConnectStripe';
 import Toast from '../components/ui/Toast';
 import PaymentSettingsModal from '../components/PaymentSettingsModal';
@@ -13,10 +13,13 @@ import DashboardSetupModal from '../components/DashboardSetupModal';
 import WithdrawalModal from '../components/WithdrawalModal';
 import SkeletonPage from '../components/ui/SkeletonPage';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { formatPrice } from '../utils/currencies';
+import { useLanguage } from '../context/LanguageContext';
 import '../components/ui/ui.css';
 
 const PhotographerDashboard = () => {
     const { user, profile } = useAuth();
+    const { t } = useLanguage();
     const [activeTab, setActiveTab] = useState('albums'); // 'albums' or 'sales'
     const [toast, setToast] = useState(null);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -242,14 +245,17 @@ const PhotographerDashboard = () => {
                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#F5A623', color: 'white', border: 'none' }}
                     >
                         <HelpCircle size={18} />
-                        SETUP GUIDE
+                        {t('db_setup_guide').toUpperCase()}
                     </Button>
-                    <Button className="action-btn" onClick={() => setIsSettingsOpen(true)}>OPTIONS DE PAIEMENT</Button>
+                    <Button className="action-btn" onClick={() => setIsSettingsOpen(true)}>{t('db_payment_options').toUpperCase()}</Button>
                     <Link to="/photographer/packages">
-                        <Button className="action-btn">Pricing Settings</Button>
+                        <Button className="action-btn">{t('nav_pricing').toUpperCase()} {t('settings').toUpperCase()}</Button>
                     </Link>
                     <Link to="/photographer/albums/new">
-                        <Button className="action-btn">+ Create Album</Button>
+                        <Button className="action-btn">+ {t('db_create_album').toUpperCase()}</Button>
+                    </Link>
+                    <Link to="/photographer/settings" title="General Settings" className="settings-icon-link">
+                        <Settings size={24} className="settings-icon" />
                     </Link>
                 </div>
             </header>
@@ -272,13 +278,13 @@ const PhotographerDashboard = () => {
                     onClick={() => setActiveTab('albums')}
                     className={`tab-button ${activeTab === 'albums' ? 'active' : ''}`}
                 >
-                    My Albums
+                    {t('db_my_albums')}
                 </button>
                 <button
                     onClick={() => setActiveTab('sales')}
                     className={`tab-button ${activeTab === 'sales' ? 'active' : ''}`}
                 >
-                    Sales
+                    {t('nav_sales')}
                 </button>
             </div>
 
@@ -287,12 +293,12 @@ const PhotographerDashboard = () => {
                 activeTab === 'albums' && (
                     <div className="tab-content">
                         {loadingAlbums ? (
-                            <p className="loading-text">Loading albums...</p>
+                            <p className="loading-text">{t('db_loading_albums')}</p>
                         ) : albums.length === 0 ? (
                             <div className="empty-dashboard-state">
-                                <p>You haven't created any albums yet.</p>
+                                <p>{t('db_no_albums')}</p>
                                 <Link to="/photographer/albums/new">
-                                    <Button variant="orange">Create your first album</Button>
+                                    <Button variant="orange">{t('db_create_first')}</Button>
                                 </Link>
                             </div>
                         ) : (
@@ -305,14 +311,14 @@ const PhotographerDashboard = () => {
                                             ) : (
                                                 <div className="no-cover-placeholder">
                                                     <div className="placeholder-logo">RUN CAPTURES</div>
-                                                    <span className="no-cover-badge">No Cover Image</span>
+                                                    <span className="no-cover-badge">{t('db_no_cover')}</span>
                                                 </div>
                                             )}
                                             {album.pre_inscription_enabled && (
-                                                <div className="pre-inscription-label">PRE-REGISTRATION</div>
+                                                <div className="pre-inscription-label">{t('db_pre_registration')}</div>
                                             )}
                                             {album.is_free && (
-                                                <div className="free-album-label">FREE ALBUM</div>
+                                                <div className="free-album-label">{t('db_free_album')}</div>
                                             )}
                                         </div>
                                         <div className="album-card-mini-body">
@@ -320,24 +326,24 @@ const PhotographerDashboard = () => {
                                             <div className="album-card-stats">
                                                 <span className="photo-count">
                                                     <ImageIcon size={14} />
-                                                    {album.photos?.[0]?.count || 0} photos
+                                                    {album.photos?.[0]?.count || 0} {t('photos')}
                                                 </span>
                                                 <span className={`album-meta-badge ${album.is_published ? 'published' : ''}`}>
-                                                    {album.is_published ? 'Published' : 'Draft'}
+                                                    {album.is_published ? t('db_published') : t('db_draft')}
                                                 </span>
                                             </div>
                                             <div style={{ display: 'flex', gap: '1rem', marginTop: 'auto' }}>
                                                 <Link to={`/photographer/albums/${encodeURIComponent(album.slug || album.title)}/edit`} style={{ flex: 1 }}>
-                                                    <Button className="w-full action-btn">Edit</Button>
+                                                    <Button className="w-full action-btn">{t('edit')}</Button>
                                                 </Link>
                                                 <Button
                                                     variant="outline"
                                                     onClick={() => handleShare(album)}
                                                     style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', padding: '0 1rem' }}
-                                                    title="Share Album"
+                                                    title={t('share')}
                                                 >
                                                     <Share2 size={16} />
-                                                    Share
+                                                    {t('share')}
                                                 </Button>
                                             </div>
                                         </div>
@@ -356,7 +362,7 @@ const PhotographerDashboard = () => {
                         {/* Sales Top Section: Trend Chart */}
                         <div className="sales-top-layout">
                             <div className="sales-chart-container">
-                                <h3 className="chart-title">Revenue Trend</h3>
+                                <h3 className="chart-title">{t('db_revenue_trend')}</h3>
                                 <ResponsiveContainer width="100%" height={240}>
                                     <AreaChart data={(() => {
                                         // Group sales by date for chart
@@ -387,7 +393,7 @@ const PhotographerDashboard = () => {
                                         <YAxis
                                             stroke="#64748b"
                                             style={{ fontSize: '0.65rem', fontWeight: 600 }}
-                                            tickFormatter={(value) => `$${value}`}
+                                            tickFormatter={(value) => formatPrice(value, profile?.currency)}
                                             axisLine={false}
                                             tickLine={false}
                                         />
@@ -398,7 +404,7 @@ const PhotographerDashboard = () => {
                                                 borderRadius: '12px',
                                                 boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'
                                             }}
-                                            formatter={(value) => [`$${Number(value).toFixed(2)}`, 'Revenue']}
+                                            formatter={(value) => [formatPrice(value, profile?.currency), 'Revenue']}
                                         />
                                         <Area
                                             type="monotone"
@@ -416,12 +422,12 @@ const PhotographerDashboard = () => {
                         {/* Stats Overview */}
                         <div className="stats-grid">
                             <div className="stat-card">
-                                <div className="stat-label">Total Sales Volume</div>
-                                <div className="stat-value">${filteredStats.total.toFixed(2)}</div>
+                                <div className="stat-label">{t('db_total_volume')}</div>
+                                <div className="stat-value">{formatPrice(filteredStats.total, profile?.currency)}</div>
                             </div>
                             <div className="stat-card highlight">
-                                <div className="stat-label">Net Revenue</div>
-                                <div className="stat-value">${filteredStats.net.toFixed(2)}</div>
+                                <div className="stat-label">{t('db_net_revenue')}</div>
+                                <div className="stat-value">{formatPrice(filteredStats.net, profile?.currency)}</div>
                                 <div className="stat-note">Payments via Stripe</div>
                                 {profile?.stripe_account_id && (
                                     <Button
@@ -440,12 +446,12 @@ const PhotographerDashboard = () => {
                                         }}
                                     >
                                         <Wallet size={18} />
-                                        Withdraw Funds
+                                        {t('db_withdraw')}
                                     </Button>
                                 )}
                             </div>
                             <div className="stat-card">
-                                <div className="stat-label">Total Orders</div>
+                                <div className="stat-label">{t('db_total_orders')}</div>
                                 <div className="stat-value">{filteredStats.count}</div>
                             </div>
                         </div>
@@ -454,101 +460,41 @@ const PhotographerDashboard = () => {
                         <div className="filters-section">
                             {/* Payment Method Filter */}
                             <div className="filter-group">
-                                <label className="filter-label">Payment Method</label>
+                                <label className="filter-label">{t('db_payment_method')}</label>
                                 <div className="filter-buttons">
-                                    <button
-                                        className={`filter-btn ${paymentFilter === 'all' ? 'active' : ''}`}
-                                        onClick={() => setPaymentFilter('all')}
-                                    >
-                                        All
-                                    </button>
-                                    <button
-                                        className={`filter-btn ${paymentFilter === 'stripe' ? 'active' : ''}`}
-                                        onClick={() => setPaymentFilter('stripe')}
-                                    >
-                                        Stripe
-                                    </button>
-                                    <button
-                                        className={`filter-btn ${paymentFilter === 'bank_transfer' ? 'active' : ''}`}
-                                        onClick={() => setPaymentFilter('bank_transfer')}
-                                    >
-                                        Bank Transfer
-                                    </button>
+                                    <button className={`filter-btn ${paymentFilter === 'all' ? 'active' : ''}`} onClick={() => setPaymentFilter('all')}>{t('all')}</button>
+                                    <button className={`filter-btn ${paymentFilter === 'stripe' ? 'active' : ''}`} onClick={() => setPaymentFilter('stripe')}>Stripe</button>
+                                    <button className={`filter-btn ${paymentFilter === 'bank_transfer' ? 'active' : ''}`} onClick={() => setPaymentFilter('bank_transfer')}>{t('db_bank_transfer')}</button>
                                 </div>
                             </div>
 
                             {/* Date Range Filter */}
                             <div className="filter-group">
-                                <label className="filter-label">Date Range</label>
+                                <label className="filter-label">{t('db_date_range')}</label>
                                 <div className="filter-buttons">
-                                    <button
-                                        className={`filter-btn ${dateFilter === 'all' ? 'active' : ''}`}
-                                        onClick={() => setDateFilter('all')}
-                                    >
-                                        All Time
-                                    </button>
-                                    <button
-                                        className={`filter-btn ${dateFilter === 'today' ? 'active' : ''}`}
-                                        onClick={() => setDateFilter('today')}
-                                    >
-                                        Today
-                                    </button>
-                                    <button
-                                        className={`filter-btn ${dateFilter === '7days' ? 'active' : ''}`}
-                                        onClick={() => setDateFilter('7days')}
-                                    >
-                                        7 Days
-                                    </button>
-                                    <button
-                                        className={`filter-btn ${dateFilter === '30days' ? 'active' : ''}`}
-                                        onClick={() => setDateFilter('30days')}
-                                    >
-                                        30 Days
-                                    </button>
-                                    <button
-                                        className={`filter-btn ${dateFilter === '90days' ? 'active' : ''}`}
-                                        onClick={() => setDateFilter('90days')}
-                                    >
-                                        90 Days
-                                    </button>
+                                    <button className={`filter-btn ${dateFilter === 'all' ? 'active' : ''}`} onClick={() => setDateFilter('all')}>{t('all_time')}</button>
+                                    <button className={`filter-btn ${dateFilter === 'today' ? 'active' : ''}`} onClick={() => setDateFilter('today')}>{t('today')}</button>
+                                    <button className={`filter-btn ${dateFilter === '7days' ? 'active' : ''}`} onClick={() => setDateFilter('7days')}>{t('days_7')}</button>
+                                    <button className={`filter-btn ${dateFilter === '30days' ? 'active' : ''}`} onClick={() => setDateFilter('30days')}>{t('days_30')}</button>
+                                    <button className={`filter-btn ${dateFilter === '90days' ? 'active' : ''}`} onClick={() => setDateFilter('90days')}>{t('days_90')}</button>
                                 </div>
                             </div>
 
                             {/* Status Filter */}
                             <div className="filter-group">
-                                <label className="filter-label">Approval Status</label>
+                                <label className="filter-label">{t('db_approval_status')}</label>
                                 <div className="filter-buttons">
-                                    <button
-                                        className={`filter-btn ${statusFilter === 'all' ? 'active' : ''}`}
-                                        onClick={() => setStatusFilter('all')}
-                                    >
-                                        All
-                                    </button>
-                                    <button
-                                        className={`filter-btn ${statusFilter === 'manual_pending' ? 'active' : ''}`}
-                                        onClick={() => setStatusFilter('manual_pending')}
-                                        style={{ color: statusFilter === 'manual_pending' ? 'white' : '#9a3412', borderColor: statusFilter === 'manual_pending' ? '#F5A623' : '#ffedd5' }}
-                                    >
-                                        Pending Approval
-                                    </button>
-                                    <button
-                                        className={`filter-btn ${statusFilter === 'paid' ? 'active' : ''}`}
-                                        onClick={() => setStatusFilter('paid')}
-                                    >
-                                        Approved
-                                    </button>
+                                    <button className={`filter-btn ${statusFilter === 'all' ? 'active' : ''}`} onClick={() => setStatusFilter('all')}>{t('all')}</button>
+                                    <button className={`filter-btn ${statusFilter === 'manual_pending' ? 'active' : ''}`} onClick={() => setStatusFilter('manual_pending')} style={{ color: statusFilter === 'manual_pending' ? 'white' : '#9a3412', borderColor: statusFilter === 'manual_pending' ? '#F5A623' : '#ffedd5' }}>{t('db_pending_approval')}</button>
+                                    <button className={`filter-btn ${statusFilter === 'paid' ? 'active' : ''}`} onClick={() => setStatusFilter('paid')}>{t('db_approved')}</button>
                                 </div>
                             </div>
 
                             {/* Album Filter */}
                             <div className="filter-group">
-                                <label className="filter-label">Album</label>
-                                <select
-                                    className="album-filter-select"
-                                    value={albumFilter}
-                                    onChange={(e) => setAlbumFilter(e.target.value)}
-                                >
-                                    <option value="all">All Albums</option>
+                                <label className="filter-label">{t('db_album')}</label>
+                                <select className="album-filter-select" value={albumFilter} onChange={(e) => setAlbumFilter(e.target.value)}>
+                                    <option value="all">{t('db_all_albums')}</option>
                                     {albums.map(album => (
                                         <option key={album.id} value={album.id}>
                                             {album.title}
@@ -559,16 +505,10 @@ const PhotographerDashboard = () => {
 
                             {/* Order Search */}
                             <div className="filter-group">
-                                <label className="filter-label">Search Order</label>
+                                <label className="filter-label">{t('db_search_order')}</label>
                                 <div className="search-input-wrapper">
                                     <Search size={16} className="search-icon" />
-                                    <input
-                                        type="text"
-                                        placeholder="Order number..."
-                                        value={orderSearch}
-                                        onChange={(e) => setOrderSearch(e.target.value)}
-                                        className="order-search-input"
-                                    />
+                                    <input type="text" placeholder={t('db_order_number')} value={orderSearch} onChange={(e) => setOrderSearch(e.target.value)} className="order-search-input" />
                                 </div>
                             </div>
                         </div>
@@ -578,22 +518,22 @@ const PhotographerDashboard = () => {
                             <table className="transactions-table">
                                 <thead>
                                     <tr>
-                                        <th>Date</th>
-                                        <th>Order #</th>
-                                        <th>Album</th>
-                                        <th>Runner</th>
-                                        <th style={{ textAlign: 'right' }}>Brut</th>
-                                        <th style={{ textAlign: 'right' }}>Commission</th>
-                                        <th style={{ textAlign: 'right' }}>Net</th>
-                                        <th style={{ textAlign: 'center' }}>Statut</th>
-                                        <th style={{ textAlign: 'center' }}>Actions</th>
+                                        <th>{t('date')}</th>
+                                        <th>{t('db_order_hash')}</th>
+                                        <th>{t('db_album')}</th>
+                                        <th>{t('db_runner')}</th>
+                                        <th style={{ textAlign: 'right' }}>{t('db_gross')}</th>
+                                        <th style={{ textAlign: 'right' }}>{t('db_commission')}</th>
+                                        <th style={{ textAlign: 'right' }}>{t('db_net')}</th>
+                                        <th style={{ textAlign: 'center' }}>{t('status')}</th>
+                                        <th style={{ textAlign: 'center' }}>{t('actions')}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {filteredSales.length === 0 ? (
                                         <tr>
                                             <td colSpan="8" className="empty-table-cell">
-                                                No sales recorded yet.
+                                                {t('db_no_sales')}
                                             </td>
                                         </tr>
                                     ) : (
@@ -635,10 +575,10 @@ const PhotographerDashboard = () => {
                                                         {tx.profiles?.full_name || 'Guest'}
                                                     </button>
                                                 </td>
-                                                <td style={{ textAlign: 'right', fontWeight: 700 }}>${Number(tx.amount).toFixed(2)}</td>
-                                                <td className="commission-text" style={{ textAlign: 'right' }}>-${Number(tx.commission_amount).toFixed(2)}</td>
+                                                <td style={{ textAlign: 'right', fontWeight: 700 }}>{formatPrice(tx.amount, tx.currency || profile?.currency)}</td>
+                                                <td className="commission-text" style={{ textAlign: 'right' }}>-{formatPrice(tx.commission_amount, tx.currency || profile?.currency)}</td>
                                                 <td className="net-text" style={{ textAlign: 'right' }}>
-                                                    ${(Number(tx.amount) - Number(tx.commission_amount)).toFixed(2)}
+                                                    {formatPrice(Number(tx.amount) - Number(tx.commission_amount), tx.currency || profile?.currency)}
                                                 </td>
                                                 <td style={{ textAlign: 'center' }}>
                                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
@@ -664,15 +604,10 @@ const PhotographerDashboard = () => {
                                                                 style={{ height: '32px', padding: '0 8px', fontSize: '12px' }}
                                                             >
                                                                 <Eye size={13} />
-                                                                Verify
+                                                                {t('verify')}
                                                             </Button>
-                                                            <Button
-                                                                size="sm"
-                                                                className="approve-btn"
-                                                                onClick={() => handleApprovePayment(tx.id)}
-                                                                style={{ height: '32px', padding: '0 8px', fontSize: '12px' }}
-                                                            >
-                                                                Approve
+                                                            <Button size="sm" className="approve-btn" onClick={() => handleApprovePayment(tx.id)} style={{ height: '32px', padding: '0 8px', fontSize: '12px' }}>
+                                                                {t('approve')}
                                                             </Button>
                                                         </div>
                                                     ) : (
@@ -689,7 +624,7 @@ const PhotographerDashboard = () => {
                         {/* Mobile Transactions List */}
                         <div className="transactions-mobile-list hide-desktop">
                             {filteredSales.length === 0 ? (
-                                <p className="empty-text">No sales recorded.</p>
+                                <p className="empty-text">{t('db_no_sales')}</p>
                             ) : (
                                 filteredSales.map(tx => (
                                     <div key={tx.id} className="transaction-card">
@@ -739,7 +674,7 @@ const PhotographerDashboard = () => {
                                         <div className="tx-footer">
                                             <div className="tx-amount-group">
                                                 <span className="tx-label">Net:</span>
-                                                <span className="tx-net-amount">${(Number(tx.amount) - Number(tx.commission_amount)).toFixed(2)}</span>
+                                                <span className="tx-net-amount">{formatPrice(Number(tx.amount) - Number(tx.commission_amount), tx.currency || profile?.currency)}</span>
                                             </div>
                                             <div className="btn-group-mini">
                                                 {tx.status === 'manual_pending' && (
@@ -2004,6 +1939,27 @@ const PhotographerDashboard = () => {
                     text-align: center;
                     padding: 3rem 0;
                     color: var(--text-tertiary);
+                }
+
+                .settings-icon-link {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 44px;
+                    height: 44px;
+                    background: white;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 12px;
+                    color: #64748b;
+                    transition: all 0.2s ease;
+                    margin-left: 0.5rem;
+                }
+
+                .settings-icon-link:hover {
+                    color: #F5A623;
+                    border-color: #F5A623;
+                    transform: rotate(30deg);
+                    box-shadow: 0 4px 12px rgba(245, 166, 35, 0.15);
                 }
 
                 @media (max-width: 640px) {

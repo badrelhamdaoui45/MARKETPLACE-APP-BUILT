@@ -159,7 +159,8 @@ serve(async (req) => {
                     successUrl,
                     cancelUrl,
                     customerEmail,
-                    uiMode
+                    uiMode,
+                    currency
                 } = payload
 
                 const { data: photographer, error: pError } = await serviceClient
@@ -178,7 +179,7 @@ serve(async (req) => {
                     mode: 'payment',
                     line_items: [{
                         price_data: {
-                            currency: 'usd',
+                            currency: currency?.toLowerCase() || 'usd',
                             product_data: { name: 'Photo Album Access' },
                             unit_amount: Math.round(price * 100),
                         },

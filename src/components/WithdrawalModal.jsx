@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { getAccountBalance, createPayout, getPayoutHistory } from '../lib/stripe/service';
 import Button from './ui/Button';
 import { DollarSign, TrendingUp, Clock, CheckCircle, XCircle, AlertCircle, X } from 'lucide-react';
+import { formatPrice } from '../utils/currencies';
 
 const WithdrawalModal = ({ isOpen, onClose, profile }) => {
     const [loading, setLoading] = useState(false);
@@ -60,12 +61,12 @@ const WithdrawalModal = ({ isOpen, onClose, profile }) => {
         const availableInDollars = availableBalance / 100;
 
         if (amount > availableInDollars) {
-            setError(`Insufficient balance. Available: $${availableInDollars.toFixed(2)}`);
+            setError(`Insufficient balance. Available: ${formatPrice(availableInDollars, profile?.currency)}`);
             return;
         }
 
         if (amount < 1) {
-            setError('Minimum withdrawal amount is $1.00');
+            setError(`Minimum withdrawal amount is ${formatPrice(1, profile?.currency)}`);
             return;
         }
 
@@ -87,7 +88,7 @@ const WithdrawalModal = ({ isOpen, onClose, profile }) => {
 
             if (dbError) throw dbError;
 
-            setSuccess(`Withdrawal of $${amount.toFixed(2)} initiated successfully!`);
+            setSuccess(`Withdrawal of ${formatPrice(amount, profile?.currency)} initiated successfully!`);
             setWithdrawalAmount('');
 
             await fetchBalance();
@@ -148,7 +149,7 @@ const WithdrawalModal = ({ isOpen, onClose, profile }) => {
                             <div className="balance-card-content">
                                 <div className="balance-card-label">Available</div>
                                 <div className="balance-card-amount">
-                                    {loading ? '...' : `$${availableInDollars.toFixed(2)}`}
+                                    {loading ? '...' : formatPrice(availableInDollars, profile?.currency)}
                                 </div>
                                 <div className="balance-card-note">Ready to withdraw</div>
                             </div>
@@ -161,7 +162,7 @@ const WithdrawalModal = ({ isOpen, onClose, profile }) => {
                             <div className="balance-card-content">
                                 <div className="balance-card-label">Pending</div>
                                 <div className="balance-card-amount">
-                                    {loading ? '...' : `$${pendingInDollars.toFixed(2)}`}
+                                    {loading ? '...' : formatPrice(pendingInDollars, profile?.currency)}
                                 </div>
                                 <div className="balance-card-note">Processing</div>
                             </div>
@@ -174,7 +175,7 @@ const WithdrawalModal = ({ isOpen, onClose, profile }) => {
                             Withdrawal Amount
                         </label>
                         <div className="amount-input-container">
-                            <span className="currency-prefix">$</span>
+                            <span className="currency-prefix">{formatPrice(0, profile?.currency).replace(/[0.,\s]/g, '')}</span>
                             <input
                                 id="withdrawal-amount"
                                 type="number"
@@ -264,7 +265,7 @@ const WithdrawalModal = ({ isOpen, onClose, profile }) => {
                                         </div>
                                         <div className="withdrawal-info">
                                             <div className="withdrawal-info-amount">
-                                                ${Number(withdrawal.amount).toFixed(2)}
+                                                {formatPrice(withdrawal.amount, profile?.currency)}
                                             </div>
                                             <div className="withdrawal-info-date">
                                                 {new Date(withdrawal.created_at).toLocaleDateString('en-US', {

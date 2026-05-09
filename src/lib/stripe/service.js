@@ -89,10 +89,10 @@ export const createAccountLink = async (accountId) => {
 /**
  * INVOKE SECURE BACKEND: Create Checkout Session
  */
-export const createCheckoutSession = async (albumId, price, photographerId, commissionAmount, photoIds = [], cancelUrl = null, customerEmail = null, uiMode = 'hosted') => {
+export const createCheckoutSession = async (albumId, price, photographerId, commissionAmount, photoIds = [], cancelUrl = null, customerEmail = null, uiMode = 'hosted', currency = 'usd') => {
     try {
         const photosParam = (photoIds && photoIds.length > 0) ? `&photos=${encodeURIComponent(JSON.stringify(photoIds))}` : '';
-        const successUrl = `${window.location.origin}/cart?success=true&session_id={CHECKOUT_SESSION_ID}&album_id=${albumId}&amount=${price}&photographer_id=${photographerId}${photosParam}`;
+        const successUrl = `${window.location.origin}/cart?success=true&session_id={CHECKOUT_SESSION_ID}&album_id=${albumId}&amount=${price}&photographer_id=${photographerId}&currency=${currency}${photosParam}`;
 
         const { data, error } = await invokeHelper('stripe-service', {
             body: {
@@ -105,7 +105,8 @@ export const createCheckoutSession = async (albumId, price, photographerId, comm
                     successUrl,
                     cancelUrl: cancelUrl || `${window.location.origin}/cart`,
                     customerEmail,
-                    uiMode
+                    uiMode,
+                    currency
                 }
             }
         });

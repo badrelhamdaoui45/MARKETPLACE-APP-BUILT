@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { useNavigate, Link } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import CheckoutModal from '../components/CheckoutModal';
@@ -10,8 +11,10 @@ import { calculateCommission } from '../config/platform';
 import { ShoppingCart, Trash2, CreditCard, CheckCircle, X } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { generateOrderNumber } from '../utils/order';
+import { formatPrice } from '../utils/currencies';
 
 const Cart = () => {
+    const { t } = useLanguage();
     const { cartItems, removeFromCart, clearCart, calculateTotal } = useCart();
     const { user, loading: authLoading } = useAuth();
     const navigate = useNavigate();
@@ -90,7 +93,8 @@ const Cart = () => {
                         commission_amount: calculateCommission(amount),
                         stripe_payment_intent_id: sessionIdParam,
                         status: 'paid',
-                        unlocked_photo_ids: photoIds
+                        unlocked_photo_ids: photoIds,
+                        currency: searchParams.get('currency') || 'USD'
                     });
 
                     if (error) {
@@ -147,12 +151,26 @@ const Cart = () => {
                 pricing_package: item.pricing_package,
                 album_price: item.album_price,
                 is_free: item.is_free,
+                currency: item.currency,
                 items: []
             };
         }
         acc[item.album_id].items.push(item);
         return acc;
     }, {});
+
+    // Helper to calculate price for a group
+    const calculateGroupPrice = (group) => {
+        if (group.is_free) return 0;
+        const count = group.items.length;
+        if (group.pricing_package && group.pricing_package.tiers) {
+            const tiers = [...group.pricing_package.tiers].sort((a, b) => b.quantity - a.quantity);
+            const activeTier = tiers.find(tier => count >= tier.quantity);
+            const unitPrice = activeTier ? activeTier.price : (tiers[tiers.length - 1]?.price || 0);
+            return count * unitPrice;
+        }
+        return group.album_price;
+    };
 
     const initiateCheckout = (albumId, group) => {
         setActiveAlbumId(albumId);
@@ -203,7 +221,8 @@ const Cart = () => {
                     commission_amount: commission,
                     status: finalPaymentMethod === 'free' ? 'paid' : 'manual_pending',
                     payment_method: finalPaymentMethod,
-                    unlocked_photo_ids: photoIdsArray
+                    unlocked_photo_ids: photoIdsArray,
+                    currency: group.currency
                 });
 
                 if (txError) throw txError;
@@ -240,7 +259,8 @@ const Cart = () => {
                 photoIdsArray,
                 null,
                 customerEmail,
-                'embedded'
+                'embedded',
+                group.currency
             );
 
             setPurchasing(false);
@@ -704,10 +724,10 @@ const Cart = () => {
                 {styles}
                 <div className="cart-empty-state">
                     <div className="empty-icon"><ShoppingCart size={80} strokeWidth={1} /></div>
-                    <h2>Your cart is empty</h2>
-                    <p>Browse our albums and select your favorite photos.</p>
+                    <h2>{t('cart_empty')}</h2>
+                    <p>{t('cart_browse_desc') || "Browse our albums and select your favorite photos."}</p>
                     <Link to="/albums">
-                        <Button className="btn-brand-orange">Explore Albums</Button>
+                        <Button className="btn-brand-orange">{t('cart_browse')}</Button>
                     </Link>
                 </div>
             </div>
@@ -716,7 +736,7 @@ const Cart = () => {
 
     return (
         <div className="cart-container">
-            <h1 className="cart-title">My Cart</h1>
+            <h1 className="cart-title">{t('cart_title')}</h1>
 
             <div className="cart-grid">
                 <div className="cart-items-column">
@@ -725,10 +745,10 @@ const Cart = () => {
                             <div className="album-group-header">
                                 <div>
                                     <h3>{group.album_title}</h3>
-                                    <span className="photographer-tag">by {group.photographer_name}</span>
+                                    <span className="photographer-tag">{t('pub_by')} {group.photographer_name}</span>
                                 </div>
                                 <div className="group-count">
-                                    {group.items.length} photo{group.items.length > 1 ? 's' : ''}
+                                    {group.items.length} {t('pricing_photos')}
                                 </div>
                             </div>
 
@@ -758,7 +778,6 @@ const Cart = () => {
                                                 setItemToDelete(item.id);
                                                 setIsDeleteModalOpen(true);
                                             }}
-                                            title="Remove"
                                         >
                                             <Trash2 size={18} />
                                         </button>
@@ -773,7 +792,7 @@ const Cart = () => {
                                     disabled={purchasing}
                                 >
                                     <CreditCard size={16} style={{ marginRight: '8px' }} />
-                                    {purchasing ? 'Processing...' : `Buy these ${group.items.length} photos`}
+                                    {purchasing ? t('album_saving') : `${t('cart_checkout')} (${formatPrice(calculateGroupPrice(group), group.currency)})`}
                                 </Button>
                             </div>
                         </div>
@@ -782,14 +801,14 @@ const Cart = () => {
 
                 <div className="cart-summary-column">
                     <div className="cart-summary-card">
-                        <h3>Summary</h3>
+                        <h3>{t('cart_title')}</h3>
                         <div className="summary-row">
-                            <span>Total photos</span>
+                            <span>{t('pricing_photos')}</span>
                             <span>{cartItems.length}</span>
                         </div>
                         <div className="summary-row total">
-                            <span>Estimated Total</span>
-                            <span>${calculateTotal()}</span>
+                            <span>{t('cart_total')}</span>
+                            <span>{formatPrice(calculateTotal(), cartItems[0]?.currency)}</span>
                         </div>
                         <p className="summary-note">
                             * Final price is calculated per album based on volume discounts.
@@ -798,7 +817,7 @@ const Cart = () => {
                             className="clear-cart-btn action-btn"
                             onClick={clearCart}
                         >
-                            Clear Cart
+                            {t('cart_clear')}
                         </Button>
                     </div>
                 </div>
@@ -843,6 +862,7 @@ const Cart = () => {
                     return activeGroup.album_price.toFixed(2);
                 })()}
                 isLoading={purchasing}
+                currency={activeGroup?.currency}
             />
 
             <Modal

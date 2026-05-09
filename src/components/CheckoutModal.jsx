@@ -7,11 +7,14 @@ import { loadStripe } from '@stripe/stripe-js';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
 import { useAuth } from '../context/AuthContext';
 import { getBankLogoUrl } from '../utils/banks';
+import { formatPrice } from '../utils/currencies';
+import { useLanguage } from '../context/LanguageContext';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
-const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, photographerId, isFree }) => {
+const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, photographerId, isFree, currency = 'USD' }) => {
     const { user, signIn, signUp } = useAuth();
+    const { t } = useLanguage();
     const [step, setStep] = useState(1);
     const [authMode, setAuthMode] = useState('signup'); // 'login' or 'signup'
     const [formData, setFormData] = useState({
@@ -174,21 +177,21 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
                 <button className="close-btn" onClick={onClose}>&times;</button>
 
                 <div className="checkout-header">
-                    <h2>Secure Checkout</h2>
+                    <h2>{t('checkout_secure')}</h2>
                     <div className="step-indicator">
                         <div className={`step ${step >= 1 ? 'active' : ''} ${step > 1 ? 'completed' : ''}`}>
                             <div className="step-circle">{step > 1 ? <CheckCircle size={16} /> : '1'}</div>
-                            <span>Account</span>
+                            <span>{t('checkout_account')}</span>
                         </div>
                         <div className="step-line"></div>
                         <div className={`step ${step >= 2 ? 'active' : ''} ${step > 2 ? 'completed' : ''}`}>
                             <div className="step-circle">{step > 2 ? <CheckCircle size={16} /> : '2'}</div>
-                            <span>Method</span>
+                            <span>{t('checkout_method')}</span>
                         </div>
                         <div className="step-line"></div>
                         <div className={`step ${step >= 3 ? 'active' : ''}`}>
                             <div className="step-circle">3</div>
-                            <span>Finish</span>
+                            <span>{t('checkout_finish')}</span>
                         </div>
                     </div>
                 </div>
@@ -202,19 +205,19 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
                                         className={`auth-tab ${authMode === 'signup' ? 'active' : ''}`}
                                         onClick={() => setAuthMode('signup')}
                                     >
-                                        <UserPlus size={16} /> Create Account
+                                        <UserPlus size={16} /> {t('auth_register_title') || 'Create Account'}
                                     </button>
                                     <button
                                         className={`auth-tab ${authMode === 'login' ? 'active' : ''}`}
                                         onClick={() => setAuthMode('login')}
                                     >
-                                        <LogIn size={16} /> Login
+                                        <LogIn size={16} /> {t('auth_sign_in') || 'Login'}
                                     </button>
                                 </div>
                             )}
 
                             <h3 className="step-title">
-                                {user ? `Welcome back, ${formData.fullName || 'User'}` : (authMode === 'login' ? 'Log in to continue' : 'Create your account')}
+                                {user ? `${t('auth_login_title') || 'Welcome back'}, ${formData.fullName || 'User'}` : (authMode === 'login' ? (t('checkout_login_continue_txt') || 'Log in to continue') : (t('checkout_create_your') || 'Create your account'))}
                             </h3>
                             <div className="step-desc">
                                 {user ? 'Confirm your details to proceed.' : 'You need an account to access your photos securely.'}
@@ -244,7 +247,7 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
 
                             {!user && authMode === 'signup' && (
                                 <div className="form-group">
-                                    <label>Full Name</label>
+                                    <label>{t('settings_full_name') || 'Full Name'}</label>
                                     <div className="input-wrapper">
                                         <User size={18} className="input-icon" />
                                         <input
@@ -355,7 +358,7 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
 
                             <div className="total-indicator">
                                 <span>Total to pay:</span>
-                                <strong>${totalAmount}</strong>
+                                <strong>{formatPrice(totalAmount, currency)}</strong>
                             </div>
                         </div>
                     ) : (
@@ -385,7 +388,7 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
                                 <div className="bank-transfer-instructions">
                                     <div className="instruction-header">
                                         <Landmark size={32} className="header-icon" />
-                                        <h3>Virement Bancaire</h3>
+                                        <h3>{t('checkout_bank_transfer')}</h3>
                                     </div>
                                     <div className="bank-details-container">
                                         {photographerSettings?.bank_accounts && photographerSettings.bank_accounts.length > 0 ? (
@@ -426,7 +429,7 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
                                                         <div className="bank-details-grid">
                                                             {account.bank_name && (
                                                                 <div className="bank-detail-item">
-                                                                    <label>Banque</label>
+                                                                    <label>{t('checkout_bank_name')}</label>
                                                                     <div className="detail-value-box">
                                                                         <span>{account.bank_name}</span>
                                                                         <button className="copy-btn-mini" onClick={() => handleCopyDetails(account.bank_name, 'bank_name')}>
@@ -437,7 +440,7 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
                                                             )}
                                                             {account.account_holder && (
                                                                 <div className="bank-detail-item">
-                                                                    <label>Titulaire</label>
+                                                                    <label>{t('checkout_holder')}</label>
                                                                     <div className="detail-value-box">
                                                                         <span>{account.account_holder}</span>
                                                                         <button className="copy-btn-mini" onClick={() => handleCopyDetails(account.account_holder, 'account_holder')}>
@@ -448,7 +451,7 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
                                                             )}
                                                             {account.bank_code && (
                                                                 <div className="bank-detail-item">
-                                                                    <label>Code Banque</label>
+                                                                    <label>{t('checkout_bank_code')}</label>
                                                                     <div className="detail-value-box">
                                                                         <span>{account.bank_code}</span>
                                                                         <button className="copy-btn-mini" onClick={() => handleCopyDetails(account.bank_code, 'bank_code')}>
@@ -459,7 +462,7 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
                                                             )}
                                                             {account.account_number && (
                                                                 <div className="bank-detail-item">
-                                                                    <label>Numéro de Compte</label>
+                                                                    <label>{t('checkout_account_number')}</label>
                                                                     <div className="detail-value-box">
                                                                         <span>{account.account_number}</span>
                                                                         <button className="copy-btn-mini" onClick={() => handleCopyDetails(account.account_number, 'account_number')}>
@@ -569,7 +572,7 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
                                     <div className="important-note">
                                         <ShieldCheck size={20} />
                                         <p>
-                                            Une fois le virement effectué, le photographe devra valider manuellement votre paiement pour débloquer vos photos haute résolution.
+                                            {t('checkout_manual_validation')}
                                         </p>
                                     </div>
 
@@ -580,7 +583,7 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
                                                 checked={confirmedTransfer}
                                                 onChange={(e) => setConfirmedTransfer(e.target.checked)}
                                             />
-                                            <span>J'ai envoyé le virement au photographe</span>
+                                            <span>{t('checkout_sent_transfer')}</span>
                                         </label>
                                     </div>
                                 </div>

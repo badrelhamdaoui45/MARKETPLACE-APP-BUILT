@@ -5,12 +5,15 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import { countries } from '../utils/countries';
+import { currencies } from '../utils/currencies';
 import { User, Mail, Phone, Globe, Save, ArrowLeft, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Image as ImageIcon } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 const PhotographerSettings = () => {
     const { user, profile } = useAuth();
+    const { t, language: currentLanguage, changeLanguage } = useLanguage();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -24,7 +27,9 @@ const PhotographerSettings = () => {
         website: '',
         bio: '',
         watermark_text: '',
-        country: ''
+        country: '',
+        currency: 'USD',
+        language: 'en'
     });
 
     useEffect(() => {
@@ -37,7 +42,9 @@ const PhotographerSettings = () => {
                 website: profile.website || '',
                 bio: profile.bio || '',
                 watermark_text: profile.watermark_text || '© RUN CAPTURES',
-                country: profile.country || ''
+                country: profile.country || '',
+                currency: profile.currency || 'USD',
+                language: profile.language || 'en'
             });
             setLoading(false);
         }
@@ -96,13 +103,20 @@ const PhotographerSettings = () => {
                     website: formData.website,
                     bio: formData.bio,
                     watermark_text: formData.watermark_text,
-                    country: formData.country
+                    country: formData.country,
+                    currency: formData.currency,
+                    language: formData.language
                 })
                 .eq('id', user.id);
+            
+            // Immediately sync context if language changed
+            if (formData.language !== currentLanguage) {
+                changeLanguage(formData.language);
+            }
 
             if (error) throw error;
 
-            setMessage({ type: 'success', text: 'Profile updated successfully!' });
+            setMessage({ type: 'success', text: t('settings_update_success') });
             setTimeout(() => setMessage({ type: '', text: '' }), 3000);
         } catch (error) {
             console.error('Error updating profile:', error);
@@ -124,8 +138,8 @@ const PhotographerSettings = () => {
                         <ArrowLeft size={20} />
                     </button>
                     <div>
-                        <h1 className="settings-title">Profile Information</h1>
-                        <p className="settings-subtitle">Update your public profile details</p>
+                        <h1 className="settings-title">{t('settings_title')}</h1>
+                        <p className="settings-subtitle">{t('settings_profile_info')}</p>
                     </div>
                 </header>
 
@@ -172,7 +186,7 @@ const PhotographerSettings = () => {
                             </div>
 
                             <div className="form-group">
-                                <label><User size={16} /> Full Name</label>
+                                <label><User size={16} /> {t('settings_full_name')}</label>
                                 <Input
                                     name="full_name"
                                     value={formData.full_name}
@@ -205,7 +219,7 @@ const PhotographerSettings = () => {
                             </div>
 
                             <div className="form-group">
-                                <label><Globe size={16} /> Website Link</label>
+                                <label><Globe size={16} /> {t('settings_website')}</label>
                                 <Input
                                     name="website"
                                     value={formData.website}
@@ -215,13 +229,38 @@ const PhotographerSettings = () => {
                             </div>
 
                             <div className="form-group">
-                                <label><Globe size={16} /> Country</label>
+                                <label><Globe size={16} /> {t('settings_location')}</label>
                                 <Select
                                     name="country"
                                     value={formData.country}
                                     onChange={handleInputChange}
                                     options={countries}
                                 />
+                            </div>
+
+                            <div className="form-group">
+                                <label><Globe size={16} /> {t('settings_selling_currency')}</label>
+                                <Select
+                                    name="currency"
+                                    value={formData.currency}
+                                    onChange={handleInputChange}
+                                    options={currencies.map(c => ({ value: c.code, label: `${c.name} (${c.symbol})` }))}
+                                />
+                                <small className="input-hint">This currency will be shown to runners.</small>
+                            </div>
+
+                            <div className="form-group">
+                                <label><Globe size={16} /> {t('settings_language')}</label>
+                                <Select
+                                    name="language"
+                                    value={formData.language}
+                                    onChange={handleInputChange}
+                                    options={[
+                                        { value: 'en', label: 'English' },
+                                        { value: 'fr', label: 'Français' }
+                                    ]}
+                                />
+                                <small className="input-hint">Set your preferred dashboard language.</small>
                             </div>
 
                             <div className="form-group">
@@ -237,7 +276,7 @@ const PhotographerSettings = () => {
                         </div>
 
                         <div className="form-group bio-group">
-                            <label>Biography</label>
+                            <label>{t('settings_bio')}</label>
                             <textarea
                                 name="bio"
                                 value={formData.bio}
@@ -255,7 +294,7 @@ const PhotographerSettings = () => {
                             className="save-btn action-btn"
                             disabled={saving}
                         >
-                            <Save size={18} /> {saving ? 'SAVING...' : 'SAVE CHANGES'}
+                            <Save size={18} /> {saving ? t('loading').toUpperCase() : t('settings_save_changes').toUpperCase()}
                         </Button>
                     </div>
                 </form>

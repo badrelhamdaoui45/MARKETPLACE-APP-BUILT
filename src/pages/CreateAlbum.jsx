@@ -9,10 +9,11 @@ import Toast from '../components/ui/Toast';
 import { sanitizeFileName } from '../utils/sanitize';
 import CreatePackageModal from '../components/pricing/CreatePackageModal';
 import { slugify } from '../utils/slugify';
+import { formatPrice, getCurrencySymbol } from '../utils/currencies';
 import '../components/ui/ui.css';
 
 const CreateAlbum = () => {
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [packages, setPackages] = useState([]);
@@ -273,7 +274,7 @@ const CreateAlbum = () => {
 
                 {formData.pricing_package_ids.length === 0 && !formData.is_free && (
                     <Input
-                        label="Fixed Price (€)"
+                        label={`Fixed Price (${getCurrencySymbol(profile?.currency)})`}
                         name="price"
                         type="number"
                         min="0"

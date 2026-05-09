@@ -43,7 +43,8 @@ export const CartProvider = ({ children }) => {
                 photographer_name: album.profiles?.full_name || 'Photographer',
                 pricing_package: album.selected_package || album.pricing_packages,
                 album_price: album.price,
-                is_free: album.is_free
+                is_free: album.is_free,
+                currency: album.profiles?.currency || 'USD'
             };
 
             return [...prev, newItem];

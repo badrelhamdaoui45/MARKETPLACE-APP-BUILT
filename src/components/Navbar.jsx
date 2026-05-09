@@ -5,7 +5,8 @@ import Button from './ui/Button';
 import './Navbar.css';
 import LogoImage from '../assets/LogoImage.png';
 import { useCart } from '../context/CartContext';
-import { ShoppingCart, User, Menu, LogOut, Home, Image, HelpCircle, LayoutDashboard, X } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
+import { ShoppingCart, User, Menu, LogOut, Home, Image, HelpCircle, LayoutDashboard, X, Globe } from 'lucide-react';
 
 const Navbar = () => {
     const { user, profile, signOut } = useAuth();
@@ -14,6 +15,7 @@ const Navbar = () => {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const { getItemCount } = useCart();
     const cartCount = getItemCount();
+    const { language, changeLanguage, t } = useLanguage();
 
     const isProvider = (role) => {
         const providerRoles = ['photographer', 'Event', 'Club', 'Agency', 'Federation', 'Club/Association', 'Other'];
@@ -86,29 +88,69 @@ const Navbar = () => {
 
                 {/* Mobile Right Actions */}
                 <div className="mobile-nav-actions-wrapper">
-                    {!isMenuOpen && user && (
-                        <button
-                            className="mobile-nav-prominent-btn"
-                            onClick={navigateToDashboard}
-                        >
-                            <LayoutDashboard size={20} />
-                            <span>
-                                {profile?.role === 'admin' ? 'ADMIN CONSOLE' : isProvider(profile?.role) ? 'DASHBOARD' : 'PURCHASES'}
-                            </span>
-                        </button>
+                    {!isMenuOpen && (
+                        <>
+                            {/* Mobile Language Switcher */}
+                            <div className="language-switcher mobile-lang-switcher">
+                                <Globe size={14} style={{ color: '#64748b' }} />
+                                <button 
+                                    className={`lang-btn ${language === 'en' ? 'active' : ''}`}
+                                    onClick={() => changeLanguage('en')}
+                                >
+                                    EN
+                                </button>
+                                <span className="lang-divider">|</span>
+                                <button 
+                                    className={`lang-btn ${language === 'fr' ? 'active' : ''}`}
+                                    onClick={() => changeLanguage('fr')}
+                                >
+                                    FR
+                                </button>
+                            </div>
+
+                            {user && (
+                                <button
+                                    className="mobile-nav-prominent-btn"
+                                    onClick={navigateToDashboard}
+                                >
+                                    <LayoutDashboard size={20} />
+                                    <span>
+                                        {profile?.role === 'admin' ? 'ADMIN CONSOLE' : isProvider(profile?.role) ? 'DASHBOARD' : 'PURCHASES'}
+                                    </span>
+                                </button>
+                            )}
+                        </>
                     )}
                 </div>
 
                 {/* Desktop Navigation */}
                 <div className="navbar-links desktop-nav">
-                    <Link to="/" className="nav-link">HOME</Link>
-                    <Link to="/albums" className="nav-link">ALBUMS</Link>
-                    <a href="/#how-it-works" className="nav-link">HOW IT WORKS</a>
-                    <a href="/#pricing" className="nav-link">PRICING</a>
+                    <Link to="/" className="nav-link">{t('home').toUpperCase()}</Link>
+                    <Link to="/albums" className="nav-link">{t('nav_albums').toUpperCase()}</Link>
+                    <a href="/#how-it-works" className="nav-link">{t('db_setup_guide').toUpperCase()}</a>
+                    <a href="/#pricing" className="nav-link">{t('nav_pricing').toUpperCase()}</a>
                 </div>
 
                 {/* Desktop Auth/Dashboard Buttons */}
                 <div className="navbar-auth desktop-nav">
+                    {/* Language Switcher */}
+                    <div className="language-switcher">
+                        <Globe size={14} style={{ color: '#64748b' }} />
+                        <button 
+                            className={`lang-btn ${language === 'en' ? 'active' : ''}`}
+                            onClick={() => changeLanguage('en')}
+                        >
+                            EN
+                        </button>
+                        <span className="lang-divider">|</span>
+                        <button 
+                            className={`lang-btn ${language === 'fr' ? 'active' : ''}`}
+                            onClick={() => changeLanguage('fr')}
+                        >
+                            FR
+                        </button>
+                    </div>
+
                     {user ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                             <Button
@@ -117,7 +159,7 @@ const Navbar = () => {
                                 onClick={navigateToDashboard}
                             >
                                 <span className="user-icon"><User size={18} /></span>
-                                {profile?.role === 'admin' ? 'ADMIN CONSOLE' : isProvider(profile?.role) ? 'DASHBOARD' : 'MY PURCHASES'}
+                                {profile?.role === 'admin' ? 'ADMIN CONSOLE' : isProvider(profile?.role) ? t('dashboard').toUpperCase() : t('nav_sales').toUpperCase()}
                             </Button>
 
                             {/* Profile Dropdown */}
@@ -181,10 +223,10 @@ const Navbar = () => {
                     ) : (
                         <div style={{ display: 'flex', gap: '0.75rem' }}>
                             <Link to="/login">
-                                <Button variant="outline" className="action-btn">Log In</Button>
+                                <Button variant="outline" className="action-btn">{t('login')}</Button>
                             </Link>
                             <Link to="/register">
-                                <Button variant="primary" className="action-btn">Sign Up</Button>
+                                <Button variant="primary" className="action-btn">{t('register')}</Button>
                             </Link>
                         </div>
                     )}
