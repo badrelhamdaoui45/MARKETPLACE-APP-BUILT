@@ -266,3 +266,48 @@ export const pingStripe = async () => {
         throw error;
     }
 };
+
+/**
+ * INVOKE SECURE BACKEND: Create Subscription Plan Checkout Session
+ */
+export const createPlanCheckoutSession = async (planId, planName, price, photographerId, customerEmail = null) => {
+    try {
+        const successUrl = `${window.location.origin}/photographer/settings?success=true&session_id={CHECKOUT_SESSION_ID}&plan_id=${planId}`;
+        const cancelUrl = `${window.location.origin}/photographer/settings?cancelled=true`;
+
+        const { data, error } = await invokeHelper('stripe-service', {
+            body: {
+                action: 'create-plan-checkout-session',
+                payload: {
+                    planId,
+                    planName,
+                    price,
+                    photographerId,
+                    successUrl,
+                    cancelUrl,
+                    customerEmail
+                }
+            }
+        });
+
+        if (error) {
+            console.error('Stripe Invoke Error:', error);
+            let message = 'Unknown error occurred';
+            if (error?.context?.json) {
+                try {
+                    const body = await error.context.json();
+                    message = body.error || body.message || JSON.stringify(body);
+                } catch (e) {
+                    message = error.message || JSON.stringify(error);
+                }
+            } else {
+                message = error.message || error.error || JSON.stringify(error);
+            }
+            throw new Error(typeof message === 'object' ? JSON.stringify(message) : message);
+        }
+        return data;
+    } catch (error) {
+        console.error('Error creating plan checkout session:', error);
+        throw error;
+    }
+};

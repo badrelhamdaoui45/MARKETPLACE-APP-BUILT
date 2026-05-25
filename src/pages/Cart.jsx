@@ -83,14 +83,32 @@ const Cart = () => {
                         }
                     }
 
-                    // 3. Insert Transaction
+                    // 3. Fetch photographer's active subscription plan commission percentage
+                    let commissionPercent = 10.00; // Fallback default
+                    try {
+                        const { data: proProfile, error: profileErr } = await supabase
+                            .from('profiles')
+                            .select('plan_id, pricing_plans(commission_percent)')
+                            .eq('id', photographerId)
+                            .single();
+                        
+                        if (!profileErr && proProfile?.pricing_plans) {
+                            commissionPercent = proProfile.pricing_plans.commission_percent;
+                        }
+                    } catch (err) {
+                        console.warn("Could not fetch photographer plan commission, using fallback 10%:", err);
+                    }
+
+                    const commissionAmount = amount * (commissionPercent / 100);
+
+                    // 4. Insert Transaction
                     const { error } = await supabase.from('transactions').insert({
                         order_number: generateOrderNumber(),
                         buyer_id: user?.id || null, // Can be null (guest)
                         photographer_id: photographerId,
                         album_id: albumId,
                         amount: amount,
-                        commission_amount: calculateCommission(amount),
+                        commission_amount: commissionAmount,
                         stripe_payment_intent_id: sessionIdParam,
                         status: 'paid',
                         unlocked_photo_ids: photoIds,

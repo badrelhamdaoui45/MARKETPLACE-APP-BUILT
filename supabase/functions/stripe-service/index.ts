@@ -155,7 +155,7 @@ serve(async (req) => {
                     albumId,
                     price,
                     photographerId, // This is now the photographer's internal Supabase USER ID
-                    commissionAmount,
+                    commissionAmount, // raw client estimation
                     successUrl,
                     cancelUrl,
                     customerEmail,
@@ -163,17 +163,24 @@ serve(async (req) => {
                     currency
                 } = payload
 
-                const { data: photographer, error: pError } = await serviceClient
-                    .from('photographer_private_data')
-                    .select('stripe_account_id')
+                // Fetch photographer's stripe account and their active subscription plan details securely
+                const { data: profile, error: pError } = await serviceClient
+                    .from('profiles')
+                    .select('plan_id, pricing_plans(commission_percent), photographer_private_data(stripe_account_id)')
                     .eq('id', photographerId)
                     .single()
 
-                if (pError || !photographer?.stripe_account_id) {
-                    throw new Error('Photographer has no linked Stripe account')
+                const stripeAccountId = profile?.photographer_private_data?.stripe_account_id;
+
+                if (pError || !stripeAccountId) {
+                    throw new Error('Photographer has no linked Stripe account: ' + (pError?.message || ''))
                 }
 
-                console.log(`Creating session for Photographer Stripe ID: ${photographer.stripe_account_id}`);
+                // Dynamic commission calculation based on DB plan
+                const commissionPercent = profile?.pricing_plans?.commission_percent ?? 10.00;
+                const finalCommissionAmount = price * (commissionPercent / 100);
+
+                console.log(`Creating session for Photographer Stripe ID: ${stripeAccountId}, Plan Commission: ${commissionPercent}%`);
 
                 const sessionParams: any = {
                     mode: 'payment',
@@ -186,13 +193,13 @@ serve(async (req) => {
                         quantity: 1,
                     }],
                     payment_intent_data: {
-                        transfer_data: { destination: photographer.stripe_account_id },
+                        transfer_data: { destination: stripeAccountId },
                     },
                     metadata: { album_id: albumId }
                 }
 
-                if (commissionAmount > 0) {
-                    sessionParams.payment_intent_data.application_fee_amount = Math.round(commissionAmount * 100);
+                if (finalCommissionAmount > 0) {
+                    sessionParams.payment_intent_data.application_fee_amount = Math.round(finalCommissionAmount * 100);
                 }
 
                 if (uiMode === 'embedded') {
@@ -211,6 +218,50 @@ serve(async (req) => {
 
                 result = await stripe.checkout.sessions.create(sessionParams)
                 break
+            }
+
+            case 'create-plan-checkout-session': {
+                const {
+                    planId,
+                    planName,
+                    price,
+                    photographerId,
+                    successUrl,
+                    cancelUrl,
+                    customerEmail
+                } = payload;
+
+                console.log(`Creating Plan Checkout Session for Photographer: ${photographerId}, Plan: ${planName}, Price: $${price}`);
+
+                const sessionParams: any = {
+                    mode: 'payment',
+                    line_items: [{
+                        price_data: {
+                            currency: 'usd',
+                            product_data: { 
+                                name: `PhotoMarket Plan: ${planName}`,
+                                description: `Subscription tier upgrade for PhotoMarket platform`
+                            },
+                            unit_amount: Math.round(price * 100),
+                        },
+                        quantity: 1,
+                    }],
+                    metadata: { 
+                        action: 'plan-upgrade',
+                        plan_id: planId,
+                        photographer_id: photographerId
+                    }
+                };
+
+                if (customerEmail) {
+                    sessionParams.customer_email = customerEmail;
+                }
+
+                sessionParams.success_url = successUrl;
+                sessionParams.cancel_url = cancelUrl;
+
+                result = await stripe.checkout.sessions.create(sessionParams);
+                break;
             }
 
             case 'get-account-status': {

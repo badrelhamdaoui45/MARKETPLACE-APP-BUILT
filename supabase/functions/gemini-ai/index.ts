@@ -29,8 +29,65 @@ serve(async (req) => {
             )
         }
 
-        const GEMINI_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${geminiKey}`
-        const MODEL = "gemini-2.5-flash" 
+        // Helper to query Gemini with retries and fallback models
+        const callGeminiWithRetryAndFallback = async (parts: any[], apiKey: string) => {
+            const models = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-3.5-flash"];
+            let lastError: any = null;
+
+            for (const model of models) {
+                const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
+                const maxRetries = 3;
+                
+                for (let attempt = 0; attempt < maxRetries; attempt++) {
+                    try {
+                        console.log(`[Gemini Request] Model: ${model}, Attempt: ${attempt + 1}/${maxRetries}`);
+                        const response = await fetch(url, {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({
+                                contents: [{ role: "user", parts }]
+                            })
+                        });
+
+                        const data = await response.json();
+                        
+                        if (response.ok) {
+                            return data;
+                        }
+
+                        console.warn(`[Gemini Warning] Model ${model} returned non-ok status: ${response.status}. Error body:`, JSON.stringify(data));
+                        
+                        const errorMsg = data.error?.message || "";
+                        const isDemandError = errorMsg.toLowerCase().includes("demand") || 
+                                              errorMsg.toLowerCase().includes("overloaded") ||
+                                              errorMsg.toLowerCase().includes("limit") ||
+                                              errorMsg.toLowerCase().includes("resource") ||
+                                              response.status === 429 || 
+                                              response.status === 503;
+
+                        if (isDemandError && attempt < maxRetries - 1) {
+                            const delay = Math.pow(2, attempt) * 1000 + Math.random() * 500;
+                            console.log(`[Gemini Retry] High demand or rate limit. Retrying in ${delay.toFixed(0)}ms...`);
+                            await new Promise(r => setTimeout(r, delay));
+                            continue;
+                        }
+
+                        throw new Error(errorMsg || `Gemini Error: ${response.status}`);
+                    } catch (err) {
+                        lastError = err;
+                        console.error(`[Gemini Error] Model ${model} attempt ${attempt + 1} failed:`, err.message);
+                        if (attempt < maxRetries - 1) {
+                            const delay = Math.pow(2, attempt) * 1000 + Math.random() * 500;
+                            await new Promise(r => setTimeout(r, delay));
+                        }
+                    }
+                }
+            }
+
+            throw lastError || new Error("Gemini API call failed all models and retries");
+        };
 
         // Helper function to fetch and convert image to base64
         const urlToBase64 = async (url: string) => {
@@ -43,24 +100,10 @@ serve(async (req) => {
         };
 
         if (action === 'test-connection') {
-            const response = await fetch(GEMINI_URL, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    contents: [{
-                        role: "user",
-                        parts: [{ text: "Say 'Connection Successful via Gemini API'" }]
-                    }]
-                })
-            })
-
-            const data = await response.json()
-            if (!response.ok) {
-                console.error("Gemini Error:", data)
-                throw new Error(data.error?.message || `Gemini Error: ${response.status}`)
-            }
+            const data = await callGeminiWithRetryAndFallback(
+                [{ text: "Say 'Connection Successful via Gemini API'" }],
+                geminiKey
+            );
 
             const message = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response content"
             return new Response(
@@ -98,31 +141,18 @@ serve(async (req) => {
                 }`
             })
 
-            for (const url of imageUrls) {
-                const { mimeType, data } = await urlToBase64(url);
+            // Fetch all images in parallel for speed
+            const imageResults = await Promise.all(imageUrls.map((url: string) => urlToBase64(url)));
+            for (const imgResult of imageResults) {
                 parts.push({
                     inline_data: {
-                        mime_type: mimeType,
-                        data: data
+                        mime_type: imgResult.mimeType,
+                        data: imgResult.data
                     }
-                })
+                });
             }
 
-            const response = await fetch(GEMINI_URL, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    contents: [{ role: "user", parts }]
-                })
-            })
-
-            const data = await response.json()
-            if (!response.ok) {
-                console.error("Gemini API Error:", data)
-                throw new Error(data.error?.message || `Gemini Error: ${response.status}`)
-            }
+            const data = await callGeminiWithRetryAndFallback(parts, geminiKey);
 
             let text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "{}"
 
@@ -179,21 +209,7 @@ serve(async (req) => {
                 }
             })
 
-            const response = await fetch(GEMINI_URL, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    contents: [{ role: "user", parts }]
-                })
-            })
-
-            const data = await response.json()
-            if (!response.ok) {
-                console.error("Gemini API Error:", data)
-                throw new Error(data.error?.message || `Gemini Error: ${response.status}`)
-            }
+            const data = await callGeminiWithRetryAndFallback(parts, geminiKey);
 
             let text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "[]"
 

@@ -25,23 +25,61 @@ const PhotoUpload = ({ albumId, onUploadComplete }) => {
         setUploadedPhotos([]); // Clear previous uploads
         let successCount = 0;
 
-        // Fetch user's custom watermark text
+        // Fetch user's active pricing plan and their current upload usage
         let customWatermarkText = "© RUN CAPTURES"; // Default
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
+                // 1. Fetch watermark text and plan_id
                 const { data: profile } = await supabase
                     .from('profiles')
-                    .select('watermark_text')
+                    .select('watermark_text, plan_id')
                     .eq('id', user.id)
                     .single();
 
                 if (profile && profile.watermark_text) {
                     customWatermarkText = profile.watermark_text;
                 }
+
+                // 2. Fetch pricing plan details
+                const planId = profile?.plan_id || '00000000-0000-0000-0000-000000000001';
+                const { data: plan } = await supabase
+                    .from('pricing_plans')
+                    .select('*')
+                    .eq('id', planId)
+                    .single();
+
+                // 3. Count total uploaded photos
+                const { data: userAlbums } = await supabase
+                    .from('albums')
+                    .select('id')
+                    .eq('photographer_id', user.id);
+
+                let currentUploadedCount = 0;
+                if (userAlbums && userAlbums.length > 0) {
+                    const albumIds = userAlbums.map(a => a.id);
+                    const { count, error: countError } = await supabase
+                        .from('photos')
+                        .select('id', { count: 'exact', head: true })
+                        .in('album_id', albumIds);
+                    
+                    if (!countError) {
+                        currentUploadedCount = count || 0;
+                    }
+                }
+
+                // 4. Enforce upload limit check
+                const uploadLimit = plan ? plan.upload_limit : 100;
+                if (currentUploadedCount + files.length > uploadLimit) {
+                    alert(`Upload Blocked!\n\nYou have reached your subscription plan limit.\n\n- Current uploads: ${currentUploadedCount.toLocaleString()} photos\n- Attempting to upload: ${files.length.toLocaleString()} photos\n- Plan limit: ${uploadLimit.toLocaleString()} photos\n\nPlease upgrade your subscription plan in Settings to upload more photos.`);
+                    
+                    if (fileInputRef.current) fileInputRef.current.value = '';
+                    setUploading(false);
+                    return;
+                }
             }
         } catch (err) {
-            console.warn("Could not fetch watermark text, using default:", err);
+            console.warn("Could not validate pricing plan limits:", err);
         }
 
         for (let i = 0; i < files.length; i++) {

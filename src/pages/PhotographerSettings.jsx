@@ -6,10 +6,11 @@ import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import { countries } from '../utils/countries';
 import { currencies } from '../utils/currencies';
-import { User, Mail, Phone, Globe, Save, ArrowLeft, CheckCircle } from 'lucide-react';
+import { User, Mail, Phone, Globe, Save, ArrowLeft, CheckCircle, Award, CreditCard, ArrowUpCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Image as ImageIcon } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { createPlanCheckoutSession } from '../lib/stripe/service';
 
 const PhotographerSettings = () => {
     const { user, profile } = useAuth();
@@ -32,6 +33,12 @@ const PhotographerSettings = () => {
         language: 'en'
     });
 
+    const [activePlan, setActivePlan] = useState(null);
+    const [photoCount, setPhotoCount] = useState(0);
+    const [allPlans, setAllPlans] = useState([]);
+    const [showPlanModal, setShowPlanModal] = useState(false);
+    const [processingPlan, setProcessingPlan] = useState(null);
+
     useEffect(() => {
         if (profile) {
             setFormData({
@@ -49,6 +56,158 @@ const PhotographerSettings = () => {
             setLoading(false);
         }
     }, [profile]);
+
+    // Handle plan upgrade success/cancel redirects from Stripe Checkout
+    useEffect(() => {
+        const handlePlanUpgradeSuccess = async () => {
+            const params = new URLSearchParams(window.location.search);
+            const success = params.get('success');
+            const planId = params.get('plan_id');
+            const sessionId = params.get('session_id');
+
+            if (success === 'true' && planId && sessionId) {
+                try {
+                    // Update user's profile plan_id in the DB
+                    const { error } = await supabase
+                        .from('profiles')
+                        .update({ plan_id: planId })
+                        .eq('id', user.id);
+
+                    if (error) throw error;
+
+                    setMessage({ type: 'success', text: 'Subscription Plan upgraded successfully!' });
+                    setTimeout(() => setMessage({ type: '', text: '' }), 5000);
+
+                    // Clean parameters from URL
+                    const newUrl = window.location.pathname;
+                    window.history.replaceState({}, document.title, newUrl);
+                    
+                    // Refresh data
+                    if (profile) {
+                        profile.plan_id = planId; // trigger updates
+                    }
+                } catch (err) {
+                    console.error("Error updating subscription plan profile:", err);
+                    setMessage({ type: 'error', text: 'Failed to update subscription profile.' });
+                }
+            } else if (params.get('cancelled') === 'true') {
+                setMessage({ type: 'error', text: 'Plan upgrade checkout was cancelled.' });
+                setTimeout(() => setMessage({ type: '', text: '' }), 5000);
+                const newUrl = window.location.pathname;
+                window.history.replaceState({}, document.title, newUrl);
+            }
+        };
+
+        if (user && profile) {
+            handlePlanUpgradeSuccess();
+        }
+    }, [user, profile]);
+
+    useEffect(() => {
+        const fetchPlanAndUsage = async () => {
+            if (!user) return;
+            try {
+                // 1. Fetch active plan details
+                const planId = profile?.plan_id || '00000000-0000-0000-0000-000000000001';
+                const { data: planData } = await supabase
+                    .from('pricing_plans')
+                    .select('*')
+                    .eq('id', planId)
+                    .single();
+                
+                if (planData) {
+                    setActivePlan(planData);
+                }
+
+                // 2. Fetch all pricing plans
+                const { data: allPlansData } = await supabase
+                    .from('pricing_plans')
+                    .select('*')
+                    .order('price', { ascending: true });
+                if (allPlansData) {
+                    setAllPlans(allPlansData);
+                }
+
+                // 3. Fetch photo usage count
+                const { data: userAlbums } = await supabase
+                    .from('albums')
+                    .select('id')
+                    .eq('photographer_id', user.id);
+
+                if (userAlbums && userAlbums.length > 0) {
+                    const albumIds = userAlbums.map(a => a.id);
+                    const { count, error: countError } = await supabase
+                        .from('photos')
+                        .select('id', { count: 'exact', head: true })
+                        .in('album_id', albumIds);
+                    
+                    if (!countError) {
+                        setPhotoCount(count || 0);
+                    }
+                }
+            } catch (err) {
+                console.error("Error loading subscription details:", err);
+            }
+        };
+
+        if (profile) {
+            fetchPlanAndUsage();
+        }
+    }, [profile, user]);
+
+    const handleSelectPlan = async (targetPlan) => {
+        if (!user) return;
+        
+        const currentPlanId = profile?.plan_id || '00000000-0000-0000-0000-000000000001';
+        if (targetPlan.id === currentPlanId) {
+            alert("This is already your active subscription plan!");
+            return;
+        }
+
+        setProcessingPlan(targetPlan.id);
+        
+        try {
+            // Case 1: Free Plan ($0/mo) -> update directly
+            if (Number(targetPlan.price) === 0) {
+                const { error } = await supabase
+                    .from('profiles')
+                    .update({ plan_id: targetPlan.id })
+                    .eq('id', user.id);
+                    
+                if (error) throw error;
+                
+                setActivePlan(targetPlan);
+                if (profile) {
+                    profile.plan_id = targetPlan.id;
+                }
+                
+                setMessage({ type: 'success', text: `Downgraded to ${targetPlan.name} plan successfully.` });
+                setTimeout(() => setMessage({ type: '', text: '' }), 4000);
+                setShowPlanModal(false);
+            } 
+            // Case 2: Paid Plan -> Stripe checkout redirect
+            else {
+                const session = await createPlanCheckoutSession(
+                    targetPlan.id,
+                    targetPlan.name,
+                    targetPlan.price,
+                    user.id,
+                    user.email
+                );
+                
+                if (session && session.url) {
+                    window.location.href = session.url;
+                } else {
+                    throw new Error("Failed to generate Stripe checkout session");
+                }
+            }
+        } catch (err) {
+            console.error("Error upgrading plan:", err);
+            alert("Failed to purchase plan: " + err.message);
+        } finally {
+            setProcessingPlan(null);
+        }
+    };
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -287,6 +446,68 @@ const PhotographerSettings = () => {
                         </div>
                     </div>
 
+                    {/* Subscription & Storage Details */}
+                    <div className="form-section" style={{ borderTop: '1px solid #f1f5f9', paddingTop: '2.5rem', marginTop: '2.5rem' }}>
+                        <h3 className="section-title">My Subscription Plan</h3>
+                        
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                            gap: '2rem',
+                            background: '#f8fafc',
+                            padding: '1.75rem',
+                            borderRadius: '16px',
+                            border: '1px solid #e2e8f0'
+                        }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700 }}>Current Plan Tier</span>
+                                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary-blue)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    {activePlan ? activePlan.name : 'Free'}
+                                    <span style={{ fontSize: '0.85rem', fontWeight: 600, background: '#eff6ff', color: 'var(--primary-blue)', padding: '2px 8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+                                        Active
+                                    </span>
+                                </div>
+                                <span style={{ fontSize: '0.875rem', color: '#64748b' }}>
+                                    Monthly Price: <strong>{activePlan ? `$${activePlan.price}` : '$0'} / mo</strong>
+                                </span>
+                                <span style={{ fontSize: '0.875rem', color: '#10b981', fontWeight: 600 }}>
+                                    Commission: {activePlan ? activePlan.commission_percent : '15'}% platform fee on sales
+                                </span>
+                                <Button
+                                    type="button"
+                                    variant="orange"
+                                    onClick={() => setShowPlanModal(true)}
+                                    style={{ marginTop: '1rem', width: 'fit-content', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                >
+                                    <ArrowUpCircle size={16} /> Upgrade / Change Plan
+                                </Button>
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                    <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700 }}>Photo Storage Usage</span>
+                                    <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#334155' }}>
+                                        {photoCount.toLocaleString()} / {activePlan ? activePlan.upload_limit.toLocaleString() : '100'} photos
+                                    </span>
+                                </div>
+                                
+                                <div style={{ width: '100%', height: '10px', background: '#e2e8f0', borderRadius: '5px', overflow: 'hidden', marginTop: '4px' }}>
+                                    <div style={{
+                                        width: `${Math.min((photoCount / (activePlan ? activePlan.upload_limit : 100)) * 100, 100)}%`,
+                                        height: '100%',
+                                        background: (photoCount / (activePlan ? activePlan.upload_limit : 100)) >= 1.0 ? 'linear-gradient(90deg, #ef4444, #dc2626)' : 'linear-gradient(90deg, var(--primary-blue), #1d4ed8)',
+                                        borderRadius: '5px',
+                                        transition: 'width 0.4s ease'
+                                    }}></div>
+                                </div>
+                                
+                                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                                    {((photoCount / (activePlan ? activePlan.upload_limit : 100)) * 100).toFixed(1)}% capacity used. Upgrades can be requested by contacting support.
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="form-actions">
                         <Button
                             type="submit"
@@ -299,6 +520,82 @@ const PhotographerSettings = () => {
                     </div>
                 </form>
             </div>
+
+            {showPlanModal && (
+                <div className="popup-overlay-admin" onClick={(e) => e.target === e.currentTarget && setShowPlanModal(false)}>
+                    <div className="popup-modal-admin" style={{ maxWidth: '650px' }}>
+                        <div className="modal-header-admin">
+                            <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px', color: '#0f172a' }}>
+                                <Award size={20} color="var(--primary-blue)" /> Upgrade Subscription Plan
+                            </h3>
+                            <button type="button" className="close-modal-admin" onClick={() => setShowPlanModal(false)}>&times;</button>
+                        </div>
+                        <div className="modal-body-admin" style={{ padding: '2rem' }}>
+                            <p style={{ margin: '0 0 1.5rem 0', color: '#64748b', fontSize: '0.9rem', lineHeight: '1.5' }}>
+                                Choose a subscription plan that suits your photography volume. Subscriptions are billed monthly and can be cancelled at any time.
+                            </p>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                {allPlans.map(plan => {
+                                    const isCurrent = plan.id === (profile?.plan_id || '00000000-0000-0000-0000-000000000001');
+                                    const isProcessing = processingPlan === plan.id;
+
+                                    return (
+                                        <div key={plan.id} style={{
+                                            border: isCurrent ? '2px solid var(--primary-blue)' : '1px solid #e2e8f0',
+                                            borderRadius: '16px',
+                                            padding: '1.25rem 1.5rem',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            background: isCurrent ? '#eff6ff' : 'white',
+                                            position: 'relative',
+                                            transition: 'all 0.2s',
+                                            boxShadow: isCurrent ? '0 4px 12px rgba(37, 99, 235, 0.08)' : '0 1px 3px rgba(0, 0, 0, 0.01)'
+                                        }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <span style={{ fontWeight: 800, fontSize: '1.15rem', color: '#0f172a' }}>{plan.name}</span>
+                                                    {isCurrent && (
+                                                        <span style={{ fontSize: '0.75rem', background: 'var(--primary-blue)', color: 'white', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>
+                                                            Active
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div style={{ fontSize: '0.85rem', color: '#64748b', display: 'flex', gap: '1.25rem', flexWrap: 'wrap' }}>
+                                                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                        Photos limit: <strong style={{ color: '#334155' }}>{plan.upload_limit.toLocaleString()}</strong>
+                                                    </span>
+                                                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                        Commission: <strong style={{ color: '#10b981' }}>{plan.commission_percent}%</strong>
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                                <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column' }}>
+                                                    <span style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--primary-blue)' }}>${plan.price}</span>
+                                                    <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>/ month</span>
+                                                </div>
+
+                                                <Button
+                                                    type="button"
+                                                    variant={isCurrent ? 'secondary' : 'orange'}
+                                                    disabled={isCurrent || processingPlan !== null}
+                                                    onClick={() => handleSelectPlan(plan)}
+                                                    style={{ height: '40px', padding: '0 1.25rem', fontSize: '0.85rem', whiteSpace: 'nowrap' }}
+                                                >
+                                                    {isProcessing ? 'Processing...' : isCurrent ? 'Active' : Number(plan.price) === 0 ? 'Downgrade' : 'Buy Plan'}
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <style>{`
                 .settings-container {
@@ -496,6 +793,58 @@ const PhotographerSettings = () => {
                     display: flex;
                     flex-direction: column;
                     gap: 0.5rem;
+                }
+
+                /* Admin Modal Styles */
+                .popup-overlay-admin {
+                    position: fixed;
+                    inset: 0;
+                    background: rgba(15, 23, 42, 0.4);
+                    backdrop-filter: blur(4px);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 1000;
+                    padding: 1.5rem;
+                }
+
+                .popup-modal-admin {
+                    background: white;
+                    width: 100%;
+                    max-width: 600px;
+                    border-radius: 24px;
+                    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+                    overflow: hidden;
+                    animation: modalIn 0.3s ease-out;
+                }
+
+                @keyframes modalIn {
+                    from { transform: scale(0.95); opacity: 0; }
+                    to { transform: scale(1); opacity: 1; }
+                }
+
+                .modal-header-admin {
+                    padding: 1.5rem 2rem;
+                    border-bottom: 1px solid #f1f5f9;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+
+                .close-modal-admin {
+                    background: none;
+                    border: none;
+                    font-size: 1.75rem;
+                    color: #94a3b8;
+                    cursor: pointer;
+                    line-height: 1;
+                    padding: 0;
+                    margin: 0;
+                    transition: color 0.2s;
+                }
+
+                .close-modal-admin:hover {
+                    color: #475569;
                 }
 
                 @media (max-width: 768px) {

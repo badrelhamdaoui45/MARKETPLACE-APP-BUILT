@@ -18,6 +18,7 @@ const AdminPhotographerDetails = () => {
     const [albums, setAlbums] = useState([]);
     const [transactions, setTransactions] = useState([]);
     const [allPhotos, setAllPhotos] = useState([]);
+    const [plans, setPlans] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -34,13 +35,6 @@ const AdminPhotographerDetails = () => {
                 .single();
 
             if (profileError) throw profileError;
-
-            // Flatten private data for consistency
-            const flattenedProfile = { ...profile };
-            if (profile.photographer_private_data) {
-                Object.assign(flattenedProfile, profile.photographer_private_data);
-            }
-            setPhotographer(flattenedProfile);
 
             // 2. Fetch Albums
             const { data: userAlbums, error: albumError } = await supabase
@@ -73,7 +67,23 @@ const AdminPhotographerDetails = () => {
                 photosData = photos;
             }
 
-            setPhotographer(profile);
+            // 5. Fetch Pricing Plans
+            const { data: plansData, error: plansError } = await supabase
+                .from('pricing_plans')
+                .select('*')
+                .order('price', { ascending: true });
+
+            if (!plansError) {
+                setPlans(plansData || []);
+            }
+
+            // Flatten private data for consistency
+            const flattenedProfile = { ...profile };
+            if (profile.photographer_private_data) {
+                Object.assign(flattenedProfile, profile.photographer_private_data);
+            }
+
+            setPhotographer(flattenedProfile);
             setAlbums(userAlbums);
             setTransactions(userTxs);
             // Store photos to calculate stats later
@@ -104,6 +114,11 @@ const AdminPhotographerDetails = () => {
         return { ...album, revenue: albumRevenue, salesCount: albumTxs.length, photo_count: albumPhotoCount };
     });
 
+    // Find active plan details
+    const activePlan = plans.find(pl => pl.id === photographer.plan_id);
+    const uploadLimit = activePlan ? activePlan.upload_limit : 100;
+    const percentUsed = (totalPhotos / uploadLimit) * 100;
+
     return (
         <div className="admin-container">
             <div className="admin-header-row">
@@ -130,7 +145,6 @@ const AdminPhotographerDetails = () => {
                         <div className="meta-item"><Mail size={14} /> {photographer.email}</div>
                         <div className="meta-item"><Phone size={14} /> {photographer.whatsapp || 'No WhatsApp'}</div>
                         <div className="meta-item"><Globe size={14} /> {photographer.website || 'No Website'}</div>
-                        <div className="meta-item"><Globe size={14} /> {photographer.website || 'No Website'}</div>
                         <div className="meta-item"><Calendar size={14} /> Joined {format(parseISO(photographer.created_at), 'MMM yyyy')}</div>
                         {photographer.stripe_account_id && (
                             <div className="meta-item" style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#64748b' }}>
@@ -143,6 +157,103 @@ const AdminPhotographerDetails = () => {
                     <Button variant="orange" onClick={() => window.location.href = `mailto:${photographer.email}`}>
                         Contact User
                     </Button>
+                </div>
+            </div>
+
+            {/* Subscription & Limits Panel */}
+            <div className="subscription-limit-panel" style={{
+                background: 'white',
+                borderRadius: '24px',
+                border: '1px solid #e2e8f0',
+                padding: '2rem',
+                marginTop: '2rem',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                gap: '2.5rem',
+                boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'
+            }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#0f172a' }}>Subscription Plan</h3>
+                    
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <div style={{
+                            background: '#eff6ff',
+                            color: 'var(--primary-blue)',
+                            fontWeight: 800,
+                            padding: '0.5rem 1rem',
+                            borderRadius: '12px',
+                            border: '1px solid #dbeafe',
+                            fontSize: '1.1rem'
+                        }}>
+                            {activePlan ? activePlan.name : 'Free'}
+                        </div>
+                        <div style={{ fontSize: '0.95rem', color: '#64748b' }}>
+                            {activePlan ? `$${activePlan.price}/month` : '$0/month'} • {activePlan ? `${activePlan.commission_percent}% commission` : '15% commission'}
+                        </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '0.5rem', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.9rem', color: '#475569', fontWeight: 600 }}>Change Tier:</span>
+                        <select
+                            value={photographer.plan_id || ''}
+                            onChange={async (e) => {
+                                const newPlanId = e.target.value;
+                                const { error } = await supabase
+                                    .from('profiles')
+                                    .update({ plan_id: newPlanId || null })
+                                    .eq('id', photographer.id);
+                                if (error) {
+                                    alert('Failed to update plan: ' + error.message);
+                                } else {
+                                    fetchPhotographerData();
+                                }
+                            }}
+                            style={{
+                                padding: '0.4rem 0.8rem',
+                                borderRadius: '8px',
+                                border: '1px solid #cbd5e1',
+                                fontSize: '0.9rem',
+                                outline: 'none',
+                                background: 'white',
+                                cursor: 'pointer',
+                                fontWeight: 500
+                            }}
+                        >
+                            <option value="">-- No Plan (Default Free) --</option>
+                            {plans.map(pl => (
+                                <option key={pl.id} value={pl.id}>
+                                    {pl.name} (${pl.price}/mo)
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                        <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#0f172a' }}>Photo Upload Usage</h3>
+                        <span style={{ fontSize: '0.95rem', color: '#64748b', fontWeight: 600 }}>
+                            {totalPhotos.toLocaleString()} / {uploadLimit.toLocaleString()} photos
+                        </span>
+                    </div>
+
+                    {/* Beautiful Progress Bar */}
+                    <div style={{ width: '100%', height: '12px', background: '#f1f5f9', borderRadius: '6px', overflow: 'hidden', marginTop: '0.5rem' }}>
+                        <div style={{
+                            width: `${Math.min(percentUsed, 100)}%`,
+                            height: '100%',
+                            background: percentUsed >= 100 ? 'linear-gradient(90deg, #ef4444 0%, #dc2626 100%)' : percentUsed >= 85 ? 'linear-gradient(90deg, #f97316 0%, #ea580c 100%)' : 'linear-gradient(90deg, var(--primary-blue) 0%, #1d4ed8 100%)',
+                            borderRadius: '6px',
+                            transition: 'width 0.4s ease'
+                        }}></div>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.825rem', color: '#64748b', marginTop: '2px' }}>
+                        <span>{percentUsed.toFixed(1)}% of storage capacity used</span>
+                        {percentUsed >= 100 && (
+                            <span style={{ color: '#ef4444', fontWeight: 700 }}>Upload Blocked (Limit Reached)</span>
+                        )}
+                    </div>
                 </div>
             </div>
 

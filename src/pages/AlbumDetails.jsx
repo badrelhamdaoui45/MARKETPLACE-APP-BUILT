@@ -14,6 +14,70 @@ import SubscribersModal from '../components/ui/SubscribersModal';
 import SkeletonPage from '../components/ui/SkeletonPage';
 import { formatPrice, getCurrencySymbol } from '../utils/currencies';
 
+const FaceCropThumbnail = ({ src, box, alt, className, style }) => {
+    // Pure CSS approach — no canvas, no CORS issues.
+    // We position the image absolutely inside an overflow:hidden container
+    // and compute scale + offsets so the face bounding box fills the frame.
+
+    if (!src) return null;
+
+    // If no valid bounding box, show a plain cover image
+    if (!box || box.length !== 4) {
+        return (
+            <div style={{ ...style, position: 'relative', overflow: 'hidden', width: '100%', height: '100%' }}>
+                <img
+                    src={src}
+                    alt={alt}
+                    className={className}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                />
+            </div>
+        );
+    }
+
+    // box = [ymin, xmin, ymax, xmax] normalised 0-1000
+    const [ymin, xmin, ymax, xmax] = box;
+
+    const faceW = (xmax - xmin) / 1000;   // fraction of image width
+    const faceH = (ymax - ymin) / 1000;   // fraction of image height
+
+    // Centre of the face in image-fraction coordinates
+    const faceCenterX = (xmin + xmax) / 2000;
+    const faceCenterY = (ymin + ymax) / 2000;
+
+    // Scale the image so the face (+ 60% padding) fills the square container.
+    // We pick whichever face dimension is the limiting one.
+    const padding = 0.6;
+    const scale = 1 / (Math.max(faceW, faceH) * (1 + padding));
+
+    // When the image is scaled by `scale` and its top-left is at (0,0),
+    // the face centre sits at (faceCenterX * scale * 100)% of the scaled image.
+    // We want that point to land at the container's 50% mark, so:
+    const imgLeft = (0.5 - faceCenterX * scale) * 100;   // %
+    const imgTop  = (0.5 - faceCenterY * scale) * 100;   // %
+
+    return (
+        <div style={{ ...style, position: 'relative', overflow: 'hidden', width: '100%', height: '100%' }}>
+            <img
+                src={src}
+                alt={alt}
+                className={className}
+                style={{
+                    position: 'absolute',
+                    width:  `${scale * 100}%`,
+                    height: 'auto',
+                    left:   `${imgLeft}%`,
+                    top:    `${imgTop}%`,
+                    display: 'block',
+                    // Ensure the image itself has no additional constraints
+                    maxWidth: 'none',
+                    maxHeight: 'none',
+                }}
+            />
+        </div>
+    );
+};
+
 const AlbumDetails = () => {
     const { albumTitle } = useParams();
     const { t } = useLanguage();
@@ -507,8 +571,10 @@ const AlbumDetails = () => {
             // but for "BUILD NEW ONE" we start fresh.
             await supabase.from('face_clusters').delete().eq('album_id', album.id);
 
-            // 2. Batch process photos for grouping
-            const batchSize = 10;
+            // 2. Process all photos in a single large batch so Gemini can cluster
+            // the same person across all images without cross-batch duplicates.
+            // 100 images per call is well within Gemini's multimodal context limit.
+            const batchSize = 100;
             const allFaceMapping = {}; // local grouping state
 
             for (let i = 0; i < photos.length; i += batchSize) {
@@ -1162,31 +1228,15 @@ const AlbumDetails = () => {
                         {faceClusters.map(cluster => {
                             const representativeFace = cluster.photo_faces?.[0];
                             const box = representativeFace?.bounding_box;
-                            
-                            // Calculate crop style if box exists [ymin, xmin, ymax, xmax]
-                            let cropStyle = {};
-                            if (box && box.length === 4) {
-                                const [ymin, xmin, ymax, xmax] = box;
-                                const width = xmax - xmin;
-                                const height = ymax - ymin;
-                                // We want to center the face and zoom in
-                                // Using object-position and transform for a clean crop
-                                const centerX = (xmin + xmax) / 20; // 0-1000 to 0-100
-                                const centerY = (ymin + ymax) / 20;
-                                cropStyle = {
-                                    objectPosition: `${centerX}% ${centerY}%`,
-                                    transform: 'scale(1.8)' // Zoom into the face
-                                };
-                            }
 
                             return (
                                 <div key={cluster.id} className="cluster-card" onClick={() => setSelectedCluster(cluster)}>
                                     <div className="cluster-thumbnail">
                                         <div className="thumbnail-wrapper">
-                                            <img 
+                                            <FaceCropThumbnail 
                                                 src={cluster.thumbnail_url} 
+                                                box={box}
                                                 alt={cluster.label} 
-                                                style={cropStyle}
                                             />
                                         </div>
                                         <div className="photo-count-badge">
@@ -2302,19 +2352,22 @@ const AlbumDetails = () => {
                     aspect-ratio: 1;
                     background: #f1f5f9;
                     overflow: hidden; /* CRITICAL for cropping */
+                    border-radius: 13px; /* Apply rounded corners here so scaled image doesn't overflow them */
                 }
 
                 .thumbnail-wrapper {
                     width: 100%;
                     height: 100%;
                     padding: 3px;
+                    overflow: hidden;
+                    border-radius: 10px;
                 }
 
                 .cluster-thumbnail img {
                     width: 100%;
                     height: 100%;
                     object-fit: cover;
-                    border-radius: 13px;
+                    transition: transform 0.3s ease;
                 }
 
                 .photo-count-badge {

@@ -71,6 +71,17 @@ const AdminDashboard = () => {
     const [testingStripe, setTestingStripe] = useState(false);
     const [stripeTestResult, setStripeTestResult] = useState(null);
 
+    // Pricing Plans State
+    const [plans, setPlans] = useState([]);
+    const [isEditingPlan, setIsEditingPlan] = useState(false);
+    const [currentPlan, setCurrentPlan] = useState(null);
+    const [planForm, setPlanForm] = useState({
+        name: '',
+        price: 0,
+        upload_limit: 100,
+        commission_percent: 10
+    });
+
     // Live AI Test State
     const [testImage, setTestImage] = useState(null);
     const [testPreview, setTestPreview] = useState(null);
@@ -101,6 +112,15 @@ const AdminDashboard = () => {
             if (txsError) throw txsError;
             setTransactions(txs);
 
+            // Fetch pricing plans
+            const { data: plansData, error: plansError } = await supabase
+                .from('pricing_plans')
+                .select('*')
+                .order('price', { ascending: true });
+
+            if (plansError) throw plansError;
+            setPlans(plansData || []);
+
             const { data: albs, error: albsError } = await supabase
                 .from('albums')
                 .select('*');
@@ -116,6 +136,9 @@ const AdminDashboard = () => {
                     // No need to delete yet if we want to keep it clean later
                 }
 
+                // Match with plan details
+                const activePlan = plansData?.find(pl => pl.id === p.plan_id);
+
                 const myAlbs = albs.filter(a => a.photographer_id === p.id);
                 const mySales = txs.filter(t => t.photographer_id === p.id);
                 const totalSalesAmount = mySales.reduce((sum, t) => sum + Number(t.amount), 0);
@@ -123,6 +146,7 @@ const AdminDashboard = () => {
 
                 return {
                     ...flattenedPros,
+                    planName: activePlan ? activePlan.name : 'Free',
                     albumCount: myAlbs.length,
                     salesCount: mySales.length,
                     totalRevenue: totalSalesAmount,
@@ -323,6 +347,71 @@ const AdminDashboard = () => {
             setStripeTestResult({ success: false, message: `Failed: ${error.message}` });
         } finally {
             setTestingStripe(false);
+        }
+    };
+
+    // Pricing Plans CRUD Handlers
+    const resetPlanForm = () => {
+        setPlanForm({
+            name: '',
+            price: 0,
+            upload_limit: 100,
+            commission_percent: 10
+        });
+        setCurrentPlan(null);
+    };
+
+    const handleSavePlan = async () => {
+        try {
+            if (!planForm.name) {
+                alert('Plan Name is required');
+                return;
+            }
+            if (Number(planForm.commission_percent) < 0 || Number(planForm.commission_percent) > 100) {
+                alert('Commission percentage must be between 0 and 100');
+                return;
+            }
+
+            const payload = {
+                name: planForm.name,
+                price: Number(planForm.price),
+                upload_limit: Number(planForm.upload_limit),
+                commission_percent: Number(planForm.commission_percent)
+            };
+
+            if (currentPlan) {
+                const { error } = await supabase
+                    .from('pricing_plans')
+                    .update(payload)
+                    .eq('id', currentPlan.id);
+                if (error) throw error;
+            } else {
+                const { error } = await supabase
+                    .from('pricing_plans')
+                    .insert([payload]);
+                if (error) throw error;
+            }
+            fetchAllData();
+            setIsEditingPlan(false);
+            resetPlanForm();
+        } catch (error) {
+            console.error('Error saving plan:', error);
+            alert('Failed to save plan: ' + error.message);
+        }
+    };
+
+    const handleDeletePlan = async (id) => {
+        if (!window.confirm('Are you sure you want to delete this subscription plan?')) return;
+        try {
+            const { error } = await supabase
+                .from('pricing_plans')
+                .delete()
+                .eq('id', id);
+            if (error) throw error;
+            fetchAllData();
+        } catch (error) {
+            console.error('Error deleting plan:', error);
+            alert('Failed to delete plan: ' + error.message);
         }
     };
 
@@ -539,6 +628,12 @@ const AdminDashboard = () => {
                     Overview
                 </button>
                 <button
+                    className={`admin-tab ${activeTab === 'pricing-plans' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('pricing-plans')}
+                >
+                    Plans & Pricing
+                </button>
+                <button
                     className={`admin-tab ${activeTab === 'popups' ? 'active' : ''}`}
                     onClick={() => setActiveTab('popups')}
                 >
@@ -713,6 +808,7 @@ const AdminDashboard = () => {
                                     <tr>
                                         <th>PHOTOGRAPHER</th>
                                         <th>STRIPE STATUS</th>
+                                        <th>PLAN</th>
                                         <th>ALBUMS</th>
                                         <th>SALES</th>
                                         <th>PLATFORM FEES</th>
@@ -723,7 +819,7 @@ const AdminDashboard = () => {
                                 <tbody>
                                     {filteredPhotographers.length === 0 ? (
                                         <tr>
-                                            <td colSpan="7" className="empty-results">
+                                            <td colSpan="8" className="empty-results">
                                                 No photographers found matching your filters.
                                             </td>
                                         </tr>
@@ -749,6 +845,11 @@ const AdminDashboard = () => {
                                                             {p.stripe_account_id ? 'Verified' : 'Unlinked'}
                                                         </span>
                                                     </td>
+                                                    <td>
+                                                        <span className="type-badge standard" style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 700 }}>
+                                                            {p.planName}
+                                                        </span>
+                                                    </td>
                                                     <td>{p.albumCount}</td>
                                                     <td>${p.totalRevenue.toFixed(2)}</td>
                                                     <td>${p.platformFees.toFixed(2)}</td>
@@ -764,7 +865,7 @@ const AdminDashboard = () => {
                                                 </tr>
                                                 {selectedPhotographer === p.id && (
                                                     <tr className="detail-row">
-                                                        <td colSpan="7">
+                                                        <td colSpan="8">
                                                             <div className="inspected-details">
                                                                 <div className="detail-grid">
                                                                     <div className="detail-col">
@@ -791,6 +892,36 @@ const AdminDashboard = () => {
                                                                             <Mail size={14} /> Contact User
                                                                         </Button>
                                                                     </div>
+                                                                    <div className="detail-col">
+                                                                        <h4>Subscription & Pricing</h4>
+                                                                        <div className="stat-pill">Active Plan: <strong>{p.planName}</strong></div>
+                                                                        <div style={{ display: 'flex', gap: '8px', marginTop: '0.75rem', alignItems: 'center' }}>
+                                                                            <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Change Plan:</span>
+                                                                            <select
+                                                                                value={p.plan_id || ''}
+                                                                                onChange={async (e) => {
+                                                                                    const newPlanId = e.target.value;
+                                                                                    const { error } = await supabase
+                                                                                        .from('profiles')
+                                                                                        .update({ plan_id: newPlanId || null })
+                                                                                        .eq('id', p.id);
+                                                                                    if (error) {
+                                                                                        alert('Failed to update plan: ' + error.message);
+                                                                                    } else {
+                                                                                        fetchAllData();
+                                                                                    }
+                                                                                }}
+                                                                                style={{ padding: '0.3rem 0.6rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                                                                            >
+                                                                                <option value="">-- No Plan --</option>
+                                                                                {plans.map(pl => (
+                                                                                    <option key={pl.id} value={pl.id}>
+                                                                                        {pl.name} (${pl.price}/mo)
+                                                                                    </option>
+                                                                                ))}
+                                                                            </select>
+                                                                        </div>
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </td>
@@ -801,6 +932,172 @@ const AdminDashboard = () => {
                                 </tbody>
                             </table>
                         </div>
+                    </div>
+                </>
+            )}
+
+            {/* Plans & Pricing Tab */}
+            {activeTab === 'pricing-plans' && (
+                <>
+                    <div className="table-section" style={{ marginTop: '3rem' }}>
+                        <div className="table-header">
+                            <div>
+                                <h2 className="table-title">Plans & Pricing Configuration</h2>
+                                <p style={{ fontSize: '0.875rem', color: '#64748b', margin: '0.25rem 0 0' }}>
+                                    Manage subscription tiers, photo upload limits, and platform fee commissions.
+                                </p>
+                            </div>
+                            <Button
+                                variant="orange"
+                                onClick={() => {
+                                    resetPlanForm();
+                                    setIsEditingPlan(true);
+                                }}
+                            >
+                                <Plus size={18} style={{ marginRight: '8px' }} />
+                                Create New Plan
+                            </Button>
+                        </div>
+
+                        <div className="popups-grid">
+                            {plans.length === 0 ? (
+                                <div className="empty-popups">No pricing plans configured. Create one to get started!</div>
+                            ) : (
+                                plans.map(p => {
+                                    // Custom border color based on price to make it look extremely premium
+                                    let borderTopStyle = '4px solid #cbd5e1';
+                                    let badgeColor = { background: '#f1f5f9', color: '#64748b' };
+                                    
+                                    if (p.price === 0) {
+                                        borderTopStyle = '4px solid #cbd5e1';
+                                        badgeColor = { background: '#f1f5f9', color: '#64748b' };
+                                    } else if (p.price > 0 && p.price < 40) {
+                                        borderTopStyle = '4px solid #10b981';
+                                        badgeColor = { background: '#dcfce7', color: '#166534' };
+                                    } else {
+                                        borderTopStyle = '4px solid #8b5cf6';
+                                        badgeColor = { background: '#eeddff', color: '#6d28d9' };
+                                    }
+
+                                    return (
+                                        <div key={p.id} className="popup-admin-card" style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: '260px', borderTop: borderTopStyle }}>
+                                            <div className="p-card-header" style={{ paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span className="p-type-badge" style={{ ...badgeColor, fontWeight: 700, textTransform: 'uppercase', fontSize: '0.7rem' }}>
+                                                    Subscription Tier
+                                                </span>
+                                                <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 500 }}>ID: {p.id.substring(0, 8)}...</span>
+                                            </div>
+                                            <div className="p-card-body" style={{ flex: 1 }}>
+                                                <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.5rem', fontWeight: 800, color: '#0f172a' }}>{p.name}</h3>
+                                                
+                                                <div style={{ display: 'flex', alignItems: 'baseline', margin: '0.5rem 0 1.25rem' }}>
+                                                    <span style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--primary-blue)' }}>${p.price}</span>
+                                                    <span style={{ fontSize: '0.875rem', color: '#64748b', marginLeft: '4px' }}>/ month</span>
+                                                </div>
+
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', background: '#fafafa', padding: '0.75rem', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+                                                        <span style={{ color: '#64748b' }}>Photo Limit:</span>
+                                                        <strong style={{ color: '#0f172a' }}>{p.upload_limit.toLocaleString()} photos</strong>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+                                                        <span style={{ color: '#64748b' }}>Platform Commission:</span>
+                                                        <strong style={{ color: '#10b981' }}>{p.commission_percent}%</strong>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="p-card-footer" style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1rem', marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
+                                                <button
+                                                    className="p-action-btn edit"
+                                                    style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '4px' }}
+                                                    onClick={() => {
+                                                        setCurrentPlan(p);
+                                                        setPlanForm(p);
+                                                        setIsEditingPlan(true);
+                                                    }}
+                                                >
+                                                    <Edit size={14} />
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    className="p-action-btn delete"
+                                                    style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '4px' }}
+                                                    onClick={() => handleDeletePlan(p.id)}
+                                                    disabled={['00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000003'].includes(p.id)}
+                                                    title={['00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000003'].includes(p.id) ? "Default system plan cannot be deleted" : "Delete plan"}
+                                                >
+                                                    <Trash2 size={14} />
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+
+                        {/* Plan Editor Modal */}
+                        {isEditingPlan && (
+                            <div className="popup-overlay-admin" onClick={(e) => e.target === e.currentTarget && setIsEditingPlan(false)}>
+                                <div className="popup-modal-admin">
+                                    <div className="modal-header-admin">
+                                        <h3>{currentPlan ? 'Edit Pricing Plan' : 'Create Pricing Plan'}</h3>
+                                        <button className="close-modal-admin" onClick={() => setIsEditingPlan(false)}>&times;</button>
+                                    </div>
+                                    <div className="modal-body-admin">
+                                        <div className="form-group-admin">
+                                            <label>Plan Name</label>
+                                            <input
+                                                type="text"
+                                                value={planForm.name}
+                                                onChange={(e) => setPlanForm({ ...planForm, name: e.target.value })}
+                                                placeholder="e.g. Free, Starter, Pro, Business..."
+                                                disabled={currentPlan && ['00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000003'].includes(currentPlan.id)}
+                                            />
+                                        </div>
+                                        <div className="form-row-admin">
+                                            <div className="form-group-admin">
+                                                <label>Monthly Price ($ USD)</label>
+                                                <input
+                                                    type="number"
+                                                    value={planForm.price}
+                                                    onChange={(e) => setPlanForm({ ...planForm, price: e.target.value })}
+                                                    placeholder="0.00"
+                                                    min="0"
+                                                    step="0.01"
+                                                />
+                                            </div>
+                                            <div className="form-group-admin">
+                                                <label>Photo Upload Limit</label>
+                                                <input
+                                                    type="number"
+                                                    value={planForm.upload_limit}
+                                                    onChange={(e) => setPlanForm({ ...planForm, upload_limit: e.target.value })}
+                                                    placeholder="100"
+                                                    min="1"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="form-group-admin">
+                                            <label>Platform Commission Fee (%)</label>
+                                            <input
+                                                type="number"
+                                                value={planForm.commission_percent}
+                                                onChange={(e) => setPlanForm({ ...planForm, commission_percent: e.target.value })}
+                                                placeholder="10"
+                                                min="0"
+                                                max="100"
+                                                step="0.1"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="modal-footer-admin">
+                                        <Button variant="secondary" onClick={() => setIsEditingPlan(false)}>Cancel</Button>
+                                        <Button variant="orange" onClick={handleSavePlan}>Save Plan</Button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </>
             )}
