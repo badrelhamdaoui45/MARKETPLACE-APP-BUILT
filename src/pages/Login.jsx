@@ -3,6 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import { stripeCountries } from '../utils/stripeCountries';
+import SearchablePhonePrefixSelect from '../components/SearchablePhonePrefixSelect';
 import '../components/ui/ui.css';
 import { supabase } from '../lib/supabase';
 
@@ -12,6 +14,7 @@ const Login = () => {
     const [password, setPassword] = useState('');
     const [phone, setPhone] = useState('');
     const [countryCode, setCountryCode] = useState('+1');
+    const [phoneCountry, setPhoneCountry] = useState('US');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const { signIn, signInWithGoogle, signInWithPhonePassword } = useAuth();
@@ -142,25 +145,19 @@ const Login = () => {
                             <div className="input-group" style={{ marginBottom: '1.5rem' }}>
                                 <label className="input-label">Phone Number</label>
                                 <div className="phone-input-container">
-                                    <select 
-                                        className="country-code-select" 
-                                        value={countryCode} 
-                                        onChange={(e) => setCountryCode(e.target.value)}
-                                    >
-                                        <option value="+1">+1 (US/CA)</option>
-                                        <option value="+44">+44 (UK)</option>
-                                        <option value="+33">+33 (FR)</option>
-                                        <option value="+49">+49 (DE)</option>
-                                        <option value="+34">+34 (ES)</option>
-                                        <option value="+39">+39 (IT)</option>
-                                        <option value="+61">+61 (AU)</option>
-                                        <option value="+81">+81 (JP)</option>
-                                        <option value="+86">+86 (CN)</option>
-                                        <option value="+91">+91 (IN)</option>
-                                        <option value="+55">+55 (BR)</option>
-                                        <option value="+52">+52 (MX)</option>
-                                        <option value="+212">+212 (MA)</option>
-                                    </select>
+                                    <SearchablePhonePrefixSelect 
+                                        value={phoneCountry} 
+                                        onChange={(code) => {
+                                            setPhoneCountry(code);
+                                            const matched = stripeCountries.find(c => c.code === code);
+                                            if (matched) {
+                                                setCountryCode(matched.prefix);
+                                            }
+                                        }}
+                                        padding="0.75rem"
+                                        fontSize="0.95rem"
+                                        standalone={true}
+                                    />
                                     <input
                                         className="input-field phone-field"
                                         type="tel"

@@ -3,19 +3,43 @@ import { useAuth } from '../../context/AuthContext';
 import { createConnectedAccount, createAccountLink, getAccountStatus, createLoginLink } from '../../lib/stripe/service';
 import Button from '../ui/Button';
 import { RefreshCw, AlertTriangle, CheckCircle, ExternalLink } from 'lucide-react';
+import { stripeCountries } from '../../utils/stripeCountries';
+import { supabase } from '../../lib/supabase';
+import SearchableCountrySelect from '../SearchableCountrySelect';
+import SearchablePhonePrefixSelect from '../SearchablePhonePrefixSelect';
 
 const ConnectStripe = () => {
-    const { user, profile } = useAuth();
+    const { user, profile, refreshProfile } = useAuth();
     const [loading, setLoading] = useState(false);
     const [accountStatus, setAccountStatus] = useState(null);
     const [loadingStatus, setLoadingStatus] = useState(false);
     const [error, setError] = useState(null);
+
+    // Stripe onboarding prefill details
+    const [selectedCountry, setSelectedCountry] = useState('US');
+    const [selectedPhoneCountry, setSelectedPhoneCountry] = useState('US');
+    const [phoneNumber, setPhoneNumber] = useState('');
 
     useEffect(() => {
         if (profile?.stripe_account_id) {
             checkStatus();
         }
     }, [profile]);
+
+    useEffect(() => {
+        if (profile?.country) {
+            const matched = stripeCountries.find(c => c.name.toLowerCase() === profile.country.toLowerCase());
+            if (matched) {
+                setSelectedCountry(matched.code);
+                setSelectedPhoneCountry(matched.code);
+            }
+        }
+    }, [profile]);
+
+    // Automatically default phone country prefix when payout country changes
+    useEffect(() => {
+        setSelectedPhoneCountry(selectedCountry);
+    }, [selectedCountry]);
 
     const checkStatus = async () => {
         setLoadingStatus(true);
@@ -43,15 +67,44 @@ const ConnectStripe = () => {
             let accountId = profile.stripe_account_id;
 
             if (!accountId) {
-                const account = await createConnectedAccount(user.id);
+                const account = await createConnectedAccount(user.id, selectedCountry);
                 accountId = account.id;
             }
 
             const url = await createAccountLink(accountId);
-            window.location.href = url;
+            window.open(url, '_blank', 'noopener,noreferrer');
 
         } catch (error) {
             alert('Error connecting Stripe: ' + error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleResetAccount = async () => {
+        if (!window.confirm("Are you sure you want to disconnect this Stripe account and start payment setup over? This will let you choose a different payout country and phone number.")) {
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const { error } = await supabase
+                .from('photographer_private_data')
+                .update({ stripe_account_id: null })
+                .eq('id', user.id);
+
+            if (error) throw error;
+
+            // Clear local states
+            setAccountStatus(null);
+            setError(null);
+
+            // Refresh profile in context
+            refreshProfile();
+
+            alert("Stripe account successfully disconnected. You can now select your country and phone number to start over.");
+        } catch (err) {
+            alert("Error resetting Stripe account: " + err.message);
         } finally {
             setLoading(false);
         }
@@ -114,9 +167,14 @@ const ConnectStripe = () => {
                                     : 'Stripe needs additional information to enable payouts.'}
                             </p>
                         </div>
-                        <Button onClick={handleConnect} disabled={loading} style={{ background: '#d97706', color: 'white' }}>
-                            {loading ? 'Opening...' : (hasDueItems ? 'Complete setup' : 'Check on Stripe')}
-                        </Button>
+                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                            <Button onClick={handleResetAccount} variant="outline" size="sm" style={{ color: '#ef4444', borderColor: '#fca5a5', background: 'white', fontWeight: '600' }}>
+                                Reset Account
+                            </Button>
+                            <Button onClick={handleConnect} disabled={loading} style={{ background: '#d97706', color: 'white' }}>
+                                {loading ? 'Opening...' : (hasDueItems ? 'Complete setup' : 'Check on Stripe')}
+                            </Button>
+                        </div>
                     </div>
 
                     {hasDueItems && (
@@ -150,14 +208,19 @@ const ConnectStripe = () => {
                         Your account is verified and ready to receive payments.
                     </span>
                 </div>
-                <Button
-                    variant="outline"
-                    onClick={handleViewDashboard}
-                    disabled={loading}
-                    style={{ fontSize: '0.85rem', padding: '0.5rem 1rem', background: 'white' }}
-                >
-                    {loading ? 'Opening...' : 'Stripe Dashboard'} <ExternalLink size={14} style={{ marginLeft: '4px' }} />
-                </Button>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <Button onClick={handleResetAccount} variant="outline" size="sm" style={{ color: '#ef4444', borderColor: '#fca5a5', background: 'white', padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
+                        Reset Account
+                    </Button>
+                    <Button
+                        variant="outline"
+                        onClick={handleViewDashboard}
+                        disabled={loading}
+                        style={{ fontSize: '0.85rem', padding: '0.5rem 1rem', background: 'white' }}
+                    >
+                        {loading ? 'Opening...' : 'Stripe Dashboard'} <ExternalLink size={14} style={{ marginLeft: '4px' }} />
+                    </Button>
+                </div>
             </div>
         );
     };
@@ -175,13 +238,31 @@ const ConnectStripe = () => {
     }
 
     return (
-        <div style={{ padding: '1.5rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--accent-primary)', marginBottom: '1.5rem' }}>
-            <h3 style={{ marginBottom: '0.5rem' }}>Payment Setup</h3>
-            <p style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>
-                To receive payouts from your sales, you must connect a Stripe account.
+        <div style={{ 
+            padding: '2rem', 
+            background: 'white', 
+            borderRadius: '16px', 
+            border: '1px solid #e2e8f0', 
+            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03)',
+            marginBottom: '1.5rem' 
+        }}>
+            <h3 style={{ marginBottom: '0.5rem', fontWeight: '700', fontSize: '1.25rem', color: '#1e293b' }}>Payment Setup</h3>
+            <p style={{ marginBottom: '1.5rem', color: '#64748b', fontSize: '0.95rem', lineHeight: '1.5' }}>
+                To receive payouts from your sales, connect a Stripe account. Select your payout country then click the button below to be redirected to Stripe onboarding.
             </p>
-            <Button onClick={handleConnect} disabled={loading} style={{ background: '#635bff' }}>
-                {loading ? 'Redirecting...' : 'Connect with Stripe'}
+
+            <div style={{ marginBottom: '1.25rem' }}>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#475569', marginBottom: '0.5rem' }}>
+                    Payout Country
+                </label>
+                <SearchableCountrySelect value={selectedCountry} onChange={setSelectedCountry} />
+                <span style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.375rem', display: 'block' }}>
+                    Select the country where you'll receive your payouts.
+                </span>
+            </div>
+
+            <Button onClick={handleConnect} disabled={loading} style={{ background: '#635bff', color: 'white', fontWeight: '600', padding: '0.75rem 1.5rem', borderRadius: '8px' }}>
+                {loading ? 'Redirecting to Stripe...' : 'Connect with Stripe'}
             </Button>
         </div>
     );

@@ -13,7 +13,7 @@ import { useLanguage } from '../context/LanguageContext';
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
 const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, photographerId, isFree, currency = 'USD' }) => {
-    const { user, signIn, signUp } = useAuth();
+    const { user, profile, signIn, signUp, signInWithPhonePassword, signUpWithPhone } = useAuth();
     const { t } = useLanguage();
     const [step, setStep] = useState(1);
     const [authMode, setAuthMode] = useState('signup'); // 'login' or 'signup'
@@ -34,19 +34,20 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
     const [selectedBankIndex, setSelectedBankIndex] = useState(0);
 
     const effectivelyFree = isFree || parseFloat(totalAmount) === 0;
+    const isLoggedWithPhone = !!(user && !user.email && !profile?.email);
 
     useEffect(() => {
         if (user) {
             setFormData(prev => ({
                 ...prev,
-                email: user.email,
-                fullName: user.user_metadata?.full_name || ''
+                email: user.email || profile?.email || '',
+                fullName: user.user_metadata?.full_name || profile?.full_name || ''
             }));
         }
         if (isOpen && photographerId) {
             fetchPhotographerSettings();
         }
-    }, [user, isOpen, photographerId]);
+    }, [user, profile, isOpen, photographerId]);
 
     const fetchPhotographerSettings = async () => {
         try {
@@ -81,8 +82,6 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
         setAuthError('');
     };
 
-    const { signInWithPhonePassword, signUpWithPhone } = useAuth();
-
     const handleAuthAction = async () => {
         setAuthError('');
         setInitializingPayment(true);
@@ -92,6 +91,7 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
                 if (authMethod === 'phone') {
                     if (!formData.phone || !formData.password) throw new Error("Please enter phone and password.");
                     if (authMode === 'signup' && !formData.fullName) throw new Error("Please enter your full name.");
+                    if (authMode === 'signup' && !formData.email) throw new Error("Please enter your email address.");
                     
                     const fullPhoneNumber = countryCode + formData.phone.replace(/^0+/, '');
                     
@@ -99,8 +99,18 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
                         const { error } = await signInWithPhonePassword(fullPhoneNumber, formData.password);
                         if (error) throw error;
                     } else {
-                        const { error } = await signUpWithPhone(fullPhoneNumber, formData.password, formData.fullName, 'runner');
+                        const { data: signUpData, error } = await signUpWithPhone(fullPhoneNumber, formData.password, formData.fullName, 'runner', { email: formData.email });
                         if (error) throw error;
+                        
+                        if (signUpData?.user && formData.email) {
+                            const { error: profileError } = await supabase
+                                .from('profiles')
+                                .update({ email: formData.email })
+                                .eq('id', signUpData.user.id);
+                            if (profileError) {
+                                console.error("Error updating profile email after phone signup:", profileError);
+                            }
+                        }
                     }
                 } else {
                     if (authMode === 'login') {
@@ -113,6 +123,14 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
                         if (error) throw error;
                     }
                 }
+            } else if (isLoggedWithPhone) {
+                if (!formData.email) throw new Error("Please enter your email address to receive your photos.");
+                
+                const { error: updateError } = await supabase
+                    .from('profiles')
+                    .update({ email: formData.email })
+                    .eq('id', user.id);
+                if (updateError) throw updateError;
             }
 
             // Move to Step 2 (or Final if Free)
@@ -262,9 +280,9 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
                                 </div>
                             )}
 
-                            {authMethod === 'email' ? (
+                            {(authMethod === 'email' || isLoggedWithPhone || (!user && authMode === 'signup' && authMethod === 'phone')) && (
                                 <div className="form-group">
-                                    <label>Email Address</label>
+                                    <label>{isLoggedWithPhone ? "Email Address (to receive your photos)" : "Email Address"}</label>
                                     <div className="input-wrapper">
                                         <Mail size={18} className="input-icon" />
                                         <input
@@ -274,11 +292,13 @@ const CheckoutModal = ({ isOpen, onClose, onConfirm, totalAmount, isLoading, pho
                                             value={formData.email}
                                             onChange={handleInputChange}
                                             className="checkout-input"
-                                            disabled={!!user} // Disable if logged in
+                                            disabled={!!(user && (user.email || profile?.email))}
                                         />
                                     </div>
                                 </div>
-                            ) : !user && (
+                            )}
+
+                            {!user && authMethod === 'phone' && (
                                 <div className="form-group">
                                     <label>Phone Number</label>
                                     <div className="phone-input-row" style={{ display: 'flex', gap: '0.5rem' }}>

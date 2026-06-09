@@ -127,15 +127,47 @@ serve(async (req) => {
 
         switch (action) {
             case 'create-connected-account': {
-                const { userId } = payload
-                result = await stripe.accounts.create({
+                const { userId, country, phone } = payload
+
+                const capabilities: any = {
+                    transfers: { requested: true },
+                }
+
+                // List of countries that support direct card payment acceptance (card_payments capability)
+                const cardPaymentsSupportedCountries = [
+                    'US', 'CA', 'GB', 'FR', 'DE', 'IT', 'ES', 'AU', 'NZ', 'IE', 'NL', 'BE', 'CH', 'SE', 'NO', 'DK', 'FI', 'AT', 'PT', 'SG', 'JP', 'HK',
+                    'BG', 'BR', 'CY', 'CZ', 'EE', 'GR', 'HR', 'HU', 'IN', 'LT', 'LU', 'LV', 'MT', 'MX', 'MY', 'PL', 'RO', 'SI', 'SK'
+                ]
+
+                if (!country || cardPaymentsSupportedCountries.includes(country.toUpperCase())) {
+                    capabilities.card_payments = { requested: true }
+                }
+
+                const accountParams: any = {
                     type: 'express',
-                    capabilities: {
-                        card_payments: { requested: true },
-                        transfers: { requested: true },
-                    },
+                    capabilities,
                     metadata: { user_id: userId },
-                })
+                }
+
+                if (country) {
+                    accountParams.country = country
+                    // If the country doesn't support card payments, it's a cross-border payout account.
+                    // These accounts require a 'recipient' service agreement.
+                    const isCrossBorder = !cardPaymentsSupportedCountries.includes(country.toUpperCase())
+                    if (isCrossBorder) {
+                        accountParams.tos_acceptance = {
+                            service_agreement: 'recipient'
+                        }
+                    }
+                }
+
+                if (phone) {
+                    accountParams.business_type = 'individual'
+                    accountParams.individual = {
+                        phone: phone
+                    }
+                }
+                result = await stripe.accounts.create(accountParams)
                 break
             }
 

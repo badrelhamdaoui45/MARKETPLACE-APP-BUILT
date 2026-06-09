@@ -6,6 +6,8 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import { countries } from '../utils/countries';
+import { stripeCountries } from '../utils/stripeCountries';
+import SearchablePhonePrefixSelect from '../components/SearchablePhonePrefixSelect';
 import '../components/ui/ui.css';
 
 const Register = () => {
@@ -14,6 +16,7 @@ const Register = () => {
     const [password, setPassword] = useState('');
     const [phone, setPhone] = useState('');
     const [countryCode, setCountryCode] = useState('+1');
+    const [phoneCountry, setPhoneCountry] = useState('US');
     const [fullName, setFullName] = useState('');
     const [role, setRole] = useState('runner');
     const [country, setCountry] = useState('');
@@ -89,12 +92,49 @@ const Register = () => {
                 <h2 className="auth-title">Create Account</h2>
                 {error && <div className="error-alert">{error}</div>}
                 <form onSubmit={handleRegister}>
+                    
+                    {/* Role Switcher Cards */}
+                    <div className="role-cards-container">
+                        <button
+                            type="button"
+                            className={`role-card ${role === 'runner' ? 'active' : ''}`}
+                            onClick={() => setRole('runner')}
+                        >
+                            <div className="role-card-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                            </div>
+                            <span className="role-card-text">Find My Photos</span>
+                        </button>
+                        <button
+                            type="button"
+                            className={`role-card ${role === 'photographer' ? 'active' : ''}`}
+                            onClick={() => setRole('photographer')}
+                        >
+                            <div className="role-card-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                                    <circle cx="12" cy="13" r="4"></circle>
+                                </svg>
+                            </div>
+                            <span className="role-card-text">Sell My Photos</span>
+                        </button>
+                    </div>
+
                     <div className="provider-buttons">
                         <Button 
                             type="button" 
                             variant="outline" 
                             className="w-full google-btn" 
-                            onClick={() => signInWithGoogle()}
+                            onClick={() => {
+                                localStorage.setItem('oauth_pending_role', role);
+                                if (role === 'photographer' && country) {
+                                    localStorage.setItem('oauth_pending_country', country);
+                                }
+                                signInWithGoogle();
+                            }}
                         >
                             <svg className="google-icon" viewBox="0 0 24 24">
                                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -161,25 +201,19 @@ const Register = () => {
                             <div className="input-group" style={{ marginBottom: '1.5rem' }}>
                                 <label className="input-label">Phone Number</label>
                                 <div className="phone-input-container">
-                                    <select 
-                                        className="country-code-select" 
-                                        value={countryCode} 
-                                        onChange={(e) => setCountryCode(e.target.value)}
-                                    >
-                                        <option value="+1">+1 (US/CA)</option>
-                                        <option value="+44">+44 (UK)</option>
-                                        <option value="+33">+33 (FR)</option>
-                                        <option value="+49">+49 (DE)</option>
-                                        <option value="+34">+34 (ES)</option>
-                                        <option value="+39">+39 (IT)</option>
-                                        <option value="+61">+61 (AU)</option>
-                                        <option value="+81">+81 (JP)</option>
-                                        <option value="+86">+86 (CN)</option>
-                                        <option value="+91">+91 (IN)</option>
-                                        <option value="+55">+55 (BR)</option>
-                                        <option value="+52">+52 (MX)</option>
-                                        <option value="+212">+212 (MA)</option>
-                                    </select>
+                                    <SearchablePhonePrefixSelect 
+                                        value={phoneCountry} 
+                                        onChange={(code) => {
+                                            setPhoneCountry(code);
+                                            const matched = stripeCountries.find(c => c.code === code);
+                                            if (matched) {
+                                                setCountryCode(matched.prefix);
+                                            }
+                                        }}
+                                        padding="0.75rem"
+                                        fontSize="0.95rem"
+                                        standalone={true}
+                                    />
                                     <input
                                         className="input-field phone-field"
                                         type="tel"
@@ -211,29 +245,7 @@ const Register = () => {
                         />
                     )}
 
-                    <div className="role-selection">
-                        <label className="input-label">I am a...</label>
-                        <div className="radio-options-list">
-                            {['Runner', 'Photographer'].map((roleOption) => (
-                                <label key={roleOption} className={`radio-option ${role === roleOption.toLowerCase() ? 'selected' : ''}`}>
-                                    <div className="radio-circle">
-                                        {role === roleOption.toLowerCase() && <div className="radio-dot" />}
-                                    </div>
-                                    <input
-                                        type="radio"
-                                        name="role"
-                                        value={roleOption.toLowerCase()}
-                                        checked={role === roleOption.toLowerCase()}
-                                        onChange={(e) => setRole(e.target.value)}
-                                        className="hidden-radio"
-                                    />
-                                    <span className="radio-text">{roleOption}</span>
-                                </label>
-                            ))}
-                        </div>
-                    </div>
-
-                    <Button type="submit" className="w-full action-btn" disabled={loading}>
+                    <Button type="submit" className="w-full action-btn mt-4" disabled={loading}>
                         {loading ? 'Creating...' : 'Sign Up'}
                     </Button>
                 </form>
@@ -254,7 +266,7 @@ const Register = () => {
 
                 .auth-card {
                     width: 100%;
-                    max-width: 420px;
+                    max-width: 460px;
                     padding: 2.5rem;
                 }
 
@@ -263,6 +275,63 @@ const Register = () => {
                     text-align: center;
                     font-weight: 800;
                     letter-spacing: -0.02em;
+                    font-size: 1.75rem;
+                }
+
+                /* Role Switcher Cards */
+                .role-cards-container {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 1rem;
+                    margin-bottom: 2rem;
+                }
+
+                .role-card {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 0.75rem;
+                    padding: 1.5rem 1rem;
+                    background: white;
+                    border: 2px solid #e2e8f0;
+                    border-radius: 12px;
+                    cursor: pointer;
+                    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+
+                .role-card:hover {
+                    border-color: #cbd5e1;
+                    background: #f8fafc;
+                    transform: translateY(-2px);
+                }
+
+                .role-card.active {
+                    border-color: #0f172a;
+                    background: #f8fafc;
+                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+                }
+
+                .role-card-icon {
+                    width: 32px;
+                    height: 32px;
+                    color: #64748b;
+                    transition: color 0.2s;
+                }
+
+                .role-card.active .role-card-icon {
+                    color: #0f172a;
+                }
+
+                .role-card-text {
+                    font-weight: 600;
+                    color: #475569;
+                    font-size: 0.95rem;
+                    transition: color 0.2s;
+                }
+
+                .role-card.active .role-card-text {
+                    color: #0f172a;
                 }
 
                 .provider-buttons {
@@ -313,11 +382,12 @@ const Register = () => {
                     padding: 0 0.75rem;
                     color: #6b7280;
                     font-size: 0.875rem;
+                    font-weight: 500;
                 }
 
                 .auth-method-toggle {
                     display: flex;
-                    background: #f3f4f6;
+                    background: #f1f5f9;
                     border-radius: 8px;
                     padding: 0.25rem;
                     margin-bottom: 1.5rem;
@@ -325,20 +395,20 @@ const Register = () => {
 
                 .toggle-btn {
                     flex: 1;
-                    padding: 0.5rem;
+                    padding: 0.6rem;
                     border: none;
                     background: transparent;
                     border-radius: 6px;
-                    font-size: 0.875rem;
+                    font-size: 0.9rem;
                     font-weight: 600;
-                    color: #6b7280;
+                    color: #64748b;
                     cursor: pointer;
                     transition: all 0.2s;
                 }
 
                 .toggle-btn.active {
                     background: white;
-                    color: #111827;
+                    color: #0f172a;
                     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
                 }
 
@@ -379,77 +449,9 @@ const Register = () => {
                     text-align: center;
                     border: 1px solid #fee2e2;
                 }
-
-                .role-selection {
-                    margin-bottom: 1.5rem;
-                }
-
-                /* Modern Radio Options List */
-                .radio-options-list {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 0.75rem;
-                    margin-top: 0.75rem;
-                }
-
-                .radio-option {
-                    display: flex;
-                    align-items: center;
-                    gap: 1rem;
-                    cursor: pointer;
-                    padding: 1rem;
-                    border-radius: 8px;
-                    transition: all 0.2s;
-                    border: 2px solid #e2e8f0;
-                    background: white;
-                }
-
-                .radio-option:hover {
-                    background: #f8fafc;
-                    border-color: #cbd5e1;
-                }
-
-                .radio-option.selected {
-                    background: #f0f9ff;
-                    border-color: #0f172a;
-                }
-
-                .radio-circle {
-                    width: 24px;
-                    height: 24px;
-                    border-radius: 50%;
-                    border: 2px solid #cbd5e1;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    transition: all 0.2s;
-                    flex-shrink: 0;
-                }
-
-                .radio-option.selected .radio-circle {
-                    border-color: #0f172a;
-                }
-
-                .radio-dot {
-                    width: 12px;
-                    height: 12px;
-                    background: #0f172a;
-                    border-radius: 50%;
-                }
-
-                .radio-text {
-                    font-size: 1rem;
-                    color: #475569;
-                    font-weight: 500;
-                }
-
-                .radio-option.selected .radio-text {
-                    color: #0f172a;
-                    font-weight: 600;
-                }
-
-                .hidden-radio {
-                    display: none;
+                
+                .mt-4 {
+                    margin-top: 1rem;
                 }
 
                 .auth-footer {
@@ -468,6 +470,12 @@ const Register = () => {
                 @media (max-width: 480px) {
                     .auth-card {
                         padding: 1.5rem;
+                    }
+                    .role-cards-container {
+                        gap: 0.5rem;
+                    }
+                    .role-card {
+                        padding: 1rem 0.5rem;
                     }
                 }
             `}</style>

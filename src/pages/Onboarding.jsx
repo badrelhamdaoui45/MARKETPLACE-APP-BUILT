@@ -7,6 +7,9 @@ import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import { countries } from '../utils/countries';
 import { createConnectedAccount, createAccountLink } from '../lib/stripe/service';
+import { stripeCountries } from '../utils/stripeCountries';
+import SearchableCountrySelect from '../components/SearchableCountrySelect';
+import SearchablePhonePrefixSelect from '../components/SearchablePhonePrefixSelect';
 import '../components/ui/ui.css';
 import { Check, ChevronRight, User, Globe, CreditCard } from 'lucide-react';
 
@@ -32,6 +35,26 @@ const Onboarding = () => {
     const [error, setError] = useState('');
     const [stripeLoading, setStripeLoading] = useState(false);
     const [showLoginModal, setShowLoginModal] = useState(false);
+
+    // Stripe country & phone states
+    const [stripeCountry, setStripeCountry] = useState('US');
+    const [stripePhoneCountry, setStripePhoneCountry] = useState('US');
+    const [stripePhone, setStripePhone] = useState('');
+
+    useEffect(() => {
+        if (formData.country) {
+            const matched = stripeCountries.find(c => c.name.toLowerCase() === formData.country.toLowerCase());
+            if (matched) {
+                setStripeCountry(matched.code);
+                setStripePhoneCountry(matched.code);
+            }
+        }
+    }, [formData.country]);
+
+    // Automatically default phone country prefix when payout country changes
+    useEffect(() => {
+        setStripePhoneCountry(stripeCountry);
+    }, [stripeCountry]);
 
     // Load saved data on mount
     useEffect(() => {
@@ -128,20 +151,13 @@ const Onboarding = () => {
         try {
             // Ensure we have a user (should be logged in from Step 2)
             if (!user) {
-                // Determine if we just signed up or lost session. 
-                // Wait for AuthContext to sync? 
-                // For now throw error, but in reality AuthContext updates fast.
-                // A better approach might be to wait for 'user' to be non-null.
                 throw new Error("User session not found. Please try refreshing.");
             }
 
-            const account = await createConnectedAccount(user.id);
+            const account = await createConnectedAccount(user.id, stripeCountry);
             const url = await createAccountLink(account.id);
-            window.location.href = url;
+            window.open(url, '_blank', 'noopener,noreferrer');
 
-            // Clear local storage since we are leaving
-            // localStorage.removeItem('onboardingData');
-            // localStorage.removeItem('onboardingStep');
         } catch (err) {
             alert('Error connecting Stripe: ' + err.message);
         } finally {
@@ -253,43 +269,56 @@ const Onboarding = () => {
     );
 
     // STEP 3: Billing Information
-    const renderStep3 = () => (
-        <div className="onboarding-form billing-step">
-            <h3 className="step-title">Billing information</h3>
-            <p className="step-desc">
-                To receive payments from your photo sales, you need to connect a Stripe account.
-            </p>
+    const renderStep3 = () => {
+        return (
+            <div className="onboarding-form billing-step">
+                <h3 className="step-title">Billing information</h3>
+                <p className="step-desc">
+                    To receive payments from your photo sales, you need to connect a Stripe account.
+                </p>
 
-            <div className="billing-options">
-                <div className="billing-card highlight">
-                    <div className="billing-icon">
-                        <CreditCard size={32} />
+                <div className="billing-options">
+                    <div className="billing-card highlight">
+                        <div className="billing-icon">
+                            <CreditCard size={32} />
+                        </div>
+                        <h4>Set it up now</h4>
+                        <p>Connect immediately to start selling.</p>
+
+                        <div style={{ textAlign: 'left', marginBottom: '1.25rem', marginTop: '1rem' }}>
+                            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#475569', marginBottom: '0.375rem' }}>
+                                Payout Country
+                            </label>
+                            <SearchableCountrySelect value={stripeCountry} onChange={setStripeCountry} />
+                            <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.375rem' }}>
+                                Select the country where you'll receive payouts.
+                            </p>
+                        </div>
+
+                        <Button
+                            onClick={handleStripeConnect}
+                            disabled={stripeLoading}
+                            className="w-full stripe-btn"
+                        >
+                            {stripeLoading ? 'Redirecting to Stripe...' : 'Connect Stripe'}
+                        </Button>
                     </div>
-                    <h4>Set it up now</h4>
-                    <p>Connect immediately to start selling.</p>
-                    <Button
-                        onClick={handleStripeConnect}
-                        disabled={stripeLoading}
-                        className="w-full stripe-btn"
-                    >
-                        {stripeLoading ? 'Connecting...' : 'Connect Stripe'}
-                    </Button>
-                </div>
 
-                <div className="billing-card">
-                    <h4>Set it up later</h4>
-                    <p>You can skip this for now and configure it in your dashboard settings.</p>
-                    <Button
-                        variant="outline"
-                        onClick={handleFinishLater}
-                        className="w-full"
-                    >
-                        Finish & Go to Dashboard
-                    </Button>
+                    <div className="billing-card">
+                        <h4>Set it up later</h4>
+                        <p>You can skip this for now and configure it in your dashboard settings.</p>
+                        <Button
+                            variant="outline"
+                            onClick={handleFinishLater}
+                            className="w-full"
+                        >
+                            Finish & Go to Dashboard
+                        </Button>
+                    </div>
                 </div>
             </div>
-        </div>
-    );
+        );
+    };
 
     return (
         <div className="onboarding-container">

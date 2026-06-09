@@ -16,7 +16,7 @@ import { formatPrice } from '../utils/currencies';
 const Cart = () => {
     const { t } = useLanguage();
     const { cartItems, removeFromCart, clearCart, calculateTotal } = useCart();
-    const { user, loading: authLoading } = useAuth();
+    const { user, profile, loading: authLoading } = useAuth();
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
 
@@ -105,6 +105,7 @@ const Cart = () => {
                     const { error } = await supabase.from('transactions').insert({
                         order_number: generateOrderNumber(),
                         buyer_id: user?.id || null, // Can be null (guest)
+                        buyer_email: profile?.email || user?.email || null,
                         photographer_id: photographerId,
                         album_id: albumId,
                         amount: amount,
@@ -233,6 +234,7 @@ const Cart = () => {
                 const { error: txError } = await supabase.from('transactions').insert({
                     order_number: generateOrderNumber(),
                     buyer_id: user?.id || null,
+                    buyer_email: checkoutData.email || profile?.email || user?.email || null,
                     photographer_id: group.photographer_id,
                     album_id: albumId,
                     amount: groupPrice,

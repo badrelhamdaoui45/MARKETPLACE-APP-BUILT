@@ -15,13 +15,17 @@ export const AuthProvider = ({ children }) => {
         // Check active session
         supabase.auth.getSession().then(({ data: { session } }) => {
             setUser(session?.user ?? null);
-            if (session?.user) fetchProfile(session.user.id);
+            if (session?.user) {
+                handlePendingOAuthData(session.user.id).then(() => fetchProfile(session.user.id));
+            }
             else setLoading(false);
         });
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             setUser(session?.user ?? null);
-            if (session?.user) fetchProfile(session.user.id);
+            if (session?.user) {
+                handlePendingOAuthData(session.user.id).then(() => fetchProfile(session.user.id));
+            }
             else {
                 setProfile(null);
                 setLoading(false);
@@ -30,6 +34,30 @@ export const AuthProvider = ({ children }) => {
 
         return () => subscription.unsubscribe();
     }, []);
+
+    const handlePendingOAuthData = async (userId) => {
+        const pendingRole = localStorage.getItem('oauth_pending_role');
+        const pendingCountry = localStorage.getItem('oauth_pending_country');
+
+        if (pendingRole) {
+            const updateData = { role: pendingRole };
+            if (pendingCountry) updateData.country = pendingCountry;
+
+            try {
+                // Update public profile
+                await supabase.from('profiles').update(updateData).eq('id', userId);
+                
+                // Update auth metadata
+                await supabase.auth.updateUser({ data: updateData });
+            } catch (err) {
+                console.error('Error applying pending OAuth data:', err);
+            } finally {
+                // Clear the local storage
+                localStorage.removeItem('oauth_pending_role');
+                localStorage.removeItem('oauth_pending_country');
+            }
+        }
+    };
 
     const fetchProfile = async (userId) => {
         try {
@@ -127,6 +155,10 @@ export const AuthProvider = ({ children }) => {
 
     const signOut = () => supabase.auth.signOut();
 
+    const refreshProfile = () => {
+        if (user) fetchProfile(user.id);
+    };
+
     const value = {
         user,
         profile,
@@ -138,6 +170,7 @@ export const AuthProvider = ({ children }) => {
         signInWithGoogle,
         signInWithPhone,
         signOut,
+        refreshProfile,
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

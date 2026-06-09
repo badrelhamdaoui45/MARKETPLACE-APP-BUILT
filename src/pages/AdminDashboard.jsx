@@ -15,7 +15,8 @@ import SkeletonPage from '../components/ui/SkeletonPage';
 import { testGeminiAPI, detectBibsBatch } from '../lib/gemini';
 import { pingStripe } from '../lib/stripe/service';
 import Modal from '../components/ui/Modal';
-import RunnerDetector from '../components/admin/RunnerDetector';
+import AdminSmartDetector from '../components/admin/AdminSmartDetector';
+import AdminBuyersDirectory from '../components/admin/AdminBuyersDirectory';
 
 const AdminDashboard = () => {
     const [photographers, setPhotographers] = useState([]);
@@ -60,9 +61,9 @@ const AdminDashboard = () => {
 
     // Settings Tab State
     const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'popups', 'blog', 'settings'
-    const [loopsStatus, setLoopsStatus] = useState('disconnected'); // 'disconnected', 'connected', 'testing'
-    const [savingLoops, setSavingLoops] = useState(false);
-    const [loopsTestResult, setLoopsTestResult] = useState(null);
+    const [resendStatus, setResendStatus] = useState('disconnected'); // 'disconnected', 'connected', 'testing'
+    const [savingResend, setSavingResend] = useState(false);
+    const [resendTestResult, setResendTestResult] = useState(null);
     const [showToast, setShowToast] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
     const [geminiStatus, setGeminiStatus] = useState('disconnected'); // 'disconnected', 'connected', 'testing'
@@ -91,7 +92,7 @@ const AdminDashboard = () => {
 
     useEffect(() => {
         fetchAllData();
-        fetchLoopsSettings();
+        fetchResendSettings();
         fetchGeminiSettings();
     }, []);
 
@@ -181,40 +182,40 @@ const AdminDashboard = () => {
         }
     };
 
-    const fetchLoopsSettings = async () => {
+    const fetchResendSettings = async () => {
         try {
-            const { data, error } = await supabase.functions.invoke('sync-to-loops', {
+            const { data, error } = await supabase.functions.invoke('sync-to-resend', {
                 body: { action: 'test-connection', payload: {} }
             });
 
             if (!error && data?.success) {
-                setLoopsStatus('connected');
+                setResendStatus('connected');
             } else {
-                setLoopsStatus('disconnected');
+                setResendStatus('disconnected');
             }
         } catch (error) {
-            console.error('Error checking Loops status:', error);
-            setLoopsStatus('disconnected');
+            console.error('Error checking Resend status:', error);
+            setResendStatus('disconnected');
         }
     };
 
-    const handleTestLoops = async () => {
-        setSavingLoops(true);
-        setLoopsTestResult(null);
+    const handleTestResend = async () => {
+        setSavingResend(true);
+        setResendTestResult(null);
         try {
-            const { data, error } = await supabase.functions.invoke('sync-to-loops', {
+            const { data, error } = await supabase.functions.invoke('sync-to-resend', {
                 body: { action: 'test-connection', payload: {} }
             });
 
             if (error) throw error;
-            setLoopsTestResult({ success: true, message: data.message || 'Loops.so Connection Test Successful!' });
-            setLoopsStatus('connected');
+            setResendTestResult({ success: true, message: data.message || 'Resend.com Connection Test Successful!' });
+            setResendStatus('connected');
         } catch (error) {
-            console.error('Loops Test Error:', error);
-            setLoopsStatus('disconnected');
-            setLoopsTestResult({ success: false, message: `Failed: ${error.message}` });
+            console.error('Resend Test Error:', error);
+            setResendStatus('disconnected');
+            setResendTestResult({ success: false, message: `Failed: ${error.message}` });
         } finally {
-            setSavingLoops(false);
+            setSavingResend(false);
         }
     };
 
@@ -655,7 +656,13 @@ const AdminDashboard = () => {
                     className={`admin-tab ${activeTab === 'detector' ? 'active' : ''}`}
                     onClick={() => setActiveTab('detector')}
                 >
-                    Bib & Face Detector
+                    Smart AI Detector
+                </button>
+                <button
+                    className={`admin-tab ${activeTab === 'buyers' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('buyers')}
+                >
+                    Buyers Directory
                 </button>
             </div>
 
@@ -1445,26 +1452,26 @@ const AdminDashboard = () => {
                         </div>
 
                         <div style={{ padding: '2rem' }}>
-                            {/* Loops.so Integration Card */}
+                            {/* Resend.com Integration Card */}
                             <div className="integration-card">
                                 <div className="integration-header">
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                        <div style={{ width: '40px', height: '40px', background: '#eff6ff', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-blue)' }}>
+                                        <div style={{ width: '40px', height: '40px', background: '#f8fafc', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0f172a', border: '1px solid #e2e8f0' }}>
                                             <Mail size={20} />
                                         </div>
                                         <div>
                                             <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '700', color: '#0f172a' }}>
-                                                Loops.so Email Marketing
+                                                Resend.com Email Marketing
                                             </h3>
                                             <p style={{ margin: 0, fontSize: '0.875rem', color: '#64748b' }}>
-                                                Connect your Loops.so account to sync contacts and send automated emails
+                                                Connect your Resend.com account to sync contacts and manage email marketing
                                             </p>
                                         </div>
                                     </div>
                                     <div className="integration-status">
-                                        <div className={`status-dot ${loopsStatus === 'connected' ? 'connected' : 'disconnected'}`}></div>
-                                        <span style={{ fontSize: '0.875rem', fontWeight: '600', color: loopsStatus === 'connected' ? '#10b981' : '#64748b' }}>
-                                            {loopsStatus === 'connected' ? 'Connected' : 'Not Connected'}
+                                        <div className={`status-dot ${resendStatus === 'connected' ? 'connected' : 'disconnected'}`}></div>
+                                        <span style={{ fontSize: '0.875rem', fontWeight: '600', color: resendStatus === 'connected' ? '#10b981' : '#64748b' }}>
+                                            {resendStatus === 'connected' ? 'Connected' : 'Not Connected'}
                                         </span>
                                     </div>
                                 </div>
@@ -1478,17 +1485,17 @@ const AdminDashboard = () => {
                                         </div>
                                         <p className="helper-text">
                                             To update your API key, use the Supabase Dashboard or CLI:
-                                            <code>supabase secrets set LOOPS_API_KEY=your_key</code>
+                                            <code>supabase secrets set RESEND_API_KEY=re_your_key</code>
                                         </p>
                                     </div>
 
-                                    {loopsTestResult && (
+                                    {resendTestResult && (
                                         <div style={{
                                             marginBottom: '1.5rem',
                                             padding: '1rem',
                                             borderRadius: '8px',
-                                            backgroundColor: loopsTestResult.success ? '#f0fdf4' : '#fef2f2',
-                                            border: `1px solid ${loopsTestResult.success ? '#bbf7d0' : '#fecaca'}`,
+                                            backgroundColor: resendTestResult.success ? '#f0fdf4' : '#fef2f2',
+                                            border: `1px solid ${resendTestResult.success ? '#bbf7d0' : '#fecaca'}`,
                                             display: 'flex',
                                             alignItems: 'center',
                                             gap: '0.75rem'
@@ -1497,11 +1504,11 @@ const AdminDashboard = () => {
                                                 width: '8px',
                                                 height: '8px',
                                                 borderRadius: '50%',
-                                                backgroundColor: loopsTestResult.success ? '#22c55e' : '#ef4444'
+                                                backgroundColor: resendTestResult.success ? '#22c55e' : '#ef4444'
                                             }}></div>
-                                            <div style={{ fontSize: '0.875rem', color: loopsTestResult.success ? '#166534' : '#991b1b' }}>
-                                                <strong>{loopsTestResult.success ? 'Success: ' : 'Error: '}</strong>
-                                                {loopsTestResult.message}
+                                            <div style={{ fontSize: '0.875rem', color: resendTestResult.success ? '#166534' : '#991b1b' }}>
+                                                <strong>{resendTestResult.success ? 'Success: ' : 'Error: '}</strong>
+                                                {resendTestResult.message}
                                             </div>
                                         </div>
                                     )}
@@ -1509,10 +1516,10 @@ const AdminDashboard = () => {
                                     <div style={{ display: 'flex', gap: '1rem' }}>
                                         <Button
                                             variant="orange"
-                                            onClick={handleTestLoops}
-                                            disabled={savingLoops}
+                                            onClick={handleTestResend}
+                                            disabled={savingResend}
                                         >
-                                            {savingLoops ? 'Testing...' : 'Test Connection'}
+                                            {savingResend ? 'Testing...' : 'Test Connection'}
                                         </Button>
                                     </div>
                                 </div>
@@ -1760,11 +1767,20 @@ YOUR PRIMARY GOAL IS TO GROUP FACES OF THE SAME INDIVIDUAL ACROSS MULTIPLE IMAGE
                 )
             }
 
-            {/* Bib & Face Detector Tab */}
+            {/* Smart AI Detector Tab */}
             {
                 activeTab === 'detector' && (
                     <div style={{ marginTop: '2rem' }}>
-                        <RunnerDetector />
+                        <AdminSmartDetector />
+                    </div>
+                )
+            }
+
+            {/* Buyers Directory Tab */}
+            {
+                activeTab === 'buyers' && (
+                    <div style={{ marginTop: '2rem' }}>
+                        <AdminBuyersDirectory />
                     </div>
                 )
             }
@@ -2642,16 +2658,7 @@ YOUR PRIMARY GOAL IS TO GROUP FACES OF THE SAME INDIVIDUAL ACROSS MULTIPLE IMAGE
                     }
                 }
             `}</style>
-            {/* Detector Tab */}
-            {activeTab === 'detector' && (
-                <div className="tab-content fade-in" style={{ padding: '0', background: 'transparent', flex: 1, minHeight: 0 }}>
-                    <div style={{ height: '100%', overflowY: 'auto', padding: '0 0 2rem 0' }}>
-                        <div style={{ background: 'white', border: 'none', minHeight: '100%' }}>
-                            <RunnerDetector />
-                        </div>
-                    </div>
-                </div>
-            )}
+
         </div >
     );
 };

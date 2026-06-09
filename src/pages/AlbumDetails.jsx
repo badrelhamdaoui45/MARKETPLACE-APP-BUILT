@@ -50,12 +50,6 @@ const FaceCropThumbnail = ({ src, box, alt, className, style }) => {
     const padding = 0.6;
     const scale = 1 / (Math.max(faceW, faceH) * (1 + padding));
 
-    // When the image is scaled by `scale` and its top-left is at (0,0),
-    // the face centre sits at (faceCenterX * scale * 100)% of the scaled image.
-    // We want that point to land at the container's 50% mark, so:
-    const imgLeft = (0.5 - faceCenterX * scale) * 100;   // %
-    const imgTop  = (0.5 - faceCenterY * scale) * 100;   // %
-
     return (
         <div style={{ ...style, position: 'relative', overflow: 'hidden', width: '100%', height: '100%' }}>
             <img
@@ -66,8 +60,9 @@ const FaceCropThumbnail = ({ src, box, alt, className, style }) => {
                     position: 'absolute',
                     width:  `${scale * 100}%`,
                     height: 'auto',
-                    left:   `${imgLeft}%`,
-                    top:    `${imgTop}%`,
+                    left: '50%',
+                    top: '50%',
+                    transform: `translate(-${faceCenterX * 100}%, -${faceCenterY * 100}%)`,
                     display: 'block',
                     // Ensure the image itself has no additional constraints
                     maxWidth: 'none',

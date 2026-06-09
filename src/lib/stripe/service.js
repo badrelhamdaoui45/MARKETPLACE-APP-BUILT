@@ -32,21 +32,41 @@ const invokeHelper = async (functionName, options) => {
     });
 };
 
+/**
+ * Handle Edge Function invoke errors by extracting the specific Stripe/Supabase error message
+ */
+const handleInvokeError = async (error) => {
+    if (!error) return;
+    console.error('Stripe Invoke Error:', error);
+    let message = 'Unknown error occurred';
+    if (error?.context?.json) {
+        try {
+            const body = await error.context.json();
+            message = body.error || body.message || JSON.stringify(body);
+        } catch (e) {
+            message = error.message || JSON.stringify(error);
+        }
+    } else {
+        message = error.message || error.error || JSON.stringify(error);
+    }
+    throw new Error(typeof message === 'object' ? JSON.stringify(message) : message);
+};
+
 export const stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY);
 
 /**
  * INVOKE SECURE BACKEND: Create Stripe Express Account
  */
-export const createConnectedAccount = async (userId) => {
+export const createConnectedAccount = async (userId, country = null, phone = null) => {
     try {
         const { data, error } = await invokeHelper('stripe-service', {
             body: {
                 action: 'create-connected-account',
-                payload: { userId }
+                payload: { userId, country, phone }
             }
         });
 
-        if (error) throw error;
+        if (error) await handleInvokeError(error);
 
         // Save account ID to private data table
         await supabase.from('photographer_private_data').upsert({
@@ -78,7 +98,7 @@ export const createAccountLink = async (accountId) => {
             }
         });
 
-        if (error) throw error;
+        if (error) await handleInvokeError(error);
         return data.url;
     } catch (error) {
         console.error('Error creating account link:', error);
@@ -111,24 +131,7 @@ export const createCheckoutSession = async (albumId, price, photographerId, comm
             }
         });
 
-        if (error) {
-            console.error('Stripe Invoke Error:', error);
-
-            let message = 'Unknown error occurred';
-
-            if (error?.context?.json) {
-                try {
-                    const body = await error.context.json();
-                    message = body.error || body.message || JSON.stringify(body);
-                } catch (e) {
-                    message = error.message || JSON.stringify(error);
-                }
-            } else {
-                message = error.message || error.error || JSON.stringify(error);
-            }
-
-            throw new Error(typeof message === 'object' ? JSON.stringify(message) : message);
-        }
+        if (error) await handleInvokeError(error);
         return data;
     } catch (error) {
         console.error('Error creating checkout session:', error);
@@ -145,20 +148,7 @@ export const getAccountStatus = async (accountId) => {
             body: { action: 'get-account-status', payload: { accountId } }
         });
 
-        if (error) {
-            console.error('Stripe Invoke Error:', error);
-
-            let message = error.message;
-            if (error?.context?.json) {
-                try {
-                    const body = await error.context.json();
-                    message = body.error || body.message || JSON.stringify(body);
-                } catch (e) {
-                    message = error.message || JSON.stringify(error);
-                }
-            }
-            throw new Error(message);
-        }
+        if (error) await handleInvokeError(error);
         return data;
     } catch (error) {
         console.error('Error fetching account status:', error);
@@ -175,7 +165,7 @@ export const createLoginLink = async (accountId) => {
             body: { action: 'create-login-link', payload: { accountId } }
         });
 
-        if (error) throw error;
+        if (error) await handleInvokeError(error);
         return data.url;
     } catch (error) {
         console.error('Error creating login link:', error);
@@ -192,7 +182,7 @@ export const getAccountBalance = async (accountId) => {
             body: { action: 'get-account-balance', payload: { accountId } }
         });
 
-        if (error) throw error;
+        if (error) await handleInvokeError(error);
         return data;
     } catch (error) {
         console.error('Error fetching account balance:', error);
@@ -209,7 +199,7 @@ export const createPayout = async (accountId, amount, currency = 'usd') => {
             body: { action: 'create-payout', payload: { accountId, amount, currency } }
         });
 
-        if (error) throw error;
+        if (error) await handleInvokeError(error);
         return data;
     } catch (error) {
         console.error('Error creating payout:', error);
@@ -226,7 +216,7 @@ export const getPayoutHistory = async (accountId, limit = 10) => {
             body: { action: 'get-payout-history', payload: { accountId, limit } }
         });
 
-        if (error) throw error;
+        if (error) await handleInvokeError(error);
         return data;
     } catch (error) {
         console.error('Error fetching payout history:', error);
@@ -234,32 +224,13 @@ export const getPayoutHistory = async (accountId, limit = 10) => {
     }
 };
 
-/**
- * INVOKE SECURE BACKEND: Ping (Connectivity Test)
- * Uses direct fetch to ensure no JWT is attached by the Supabase SDK.
- */
 export const pingStripe = async () => {
     try {
-        const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-service`;
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
-            },
-            body: JSON.stringify({
-                action: 'ping',
-                payload: {}
-            })
+        const { data, error } = await invokeHelper('stripe-service', {
+            body: { action: 'ping', payload: {} }
         });
 
-        const data = await response.json();
-
-        if (!response.ok) {
-            console.error('Stripe Ping Invoke Error Details:', data);
-            throw new Error(data.error || `HTTP ${response.status}`);
-        }
-
+        if (error) await handleInvokeError(error);
         return data;
     } catch (error) {
         console.error('Stripe Ping Error:', error);
@@ -290,21 +261,7 @@ export const createPlanCheckoutSession = async (planId, planName, price, photogr
             }
         });
 
-        if (error) {
-            console.error('Stripe Invoke Error:', error);
-            let message = 'Unknown error occurred';
-            if (error?.context?.json) {
-                try {
-                    const body = await error.context.json();
-                    message = body.error || body.message || JSON.stringify(body);
-                } catch (e) {
-                    message = error.message || JSON.stringify(error);
-                }
-            } else {
-                message = error.message || error.error || JSON.stringify(error);
-            }
-            throw new Error(typeof message === 'object' ? JSON.stringify(message) : message);
-        }
+        if (error) await handleInvokeError(error);
         return data;
     } catch (error) {
         console.error('Error creating plan checkout session:', error);
