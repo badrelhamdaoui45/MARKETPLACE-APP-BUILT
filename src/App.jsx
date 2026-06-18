@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import { AuthProvider } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import Login from './pages/Login';
@@ -168,6 +169,7 @@ function App() {
               <Footer />
             </div>
           </Router>
+          <Analytics />
         </CartProvider>
       </LanguageProvider>
     </AuthProvider>
